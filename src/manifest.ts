@@ -17,10 +17,6 @@ export async function getManifest() {
       default_icon: './assets/icon-512.png',
       default_popup: './dist/popup/index.html',
     },
-    options_ui: {
-      page: './dist/options/index.html',
-      open_in_tab: true,
-    },
     background: isFirefox
       ? {
           scripts: ['dist/background/index.mjs'],
@@ -38,7 +34,6 @@ export async function getManifest() {
       'tabs',
       'storage',
       'activeTab',
-      'sidePanel',
     ],
     host_permissions: ['*://*/*'],
     content_scripts: [
