@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="100" src="./assets/src/logo.png">
+  <img width="100" src="./src/assets/logo.png">
 </p>
 
 <h1 align="center">Nitfree</h1>
