@@ -29,6 +29,7 @@ import { setupApp } from '~/logic/common-setup'
   // document.body.appendChild(container)
 
   setTimeout(() => {
+    console.info('[Nitfree] Inject now')
     const buttons = document.querySelector('[class^="channelBottomBarArea_"] [class^="channelTextArea_"] [class^="buttons_"]')
     if (buttons) {
       buttons.appendChild(container)
@@ -37,5 +38,5 @@ import { setupApp } from '~/logic/common-setup'
     const app = createApp(App)
     setupApp(app)
     app.mount(root)
-  }, 5000)
+  }, 3500)
 })()
