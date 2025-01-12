@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import './../../styles/nitfree-trigger.css'
+import './../../styles/nitfree-trigger.scss'
 
 let opened: boolean = false
 
 function onclick() {
-  opened = !opened
-
   if (opened) {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'escape' }))
   }
@@ -16,6 +14,8 @@ function onclick() {
       btn.click()
     }
   }
+
+  opened = !opened
 }
 </script>
 
