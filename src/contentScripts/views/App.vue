@@ -1,19 +1,26 @@
 <script setup lang="ts">
-import { useToggle } from '@vueuse/core'
+import './../../styles/nitfree-trigger.css'
 
-const [show, toggle] = useToggle(false)
+let opened: boolean = false
+
+function onclick() {
+  opened = !opened
+
+  if (opened) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'escape' }))
+  }
+  else {
+    const btn = document.getElementById('nitfree')?.previousSibling?.childNodes[0] as HTMLButtonElement
+
+    if (btn) {
+      btn.click()
+    }
+  }
+}
 </script>
 
 <template>
-  <div>
-    <div :class="show ? 'opacity-100' : 'opacity-0'">
-      <h1>
-        'Night
-      </h1>
-      <SharedSubtitle />
-    </div>
-    <button @click="toggle()">
-      <pixelarticons-power />
-    </button>
-  </div>
+  <button class="nitfree-trigger" @click="onclick">
+    <img src="/assets/logo.png" alt="Nitfree">
+  </button>
 </template>
