@@ -37,11 +37,11 @@ export async function getManifest() {
       'storage',
       'activeTab',
     ],
-    host_permissions: ['*://*/*'],
+    host_permissions: ['*://discord.com/*'],
     content_scripts: [
       {
         matches: [
-          '<all_urls>',
+          '*://discord.com/*',
         ],
         js: [
           'dist/contentScripts/index.global.js',
