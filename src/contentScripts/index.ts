@@ -6,6 +6,11 @@ import { setupApp } from '~/logic/common-setup'
 
 // Firefox `browser.tabs.executeScript()` requires scripts return a primitive value
 (() => {
+  if (document.getElementById(__NAME__)) {
+    console.info('[Nitfree] Container already exists, skipping injection.')
+    return
+  }
+
   console.info('[Nitfree] Hello world from content script!')
 
   // communication example: send previous tab title from background page
