@@ -1,8 +1,9 @@
-import { onMessage } from 'webext-bridge/content-script'
 import { createApp } from 'vue'
+import { onMessage } from 'webext-bridge/content-script'
+
 import { LogHelper } from '../core'
 import App from './views/App.vue'
-import { setupApp } from '~/logic/common-setup'
+import { setupApp } from '~/logic/common-setup';
 
 // Firefox `browser.tabs.executeScript()` requires scripts return a primitive value
 (() => {
@@ -34,12 +35,14 @@ import { setupApp } from '~/logic/common-setup'
 
   setTimeout(() => {
     LogHelper.log('[Nitfree] Inject now')
-    const buttons = document.querySelector('[class^="channelBottomBarArea_"] [class^="channelTextArea_"] [class^="buttons_"]')
+
+    const buttons = document.querySelector('[class^=\'channelBottomBarArea_\'] [class^=\'channelTextArea_\'] [class^=\'buttons_\']')
     if (buttons) {
       buttons.appendChild(container)
     }
 
     const app = createApp(App)
+
     setupApp(app)
     app.mount(root)
   }, 3500)
