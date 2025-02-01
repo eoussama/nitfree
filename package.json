@@ -34,7 +34,6 @@
     "idb": "^8.0.2"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^2.27.0",
     "@ffflorian/jszip-cli": "^3.7.1",
     "@iconify/json": "^2.2.239",
     "@playwright/test": "^1.46.1",
