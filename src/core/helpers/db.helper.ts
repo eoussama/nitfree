@@ -10,7 +10,7 @@ export class DBHelper {
       CONFIG.database.version,
       {
 
-      },
+      }
     )
   }
 }

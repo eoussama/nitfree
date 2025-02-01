@@ -1,5 +1,17 @@
-import antfu from '@antfu/eslint-config'
+//import antfu from "@antfu/eslint-config";
 
-export default antfu(
 
-)
+
+//const baseConfig = antfu();
+
+export default {
+  //...baseConfig,
+  rules: {
+    semi: ["error", "always"],
+    quotes: ["error", "double", { avoidEscape: true, allowTemplateLiterals: true }],
+    "padding-line-between-statements": [
+      "error",
+      { blankLine: "always", prev: "import", next: "*" }
+    ]
+  }
+};
