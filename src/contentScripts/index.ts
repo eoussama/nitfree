@@ -1,21 +1,21 @@
-/* eslint-disable no-console */
 import { onMessage } from 'webext-bridge/content-script'
 import { createApp } from 'vue'
+import { LogHelper } from '../core'
 import App from './views/App.vue'
 import { setupApp } from '~/logic/common-setup'
 
 // Firefox `browser.tabs.executeScript()` requires scripts return a primitive value
 (() => {
   if (document.getElementById(__NAME__)) {
-    console.info('[Nitfree] Container already exists, skipping injection.')
+    LogHelper.log('[Nitfree] Container already exists, skipping injection.')
     return
   }
 
-  console.info('[Nitfree] Hello world from content script!')
+  LogHelper.log('[Nitfree] Hello world from content script!')
 
   // communication example: send previous tab title from background page
   onMessage('tab-prev', ({ data }) => {
-    console.log(`[Nitfree] Navigate from page "${data.title}"`)
+    LogHelper.log(`[Nitfree] Navigate from page "${data.title}"`)
   })
 
   // mount component to context window
@@ -33,7 +33,7 @@ import { setupApp } from '~/logic/common-setup'
   shadowDOM.appendChild(root)
 
   setTimeout(() => {
-    console.info('[Nitfree] Inject now')
+    LogHelper.log('[Nitfree] Inject now')
     const buttons = document.querySelector('[class^="channelBottomBarArea_"] [class^="channelTextArea_"] [class^="buttons_"]')
     if (buttons) {
       buttons.appendChild(container)
