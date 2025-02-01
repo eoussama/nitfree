@@ -26,7 +26,6 @@ import { setupApp } from '~/logic/common-setup'
 
   shadowDOM.appendChild(styleEl)
   shadowDOM.appendChild(root)
-  // document.body.appendChild(container)
 
   setTimeout(() => {
     console.info('[Nitfree] Inject now')
