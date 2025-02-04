@@ -1,8 +1,12 @@
-import { createApp } from 'vue'
-import App from './Sidepanel.vue'
-import { setupApp } from '~/logic/common-setup'
-import '../styles'
+import { createApp } from "vue";
+import { setupApp } from "~/logic/common-setup";
 
-const app = createApp(App)
-setupApp(app)
-app.mount('#app')
+import "../styles";
+import App from "./Sidepanel.vue";
+
+
+
+const app = createApp(App);
+
+setupApp(app);
+app.mount("#app");
