@@ -35,7 +35,7 @@ import { setupApp } from "~/logic/common-setup";
 
   shadowDOM.appendChild(styleEl);
   shadowDOM.appendChild(root);
-
+  
   setTimeout(() => {
     LogHelper.print("[Nitfree] Inject now");
 
