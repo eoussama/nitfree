@@ -11,15 +11,15 @@ import { setupApp } from "~/logic/common-setup";
 // Firefox `browser.tabs.executeScript()` requires scripts return a primitive value
 (() => {
   if (document.getElementById(__NAME__)) {
-    LogHelper.log("[Nitfree] Container already exists, skipping injection.");
+    LogHelper.print("[Nitfree] Container already exists, skipping injection.");
     return;
   }
 
-  LogHelper.log("[Nitfree] Hello world from content script!");
+  LogHelper.print("[Nitfree] Hello world from content script!");
 
   // communication example: send previous tab title from background page
   onMessage("tab-prev", ({ data }) => {
-    LogHelper.log(`[Nitfree] Navigate from page "${data.title}"`);
+    LogHelper.print(`[Nitfree] Navigate from page "${data.title}"`);
   });
 
   // mount component to context window
@@ -37,7 +37,7 @@ import { setupApp } from "~/logic/common-setup";
   shadowDOM.appendChild(root);
 
   setTimeout(() => {
-    LogHelper.log("[Nitfree] Inject now");
+    LogHelper.print("[Nitfree] Inject now");
 
     const buttons = document.querySelector("[class^=\"channelBottomBarArea_\"] [class^=\"channelTextArea_\"] [class^=\"buttons_\"]");
     if (buttons) {
