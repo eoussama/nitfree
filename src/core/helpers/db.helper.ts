@@ -1,7 +1,9 @@
-import { openDB } from 'idb'
+import { openDB } from "idb";
 
-import { CONFIG } from '../consts'
-import type { IDatabase } from '../interfaces'
+import { CONFIG } from "../consts";
+import type { IDatabase } from "../interfaces";
+
+
 
 export class DBHelper {
   static async init(): Promise<void> {
