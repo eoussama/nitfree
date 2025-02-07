@@ -1,5 +1,7 @@
-import type { DBSchema } from "idb";
-
-export interface IDatabase extends DBSchema {
-
+export interface IDatabase {
+  "tags": { 
+    id: string
+    name: string
+    description: string
+  }
 }

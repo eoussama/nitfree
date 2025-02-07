@@ -1,4 +1,4 @@
-import { LogHelper } from "~/core";
+import { DBHelper, LogHelper } from "~/core";
 
 
 
@@ -12,4 +12,6 @@ if (import.meta.hot) {
 
 browser.runtime.onInstalled.addListener((): void => {
   LogHelper.print("Nitfree was installed successfully!");
+
+  DBHelper.init();
 });
