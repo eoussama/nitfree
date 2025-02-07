@@ -1,4 +1,6 @@
 export default {
+  ignores: ["extension/**/*"],
+  files: ["**/*.{ts,cts,mts,js,mjs,cjs}"],
   rules: {
     semi: ["error", "always"],
     quotes: ["error", "double", { avoidEscape: true, allowTemplateLiterals: true }],
