@@ -1,7 +1,5 @@
 export interface IDatabase {
-  "tags": { 
-    id: string
-    name: string
-    description: string
-  }
+  tags: IDBObjectStore
+  files: IDBObjectStore
+  metadata: IDBObjectStore
 }
