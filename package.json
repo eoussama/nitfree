@@ -30,9 +30,6 @@
     "postinstall": "simple-git-hooks",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "idb": "^8.0.2"
-  },
   "devDependencies": {
     "@ffflorian/jszip-cli": "^3.7.1",
     "@iconify/json": "^2.2.239",
