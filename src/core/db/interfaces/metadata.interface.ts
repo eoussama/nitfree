@@ -1,8 +1,8 @@
-import { IEntity } from "./base.interface";
+import { IBase } from "./base.interface";
 
 
 
-export interface IMetadata extends IEntity {
+export interface IMetadata extends IBase {
   tagId: string
   fileId: string
 

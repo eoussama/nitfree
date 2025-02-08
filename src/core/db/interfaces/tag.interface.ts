@@ -1,8 +1,8 @@
-import { IEntity } from "./base.interface";
+import { IBase } from "./base.interface";
 
 
 
-export interface ITag extends IEntity {
+export interface ITag extends IBase {
   name: string
   description?: string
 }

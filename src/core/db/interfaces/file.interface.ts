@@ -1,8 +1,8 @@
-import { IEntity } from "./base.interface";
+import { IBase } from "./base.interface";
 
 
 
-export interface IFile extends IEntity {
+export interface IFile extends IBase {
   data: Blob
   type: string
   name: string
