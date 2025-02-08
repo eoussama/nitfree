@@ -7,4 +7,4 @@ export const CONFIG: TConfig = {
     version: 1,
     name: "nitfree"
   }
-}
+};
