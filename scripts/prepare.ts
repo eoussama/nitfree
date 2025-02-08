@@ -27,7 +27,7 @@ async function stubIndexHtml() {
 }
 
 function writeManifest() {
-  execSync('npx esno ./scripts/manifest.ts', { stdio: 'inherit' });
+  execSync("npx esno ./scripts/manifest.ts", { stdio: "inherit" });
 }
 
 writeManifest();
@@ -35,13 +35,13 @@ writeManifest();
 if (isDev) {
   stubIndexHtml();
 
-  chokidar.watch(r('src/**/*.html'))
-    .on('change', () => {
+  chokidar.watch(r("src/**/*.html"))
+    .on("change", () => {
       stubIndexHtml();
     });
 
-  chokidar.watch([r('src/manifest.ts'), r('package.json')])
-    .on('change', () => {
+  chokidar.watch([r("src/manifest.ts"), r("package.json")])
+    .on("change", () => {
       writeManifest();
     });
 }
