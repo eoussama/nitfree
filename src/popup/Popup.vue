@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { storageDemo } from "~/logic/storage";
 </script>
 
 <template>
@@ -9,7 +8,7 @@ import { storageDemo } from "~/logic/storage";
     <SharedSubtitle />
 
     <div class="mt-2">
-      <span class="opacity-50">Storage:</span> {{ storageDemo }}
+      <span class="opacity-50">Storage:</span>
     </div>
   </main>
 </template>
