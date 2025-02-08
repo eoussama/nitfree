@@ -41,7 +41,7 @@ export const test = base.extend<{
     const extensionId = background.url().split("/")[2];
     await use(extensionId);
   },
-})
+});
 
 export const expect = test.expect;
 
