@@ -7,10 +7,13 @@ import { Metadata } from "./metadata.model";
 
 
 export class Database {
-  readonly db: Promise<IDBDatabase>;
 
-  constructor() {
+  private static instance: Database;
+  private readonly db: Promise<IDBDatabase>;
+
+  private constructor() {
     this.db = this.init();
+    Database.instance = this;
   }
 
   private init(): Promise<IDBDatabase> {
@@ -40,5 +43,20 @@ export class Database {
     Tags.init(db);
     Files.init(db);
     Metadata.init(db);
+  }
+
+  public static init(): void {
+    new Database();
+  }
+
+  public static async getInstance(): Promise<Database> {
+    return new Promise((resolve, reject) => {
+      if (!this.instance) {
+        return reject(new Error("database was not initialized"));
+      }
+
+      const instance = new Database();
+      instance.db.then(() => resolve(instance)).catch(reject);
+    });
   }
 }
