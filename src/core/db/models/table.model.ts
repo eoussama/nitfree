@@ -42,6 +42,10 @@ export class Table {
   }
 
   public static getInstance(): Table {
+    if (!this.instance) {
+      throw new Error("table was not initialized");
+    }
+
     return this.instance;
   }
 }
