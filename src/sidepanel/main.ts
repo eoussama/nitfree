@@ -1,6 +1,6 @@
 import { createApp } from "vue";
 
-import { setupApp } from "~/logic/common-setup";
+import { setupApp } from "~/core";
 
 import "../styles";
 import App from "./Sidepanel.vue";

@@ -1,8 +1,7 @@
 import { createApp } from "vue";
 import { onMessage } from "webext-bridge/content-script";
 
-import { LogHelper } from "~/core";
-import { setupApp } from "~/logic/common-setup";
+import { LogHelper, setupApp } from "~/core";
 
 import App from "./views/App.vue";
 
