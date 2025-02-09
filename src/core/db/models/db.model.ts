@@ -1,6 +1,8 @@
-import { ETable } from "../enums";
 import { CONFIG } from "../../common";
-import { TableHelper } from "../helpers";
+
+import { Tags } from "./tags.model";
+import { Files } from "./files.model";
+import { Metadata } from "./metadata.model";
 
 
 
@@ -29,14 +31,14 @@ export class Database {
         const req = <IDBRequest>e.target;
         const db = <IDBDatabase>req.result;
 
-        TableHelper.create(db, ETable.Tags);
-        TableHelper.create(db, ETable.Files);
-        TableHelper.create(db, ETable.Metadata);
-      };
+        this.createTables(db);
+     };
     });
   } 
 
-  //public async getAll<T>(table: ETable): Promise<Array<T>> {
-  //  throw "TODO: implement"
-  //}
+  private createTables(db: IDBDatabase): void {
+    Tags.init(db);
+    Files.init(db);
+    Metadata.init(db);
+  }
 }
