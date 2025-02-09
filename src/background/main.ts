@@ -12,9 +12,8 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
   LogHelper.print("Nitfree was installed successfully!");
 
   try {
-    const db = new Database();
-    await db.db;
+    await Database.getInstance(); 
   } catch(err) {
-    LogHelper.print((err as unknown as Error).message);
+    LogHelper.error((err as unknown as Error).message);
   }
 });
