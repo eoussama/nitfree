@@ -25,7 +25,8 @@ export const sharedConfig: UserConfig = {
   },
   define: {
     __DEV__: isDev,
-    __NAME__: JSON.stringify(packageJson.name)
+    __NAME__: JSON.stringify(packageJson.name),
+    __VER__: JSON.stringify(packageJson.version)
   },
   plugins: [
     Vue(),
