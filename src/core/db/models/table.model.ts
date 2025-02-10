@@ -25,7 +25,7 @@ export class Table {
     Table.instance = this;
   }
 
-  protected init(): TNullable<IDBObjectStore> {
+  private init(): TNullable<IDBObjectStore> {
     if (this.exists()) {
       return null;
     }
@@ -33,7 +33,7 @@ export class Table {
     return this.db.createObjectStore(this.tableName, { keyPath: "id" });
   }
   
-  protected exists(): boolean {
+  private exists(): boolean {
     return this.db.objectStoreNames.contains(this.tableName);
   }
 

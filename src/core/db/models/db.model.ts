@@ -45,8 +45,18 @@ export class Database {
     Metadata.init(db);
   }
 
-  public static init(): void {
-    new Database();
+  public static async init(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        const instance = new Database();
+
+        instance.db
+          .then(() => resolve())
+          .catch(() => reject);
+      } catch(err) {
+        reject(err);
+      }
+   });
   }
 
   public static async getInstance(): Promise<Database> {
