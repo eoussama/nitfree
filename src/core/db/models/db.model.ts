@@ -18,6 +18,7 @@ export class Database {
 
   private init(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
+      let initialized = false;
       const { name, version } = CONFIG.database;
       const request = indexedDB.open(name, version);
 
@@ -27,6 +28,13 @@ export class Database {
 
       request.onsuccess = e => {
         const req = <IDBRequest>e.target;
+        const db = <IDBDatabase>req.result;
+
+        if (!initialized) {
+          this.createTables(db);
+          initialized = true;
+        }
+
         resolve(req.result);
       };
 
@@ -34,7 +42,10 @@ export class Database {
         const req = <IDBRequest>e.target;
         const db = <IDBDatabase>req.result;
 
-        this.createTables(db);
+        if (!initialized) {
+          this.createTables(db);
+          initialized = true;
+        }
       };
     });
   } 
