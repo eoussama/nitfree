@@ -35,7 +35,7 @@ export class Database {
         const db = <IDBDatabase>req.result;
 
         this.createTables(db);
-     };
+      };
     });
   } 
 

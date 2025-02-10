@@ -1,4 +1,4 @@
-import { Database, LogHelper } from "~/core";
+import { CONFIG, Database, LogHelper, StringHelper } from "~/core";
 
 
 
@@ -9,10 +9,12 @@ if (import.meta.hot) {
 }
 
 browser.runtime.onInstalled.addListener(async (): Promise<void> => {
-  LogHelper.print("Nitfree was installed successfully!");
+  const name = StringHelper.capitalize(CONFIG.name);
+
+  LogHelper.print(`${name} was installed successfully!`);
 
   try {
-    await Database.getInstance(); 
+    Database.init();
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
   }
