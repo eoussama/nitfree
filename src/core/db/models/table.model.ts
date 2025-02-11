@@ -5,8 +5,6 @@ import { EnumHelper, TNullable } from "../../common";
 
 export class Table {
 
-  private static instance: Table;
-
   protected readonly name: ETable;
   protected readonly db: IDBDatabase;
 
@@ -24,7 +22,7 @@ export class Table {
     this.db = db;
     this.name = name;
 
-    Table.instance = this;
+    this.init();
   }
 
   private init(): TNullable<IDBObjectStore> {
@@ -32,12 +30,18 @@ export class Table {
       return null;
     }
 
-    return this.db.createObjectStore(this.tableName, { keyPath: "id" });
+    const table = this.db.createObjectStore(this.tableName, { keyPath: "id" });
+
+    this.onInit(table);
+    return table;
   }
   
   private exists(): boolean {
     return this.db.objectStoreNames.contains(this.tableName);
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected onInit(_: IDBObjectStore): void { }
 
   public create(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -57,17 +61,5 @@ export class Table {
         reject(e);
       };
     });
-  }
-
-  public static init(db: IDBDatabase, name: ETable): TNullable<IDBObjectStore> {
-    return new Table(db, name).init();
-  }
-
-  public static getInstance(): Table {
-    if (!this.instance) {
-      throw new Error("table was not initialized");
-    }
-
-    return this.instance;
   }
 }
