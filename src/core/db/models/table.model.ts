@@ -1,5 +1,5 @@
-import { ETable } from "../enums";
 import { EnumHelper, TNullable } from "../../common";
+import { ETable } from "../enums";
 
 
 
@@ -42,24 +42,4 @@ export class Table {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onInit(_: IDBObjectStore): void { }
-
-  public create(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = this.table.add({
-        id: "tete",
-        createdOn: new Date(),
-        updatedOn: new Date(),
-        name: "mytag1",
-        description: "Generic tag or smthn"
-      });
-
-      request.onsuccess = () => {
-        resolve();
-      };
-
-      request.onerror = e => {
-        reject(e);
-      };
-    });
-  }
 }
