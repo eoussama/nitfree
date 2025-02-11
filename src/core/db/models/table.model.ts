@@ -14,8 +14,10 @@ export class Table {
     return <string>EnumHelper.toString(ETable, this.name);
   }
 
-  protected get table(): IDBTransaction {
-    return this.db.transaction(this.tableName, "readwrite");
+  protected get table(): IDBObjectStore {
+    return this.db
+      .transaction(this.tableName, "readwrite")
+      .objectStore(this.tableName);
   }
 
   protected constructor(db: IDBDatabase, name: ETable) {
@@ -35,6 +37,26 @@ export class Table {
   
   private exists(): boolean {
     return this.db.objectStoreNames.contains(this.tableName);
+  }
+
+  public create(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const request = this.table.add({
+        id: "tete",
+        createdOn: new Date(),
+        updatedOn: new Date(),
+        name: "mytag1",
+        description: "Generic tag or smthn"
+      });
+
+      request.onsuccess = () => {
+        resolve();
+      };
+
+      request.onerror = e => {
+        reject(e);
+      };
+    });
   }
 
   public static init(db: IDBDatabase, name: ETable): TNullable<IDBObjectStore> {
