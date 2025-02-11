@@ -11,6 +11,10 @@ export class Database {
   private static instance: Database;
   private readonly db: Promise<IDBDatabase>;
 
+  private TAGS: Tags;
+  private FILES: Files;
+  private METADATA: Metadata;
+
   private constructor() {
     this.db = this.init();
     Database.instance = this;
@@ -51,9 +55,9 @@ export class Database {
   } 
 
   private createTables(db: IDBDatabase): void {
-    Tags.init(db);
-    Files.init(db);
-    Metadata.init(db);
+    this.TAGS = new Tags(db);
+    this.FILES = new Files(db);
+    this.METADATA = new Metadata(db);
   }
 
   public static async init(): Promise<void> {
