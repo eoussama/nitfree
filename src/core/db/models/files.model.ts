@@ -9,7 +9,7 @@ export class Files extends Table {
     super(db, ETable.Files);
   }
 
-  public override onInit(table: IDBObjectStore): void {
+  protected override onInit(table: IDBObjectStore): void {    
     table.createIndex("nameIdx", "name", { unique: false });
     table.createIndex("typeIdx", "type", { unique: false }); 
   }
