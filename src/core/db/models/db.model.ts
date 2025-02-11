@@ -11,9 +11,9 @@ export class Database {
   private static instance: Database;
   private readonly db: Promise<IDBDatabase>;
 
-  private TAGS: Tags;
-  private FILES: Files;
-  private METADATA: Metadata;
+  public TAGS!: Tags;
+  public FILES!: Files;
+  public METADATA!: Metadata;
 
   private constructor() {
     this.db = this.init();
@@ -60,28 +60,21 @@ export class Database {
     this.METADATA = new Metadata(db);
   }
 
-  public static async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        const instance = new Database();
-
-        instance.db
-          .then(() => resolve())
-          .catch(() => reject);
-      } catch(err) {
-        reject(err);
-      }
-   });
-  }
-
   public static async getInstance(): Promise<Database> {
     return new Promise((resolve, reject) => {
-      if (!this.instance) {
-        return reject(new Error("database was not initialized"));
-      }
+      try {
+        if (!this.instance) {
+          this.instance = new Database();
 
-      const instance = new Database();
-      instance.db.then(() => resolve(instance)).catch(reject);
+          return this.instance.db
+            .then(() => resolve(this.instance))
+            .catch(() => reject(new Error("Database could not be created!")));
+        }
+
+        resolve(this.instance);
+      } catch(e) {
+        reject(e);
+      }
     });
   }
 }
