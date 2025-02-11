@@ -1,4 +1,4 @@
-import { CONFIG, Database, LogHelper, StringHelper, Tags } from "~/core";
+import { CONFIG, Database, LogHelper, StringHelper } from "~/core";
 
 
 
@@ -14,10 +14,10 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
   LogHelper.print(`${name} was installed successfully!`);
 
   try {
-    await Database.init();
+    const db = await Database.getInstance();
 
-    const tags = Tags.getInstance();
-    tags.create();
+    db.TAGS.create();
+    db.FILES.create();
 
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
