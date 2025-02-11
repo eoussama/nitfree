@@ -16,8 +16,10 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
   try {
     const db = await Database.getInstance();
 
-    db.TAGS.create();
-    db.FILES.create();
+    db.TAGS.create({
+      name: "tag" + Math.random() * 1000,
+      description: "my desc?"
+    });
 
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
