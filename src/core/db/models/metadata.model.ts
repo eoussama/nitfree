@@ -1,9 +1,10 @@
 import { ETable } from "../enums";
 import { Table } from "./table.model";
+import { IMetadata } from "../interfaces";
 
 
 
-export class Metadata extends Table {
+export class Metadata extends Table<IMetadata> {
 
   public constructor(db: IDBDatabase) {
     super(db, ETable.Metadata);
