@@ -16,10 +16,24 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
   try {
     const db = await Database.getInstance();
 
-    db.TAGS.create({
+    const tagId = await db.TAGS.create({
       name: "tag" + Math.random() * 1000,
-      description: "my desc!?"
+      description: "my description here !1!!"
     });
+
+    const fileId = await db.FILES.create({
+      data: new Blob(["pass=123"], { type: "text/plain" })
+    });
+
+    const dataId = await db.METADATA.create({
+      description: "this is a text file",
+      fileId,
+      favorite: true,
+      title: "Secret Sauce",
+      tagId
+    });
+
+    LogHelper.print("created with id =", dataId);
 
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
