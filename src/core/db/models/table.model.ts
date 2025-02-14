@@ -1,9 +1,12 @@
 import { EnumHelper, TNullable } from "../../common";
 import { ETable } from "../enums";
+import { BaseHelper } from "../helpers";
+import { IBase } from "../interfaces";
+import { TStrip } from "../types";
 
 
 
-export class Table {
+export class Table<T extends IBase> {
 
   protected readonly name: ETable;
   protected readonly db: IDBDatabase;
@@ -42,4 +45,19 @@ export class Table {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onInit(_: IDBObjectStore): void { }
-}
+
+  public create(obj: TStrip<T>): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const value = BaseHelper.create(obj);
+      const request = this.table.add(value);
+
+      request.onsuccess = () => {
+        resolve(value.id);
+      };
+
+      request.onerror = () => {
+        reject(new Error("Could not insert object"));
+      };
+    });
+  }
+ }
