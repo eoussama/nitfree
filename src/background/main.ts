@@ -18,7 +18,7 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
 
     db.TAGS.create({
       name: "tag" + Math.random() * 1000,
-      description: "my desc?"
+      description: "my desc!?"
     });
 
   } catch(err) {
