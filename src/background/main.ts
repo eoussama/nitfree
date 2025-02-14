@@ -33,7 +33,11 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
       tagId
     });
 
-    LogHelper.print("created with id =", dataId);
+    LogHelper.print("created object with id =", dataId);
+
+    const data = await db.FILES.get(fileId);
+
+    LogHelper.print("the created file", data.id, "is", data.data.size, "bytes");
 
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
