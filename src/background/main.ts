@@ -1,4 +1,4 @@
-import { CONFIG, LogHelper, StringHelper } from "~/core";
+import { CONFIG, LogHelper, StringHelper, TagHelper } from "~/core";
 
 
 
@@ -14,7 +14,7 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
   LogHelper.print(`${name} was installed successfully!`);
 
   try {
-    // TODO: init
+    await TagHelper.seed();
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
   }
