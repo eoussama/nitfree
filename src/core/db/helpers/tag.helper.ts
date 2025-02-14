@@ -1,6 +1,7 @@
 import { TStrip } from "../types";
 import { ITag } from "../interfaces";
 import { Database } from "../models";
+import { LogHelper } from "../../common";
 
 
 
@@ -18,8 +19,14 @@ export class TagHelper {
   }
 
   public static async seed(): Promise<void> {
-    for (const tag of this.TAGS) {
-      this.create(tag);
+    const tags = await (await this.getDB()).TAGS.getAll();
+
+    if (!tags.length) {
+      LogHelper.print("Seeding tags...");
+
+      for (const tag of this.TAGS) {
+        await this.create(tag);
+      }
     }
   }
 
