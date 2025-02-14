@@ -16,29 +16,34 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
   try {
     const db = await Database.getInstance();
 
-    const tagId = await db.TAGS.create({
+    const tag = await db.TAGS.create({
       name: "tag" + Math.random() * 1000,
       description: "my description here !1!!"
     });
 
-    const fileId = await db.FILES.create({
+    const file = await db.FILES.create({
       data: new Blob(["pass=123"], { type: "text/plain" })
     });
 
-    const dataId = await db.METADATA.create({
-      description: "this is a text file",
-      fileId,
+    const data = await db.METADATA.create({
+      description: "this is a text file *",
+      fileId: file.id,
       favorite: true,
       title: "Secret Sauce",
-      tagId
+      tagId: tag.id
     });
 
-    LogHelper.print("created object with id =", dataId);
+    LogHelper.print("created object with id =", data.id);
 
-    const data = await db.FILES.get(fileId);
+    const fetchedData = await db.FILES.get(file.id);
 
-    LogHelper.print("the created file", data.id, "is", data.data.size, "bytes");
+    LogHelper.print("the created file", file.id, "is", fetchedData.data.size, "bytes");
 
+    const updatedFile = await db.FILES.update(file.id, {
+      data: new Blob(["password=dea//7frez_feEE/7"], { type: "text/plain" })
+    });
+
+    LogHelper.print("the updated file", updatedFile.id, "is", updatedFile.data.size, "bytes");
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
   }
