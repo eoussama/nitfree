@@ -60,4 +60,19 @@ export class Table<T extends IBase> {
       };
     });
   }
+
+  public get(id: IBase["id"]): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const request = this.table.get(id);
+
+      request.onsuccess = e => {
+        const target = <IDBRequest>e.target;
+        resolve(target.result);
+      };
+
+      request.onerror = () => {
+        reject(new Error("Could not fetch object"));
+      };
+    });
+  }
  }
