@@ -46,6 +46,21 @@ export class Table<T extends IBase> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onInit(_: IDBObjectStore): void { }
 
+  public getAll(): Promise<Array<T>> {
+    return new Promise((resolve, reject) => {
+      const request = this.table.getAll();
+
+      request.onsuccess = (e) => {
+        const target = <IDBRequest>e.target;
+        resolve(target.result);
+      };
+
+      request.onerror = () => {
+        reject(new Error("Could not fetch objects"));
+      };
+    });
+  }
+
   public get(id: IBase["id"]): Promise<T> {
     return new Promise((resolve, reject) => {
       const request = this.table.get(id);
