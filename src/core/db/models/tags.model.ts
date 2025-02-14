@@ -1,6 +1,7 @@
 import { ETable } from "../enums";
 import { Table } from "./table.model";
 import { ITable, ITag } from "../interfaces";
+import { TStrip } from "../types";
 
 
 
@@ -13,7 +14,7 @@ export class Tags extends Table implements ITable<ITag> {
     table.createIndex("nameIdx", "name", { unique: false });
   }
 
-  create(model: Omit<ITag, "id" | "createdOn" | "updatedOn">): Promise<string> {
+  create(tag: TStrip<ITag>): Promise<string> {
     return new Promise((resolve, reject) => {
       const createdOn = new Date();
       const updatedOn = new Date();
@@ -21,7 +22,7 @@ export class Tags extends Table implements ITable<ITag> {
 
       const value: ITag = {
         id, createdOn, updatedOn,
-        ...model
+        ...tag
       };
 
       const request = this.table.add(value);
