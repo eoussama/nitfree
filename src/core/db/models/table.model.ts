@@ -46,21 +46,6 @@ export class Table<T extends IBase> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onInit(_: IDBObjectStore): void { }
 
-  public create(obj: TStrip<T>): Promise<IBase["id"]> {
-    return new Promise((resolve, reject) => {
-      const value = BaseHelper.create(obj);
-      const request = this.table.add(value);
-
-      request.onsuccess = () => {
-        resolve(value.id);
-      };
-
-      request.onerror = () => {
-        reject(new Error("Could not insert object"));
-      };
-    });
-  }
-
   public get(id: IBase["id"]): Promise<T> {
     return new Promise((resolve, reject) => {
       const request = this.table.get(id);
@@ -72,6 +57,21 @@ export class Table<T extends IBase> {
 
       request.onerror = () => {
         reject(new Error("Could not fetch object"));
+      };
+    });
+  }
+  
+  public create(obj: TStrip<T>): Promise<IBase["id"]> {
+    return new Promise((resolve, reject) => {
+      const value = BaseHelper.create(obj);
+      const request = this.table.add(value);
+
+      request.onsuccess = () => {
+        resolve(value.id);
+      };
+
+      request.onerror = () => {
+        reject(new Error("Could not insert object"));
       };
     });
   }
