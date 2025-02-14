@@ -2,6 +2,7 @@ import { ETable } from "../enums";
 import { Table } from "./table.model";
 import { ITable, ITag } from "../interfaces";
 import { TStrip } from "../types";
+import { BaseHelper } from "../helpers";
 
 
 
@@ -16,19 +17,11 @@ export class Tags extends Table implements ITable<ITag> {
 
   create(tag: TStrip<ITag>): Promise<string> {
     return new Promise((resolve, reject) => {
-      const createdOn = new Date();
-      const updatedOn = new Date();
-      const id = crypto.randomUUID();
-
-      const value: ITag = {
-        id, createdOn, updatedOn,
-        ...tag
-      };
-
+      const value = BaseHelper.create(tag);
       const request = this.table.add(value);
 
       request.onsuccess = () => {
-        resolve(id);
+        resolve(value.id);
       };
 
       request.onerror = () => {
