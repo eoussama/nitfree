@@ -48,6 +48,10 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
     await db.FILES.delete(updatedFile.id);
 
     LogHelper.print("the file", updatedFile.id, "was deleted");
+
+    for (const t of await db.TAGS.getAll()) {
+      LogHelper.print("tag =>", t.name);
+    }
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
   }
