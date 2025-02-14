@@ -44,6 +44,10 @@ browser.runtime.onInstalled.addListener(async (): Promise<void> => {
     });
 
     LogHelper.print("the updated file", updatedFile.id, "is", updatedFile.data.size, "bytes");
+    
+    await db.FILES.delete(updatedFile.id);
+
+    LogHelper.print("the file", updatedFile.id, "was deleted");
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
   }
