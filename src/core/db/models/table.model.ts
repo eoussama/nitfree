@@ -1,8 +1,8 @@
-import { EnumHelper, TNullable } from "../../common";
 import { ETable } from "../enums";
-import { BaseHelper } from "../helpers";
-import { IBase } from "../interfaces";
 import { TStrip } from "../types";
+import { IBase } from "../interfaces";
+import { BaseHelper } from "../helpers";
+import { EnumHelper, TNullable } from "../../common";
 
 
 
@@ -90,6 +90,20 @@ export class Table<T extends IBase> {
           reject(new Error("Could not update object"));
         };
       });
+    });
+  }
+
+  public delete(id: IBase["id"]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const request = this.table.delete(id);
+
+      request.onsuccess = () => {
+        resolve();
+      };
+
+      request.onerror = () => {
+        reject(new Error("Could not delete object"));
+      };
     });
   }
  }
