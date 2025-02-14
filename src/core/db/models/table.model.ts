@@ -46,7 +46,7 @@ export class Table<T extends IBase> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onInit(_: IDBObjectStore): void { }
 
-  public create(obj: TStrip<T>): Promise<string> {
+  public create(obj: TStrip<T>): Promise<IBase["id"]> {
     return new Promise((resolve, reject) => {
       const value = BaseHelper.create(obj);
       const request = this.table.add(value);
