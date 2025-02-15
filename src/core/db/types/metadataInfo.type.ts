@@ -3,4 +3,4 @@ import { IMetadata } from "../interfaces";
 
 
 
-export type TMetadataInfo = TStrip<IMetadata>
+export type TMetadataInfo = TStrip<Omit<IMetadata, "tagId"> & Partial<Pick<IMetadata, "tagId">>>
