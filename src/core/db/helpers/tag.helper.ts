@@ -31,7 +31,7 @@ export class TagHelper {
   }
 
   public static async create(name: ITag["name"], description?: ITag["description"]): Promise<ITag> {
-    const obj: TTagInfo = { name, description };
+    const obj: TTagInfo = { name, description: description ?? null };
     const tag = (await this.getDB()).TAGS.create(obj);
 
     return tag;
