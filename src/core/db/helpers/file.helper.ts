@@ -1,6 +1,6 @@
 import { Database } from "../models";
 import { IFile, IMetadata } from "../interfaces";
-import { TFileInfo, TFileMeta, TMetadataInfo } from "../types";
+import { TFileInfo, TFileMeta, TMetadataInfo, TStrip } from "../types";
 
 
 
@@ -23,13 +23,13 @@ export class FileHelper {
 
     const metadataInfo: TMetadataInfo = {
       fileId: file.id,
-      tagId: obj.tagId,
       title: obj.title,
       favorite: obj.favorite,
+      tagId: obj.tagId ?? null,
       description: obj.description
     };
 
-    const metadata = await db.METADATA.create(metadataInfo);
+    const metadata = await db.METADATA.create(<TStrip<IMetadata>>metadataInfo);
 
     return [file, metadata];
   }
