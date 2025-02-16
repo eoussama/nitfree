@@ -1,4 +1,4 @@
-import { CONFIG, FileHelper, LogHelper, StringHelper, TagHelper } from "~/core";
+import { CONFIG, LogHelper, StringHelper, TagHelper } from "~/core";
 
 
 
@@ -9,18 +9,11 @@ if (import.meta.hot) {
 }
 
 browser.runtime.onInstalled.addListener(async (): Promise<void> => {
-  const name = StringHelper.capitalize(CONFIG.name);
-
-  LogHelper.print(`${name} was installed successfully!`);
-
   try {
-    await TagHelper.seed();
-    await FileHelper.create({
-      title: "My Lovely Wife",
-      description: "Lorem Ipsum...",
-      favorite: true,
-      data: new Blob(["hi mom"], { type: "text/plain" })
-    });
+    const name = StringHelper.capitalize(CONFIG.name);
+
+    TagHelper.seed();   
+    LogHelper.print(`${name} was installed successfully!`);
   } catch(err) {
     LogHelper.error((err as unknown as Error).message);
   }
