@@ -3,7 +3,7 @@ import { setupApp } from "./setup.bootstrap";
 
 
 
-export function inject(view: Element, selector: string, id: string): void {
+function createContainer(id: string): [HTMLDivElement, HTMLDivElement] {
   const root = document.createElement("div");
   const styleEl = document.createElement("link");
   const container = document.createElement("div");
@@ -16,17 +16,22 @@ export function inject(view: Element, selector: string, id: string): void {
   shadowDOM.appendChild(styleEl);
   shadowDOM.appendChild(root);
 
-  // TODO: wait for render
-  setTimeout(() => {
+  return [container, root];
+}
 
-  const target = document.querySelector(selector);
-  if (target) {
-    target.appendChild(container);
-  }
+export function inject(view: Element, selector: string, id: string): void {
+  const [container, root] = createContainer(id);
 
-  const app = createApp(view);
+  setTimeout(() => { // TODO: wait for render
+    const target = document.querySelector(selector);
 
-  setupApp(app);
-  app.mount(root);
+    if (target) {
+      target.appendChild(container);
+    }
+
+    const app = createApp(view);
+
+    setupApp(app);
+    app.mount(root);
   }, 3500);
 }
