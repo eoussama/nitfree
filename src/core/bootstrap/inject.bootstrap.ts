@@ -19,19 +19,34 @@ function createContainer(id: string): [HTMLDivElement, HTMLDivElement] {
   return [container, root];
 }
 
-export function inject(view: Element, selector: string, id: string): void {
+function mountApp(view: object, selector: string, id: string): void {
+  const target = document.querySelector(selector);
+  if (!target) {
+    return;
+  }
+
   const [container, root] = createContainer(id);
+  const app = createApp(view);
 
-  setTimeout(() => { // TODO: wait for render
-    const target = document.querySelector(selector);
+  setupApp(app);
+  app.mount(root);
+  target.appendChild(container);
+}
 
-    if (target) {
-      target.appendChild(container);
+export function inject(view: object, selector: string, id: string): void {
+  if (document.getElementById(id)) {
+    return;
+  }
+
+  const observer = new MutationObserver((_, observe) => {
+    const element = document.querySelector(selector);
+
+    if (element) {
+      inject(view, selector, id);
+      observe.disconnect();
     }
+  });
 
-    const app = createApp(view);
-
-    setupApp(app);
-    app.mount(root);
-  }, 3500);
+  observer.observe(document.body, { childList: true, subtree: true });
+  mountApp(view, selector, id);
 }
