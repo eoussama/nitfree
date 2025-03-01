@@ -10,6 +10,8 @@ function createContainer(id: string): [HTMLDivElement, HTMLDivElement] {
   const shadowDOM = container.attachShadow?.({ mode: __DEV__ ? "open" : "closed" }) || container;
 
   container.id = id;
+  container.style.visibility = "hidden";
+
   styleEl.setAttribute("rel", "stylesheet");
   styleEl.setAttribute("href", browser.runtime.getURL("dist/contentScripts/style.css"));
 
@@ -31,6 +33,12 @@ function mountApp(view: object, selector: string, id: string): void {
   setupApp(app);
   app.mount(root);
   target.appendChild(container);
+
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      container.style.visibility = "visible";
+    }, 100);
+  });
 }
 
 export function inject(view: object, selector: string, id: string): void {
