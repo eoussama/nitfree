@@ -37,7 +37,7 @@ function mountApp(view: object, selector: string, id: string): void {
   requestAnimationFrame(() => {
     setTimeout(() => {
       container.style.visibility = "visible";
-    }, 100);
+    }, 200);
   });
 }
 
