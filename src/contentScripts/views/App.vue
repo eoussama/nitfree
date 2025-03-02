@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { LogHelper } from "~/core";
 import "./../../styles/nitfree-trigger.scss";
+import { DOMHelper, EDOMWatch, LogHelper } from "~/core";
 
 
 
 let opened: boolean = false;
 
 function onclick() {
-  LogHelper.print({ opened });
+  // TODO: Helper for opening the picker
 
   if (opened) {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'escape' }));
@@ -22,6 +22,10 @@ function onclick() {
 
   opened = !opened;
 }
+
+DOMHelper.watch("[class*=\"expressionPickerPositionLayer__\"]", (action: EDOMWatch) => {
+  opened = action === EDOMWatch.Added;
+});
 </script>
 
 <template>
