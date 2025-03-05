@@ -14,13 +14,15 @@ export class DOMHelper {
       for (const node of mutations.flatMap((m) => m.removedNodes)) {
         const element = node.item(0) as Element;
 
-        const isMatchingNode = element?.matches(selector);
-        const isParentNode = element?.querySelector(selector);
-        const isValidNode = element?.nodeType === element?.ELEMENT_NODE;
+        if (element?.nodeType === Node.ELEMENT_NODE) {
+          const isMatchingNode = element?.matches(selector);
+          const isParentNode = element?.querySelector(selector);
+          const isValidNode = element?.nodeType === element?.ELEMENT_NODE;
 
-        if (isValidNode && (isMatchingNode || isParentNode)) {
-          callback(EDOMWatch.Removed);
-          return;
+          if (isValidNode && (isMatchingNode || isParentNode)) {
+            callback(EDOMWatch.Removed);
+            return;
+          }
         }
       }
     });
