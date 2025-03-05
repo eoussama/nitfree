@@ -4,5 +4,7 @@ import App from "./views/App.vue";
 
 
 (() => {
-  inject(App, "[class^=\"channelBottomBarArea_\"] [class^=\"channelTextArea_\"] [class^=\"buttons_\"]", __NAME__);
+  const target = "[class^=\"channelBottomBarArea_\"] [class^=\"channelTextArea_\"] [class^=\"buttons_\"]";
+
+  inject(App, target, __NAME__);
 })();
