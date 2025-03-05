@@ -1,30 +1,23 @@
 <script setup lang="ts">
 import "./../../styles/nitfree-trigger.scss";
-import { DOMHelper, EDOMWatch, LogHelper } from "~/core";
+
+import { ref, onUnmounted } from "vue";
+import { PickerHelper, DOMHelper, EDOMWatch } from "~/core";
 
 
 
-let opened: boolean = false;
+let opened = ref(false);
 
 function onclick() {
-  // TODO: Helper for opening the picker
-
-  if (opened) {
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'escape' }));
-  }
-  else {
-    const btn = document.getElementById('nitfree')?.previousSibling?.childNodes[0] as HTMLButtonElement;
-
-    if (btn) {
-      btn.click();
-    }
-  }
-
-  opened = !opened;
+  PickerHelper.toggle();
 }
 
-DOMHelper.watch("[class*=\"expressionPickerPositionLayer__\"]", (action: EDOMWatch) => {
-  opened = action === EDOMWatch.Added;
+const clean = DOMHelper.watch("[class*=\"expressionPickerPositionLayer__\"]", (action: EDOMWatch) => {
+  opened.value = action === EDOMWatch.Added;
+});
+
+onUnmounted(() => {
+  clean();
 });
 </script>
 
