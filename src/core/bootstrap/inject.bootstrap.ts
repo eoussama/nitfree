@@ -1,6 +1,8 @@
 import { createApp } from "vue";
 import { setupApp } from "./setup.bootstrap";
 
+import { TUnsafe, URLHelper } from "../common";
+
 
 
 function createContainer(id: string): [HTMLDivElement, HTMLDivElement] {
@@ -34,6 +36,11 @@ function mountApp(view: object, selector: string, id: string): void {
   app.mount(root);
   target.appendChild(container);
 
+  URLHelper.watch(() => { 
+    app.unmount();
+    container.remove(); 
+  });
+
   requestAnimationFrame(() => {
     setTimeout(() => {
       container.style.visibility = "visible";
@@ -41,20 +48,23 @@ function mountApp(view: object, selector: string, id: string): void {
   });
 }
 
-export function inject(view: object, selector: string, id: string): void {
+export function inject(view: object, selector: string, id: string): TUnsafe<() => void> {
   if (document.getElementById(id)) {
     return;
   }
 
-  const observer = new MutationObserver((_, observe) => {
+  const observer = new MutationObserver(() => {
     const element = document.querySelector(selector);
 
     if (element) {
       inject(view, selector, id);
-      observe.disconnect();
     }
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
   mountApp(view, selector, id);
+
+  return () => {
+    observer.disconnect();
+  };
 }
