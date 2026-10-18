@@ -35,7 +35,8 @@
   });
 </script>
 
-<footer class="inspector" aria-live="polite">
+<!-- Visual only: every tile already carries its name for assistive tech. -->
+<div class="inspector" data-inspector aria-hidden="true">
   {#if item}
     <span class="graphic">
       {#if url}
@@ -47,7 +48,7 @@
       <span class="subtitle">{i18n.t(`panel.types.${item.type}`)}{item.animated ? ` · ${i18n.t("panel.animated")}` : ""}</span>
     </span>
   {/if}
-</footer>
+</div>
 
 <style>
   /* Discord's inspector bar under the emoji grid. */

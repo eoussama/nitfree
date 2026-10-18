@@ -31,24 +31,49 @@
 
   const { onpick = () => undefined }: TProps = $props();
 
+  // Solid glyphs that fill their box, like Discord's category icons.
   const ICONS: Record<TSectionId, string> = {
-    favorites: "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z",
-    recent: "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18Zm0 2a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm1 2v4.6l3.2 1.9-1 1.7L11 12.7V7h2Z",
-    all: "M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z",
+    favorites: "M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.26-1.93-1.4l1.9-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z",
+    recent: "M12 23a11 11 0 1 0 0-22 11 11 0 0 0 0 22Zm1-18a1 1 0 1 0-2 0v7c0 .27.1.52.3.7l3 3a1 1 0 0 0 1.4-1.4L13 11.58V5Z",
+    all: "M2 4a2 2 0 0 1 2-2h6v9H2V4Zm11-2h7a2 2 0 0 1 2 2v7h-9V2ZM2 13h9v9H4a2 2 0 0 1-2-2v-7Zm11 0h9v7a2 2 0 0 1-2 2h-7v-9Z",
   };
+
+  /**
+   * How long a sidebar jump may keep the scroll position from moving the highlight, in case the
+   * scroll never ends with a scrollend event (nothing to scroll, or no scrollend support).
+   */
+  const JUMP_TIMEOUT = 1000;
 
   let query = $state("");
   let current = $state("");
-  let inspected: TItem | null = $state(null);
+  let inspectedId: string | null = $state(null);
   const collapsed: Partial<Record<TSectionId, boolean>> = $state({});
   let activeSection: TSectionId | null = $state(null);
+  let jumping = false;
+  let reduced = $state(reducedMotion());
   let search: HTMLInputElement | undefined = $state();
   let body: HTMLElement | undefined = $state();
 
   const sections = $derived(buildSections(filterItems(library.items, query)));
-  const visibleKeys = $derived(sections.flatMap(section => (collapsed[section.id] ? [] : section.items.map(item => `${section.id}:${item.id}`))));
-  const tabbableKey = $derived(visibleKeys.includes(current) ? current : (visibleKeys[0] ?? ""));
-  const shown = $derived(inspected && library.items.some(item => item.id === inspected!.id) ? inspected : (sections[0]?.items[0] ?? null));
+  // While searching, every match shows, whatever the user collapsed; their choice comes back after.
+  const searching = $derived(query.trim() !== "");
+  const isCollapsed = (id: TSectionId): boolean => !searching && collapsed[id] === true;
+  const visible = $derived(sections.flatMap(section => (isCollapsed(section.id) ? [] : section.items.map(item => ({ key: `${section.id}:${item.id}`, item })))));
+  const tabbableKey = $derived(visible.some(entry => entry.key === current) ? current : (visible[0]?.key ?? ""));
+  // The inspector names the hovered item while it is on screen, else the first item shown.
+  const shown = $derived(visible.find(entry => entry.item.id === inspectedId)?.item ?? visible[0]?.item ?? null);
+  const highlighted = $derived(sections.some(section => section.id === activeSection) ? activeSection : (sections[0]?.id ?? null));
+
+  // Discord's reduced motion lives on <html>, which the styles in this shadow root cannot see.
+  $effect(() => {
+    const observer = new MutationObserver(() => {
+      reduced = reducedMotion();
+    });
+
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-nf-reduced-motion"] });
+
+    return () => observer.disconnect();
+  });
 
   function tiles(): HTMLElement[] {
     return body ? [...body.querySelectorAll<HTMLElement>("[data-tile]")] : [];
@@ -87,22 +112,36 @@
     return document.documentElement.dataset.nfReducedMotion === "true";
   }
 
-  function jumpTo(id: TSectionId): void {
+  function stopJumping(): void {
+    jumping = false;
+  }
+
+  async function jumpTo(id: TSectionId): Promise<void> {
     collapsed[id] = false;
     activeSection = id;
-    body?.querySelector(`[data-section="${id}"]`)?.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
+
+    // Let the section render first, or the scroll stops at the old, shorter height.
+    await tick();
+
+    jumping = true;
+    setTimeout(stopJumping, JUMP_TIMEOUT);
+    body?.querySelector(`[data-section="${id}"]`)?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
   }
 
   function onScroll(): void {
-    if (!body) {
+    // The scroll from a sidebar jump must not move the highlight off the section that was clicked.
+    if (!body || jumping) {
       return;
     }
 
     const top = body.getBoundingClientRect().top;
     const headers = [...body.querySelectorAll<HTMLElement>("[data-section]")];
     const passed = headers.filter(header => header.getBoundingClientRect().top - top <= 8);
+    // A short last section never reaches the top; at the bottom of the list it is the one in view.
+    const atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 1;
+    const section = (atBottom ? headers.at(-1) : passed.at(-1)) ?? headers[0];
 
-    activeSection = (passed.at(-1) ?? headers[0])?.dataset.section as TSectionId | undefined ?? null;
+    activeSection = (section?.dataset.section as TSectionId | undefined) ?? null;
   }
 
   /**
@@ -114,7 +153,7 @@
   }
 </script>
 
-<div class="library">
+<div class="library" class:reduced>
   <header class="header">
     <label class="search">
       <span class="search-icon" aria-hidden="true">
@@ -140,19 +179,27 @@
     {#each sections as section (section.id)}
       <button
         class="category"
-        class:active={(activeSection ?? sections[0]?.id) === section.id}
+        class:active={highlighted === section.id}
         type="button"
         aria-label={i18n.t(`panel.sections.${section.id}`)}
         title={i18n.t(`panel.sections.${section.id}`)}
-        onclick={() => jumpTo(section.id)}
+        onclick={() => void jumpTo(section.id)}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[section.id]} /></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d={ICONS[section.id]} /></svg>
       </button>
     {/each}
   </nav>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div bind:this={body} class="body" onkeydown={onBodyKeydown} onscroll={onScroll}>
+  <div
+    bind:this={body}
+    class="body"
+    onkeydown={onBodyKeydown}
+    onscroll={onScroll}
+    onscrollend={stopJumping}
+    onwheel={stopJumping}
+    onpointerdown={stopJumping}
+  >
     {#if library.error}
       <p class="message">{i18n.t("panel.error")}</p>
     {:else if !library.loaded}
@@ -169,17 +216,18 @@
               id="nf-section-{section.id}"
               class="section-toggle"
               type="button"
-              aria-expanded={!collapsed[section.id]}
+              aria-expanded={!isCollapsed(section.id)}
+              disabled={searching}
               onclick={() => {
                 collapsed[section.id] = !collapsed[section.id];
               }}
             >
-              <svg class="section-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[section.id]} /></svg>
+              <svg class="section-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d={ICONS[section.id]} /></svg>
               <span class="section-label">{i18n.t(`panel.sections.${section.id}`)}</span>
               <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.3 9.3a1 1 0 0 1 1.4 0L12 14.6l5.3-5.3a1 1 0 1 1 1.4 1.4l-6 6a1 1 0 0 1-1.4 0l-6-6a1 1 0 0 1 0-1.4Z" /></svg>
             </button>
           </h3>
-          {#if !collapsed[section.id]}
+          {#if !isCollapsed(section.id)}
             <ul class="grid">
               {#each section.items as item (item.id)}
                 {@const key = `${section.id}:${item.id}`}
@@ -192,7 +240,7 @@
                       current = key;
                     }}
                     oninspect={(found) => {
-                      inspected = found;
+                      inspectedId = found.id;
                     }}
                   />
                 </li>
@@ -322,7 +370,7 @@
     fill: var(--control-icon-only-icon-default, var(--nf-muted, #949ba4));
   }
 
-  .icon-button:hover {
+  .icon-button:hover:not(:disabled) {
     background-color: var(--control-icon-only-background-hover, var(--nf-bg-hover, rgb(255 255 255 / 6%)));
   }
 
@@ -359,7 +407,12 @@
     color: var(--control-secondary-text-active, #fff);
   }
 
-  .icon-button:disabled,
+  /* The disabled filter button still shows its tooltip, so it keeps taking the pointer. */
+  .icon-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
   .text-button:disabled {
     opacity: 0.5;
     pointer-events: none;
@@ -388,6 +441,7 @@
   }
 
   .category {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -402,8 +456,8 @@
   }
 
   .category svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     fill: var(--interactive-icon-default, var(--nf-muted, #949ba4));
     transition: fill 0.1s ease-in-out;
   }
@@ -420,6 +474,21 @@
     background-color: var(--interactive-background-selected, rgb(151 151 159 / 20%));
   }
 
+  /* Discord marks the selected category with a pill on the sidebar's edge. */
+  .category.active::before {
+    position: absolute;
+    inset-inline-start: -8px;
+    top: 50%;
+    width: 4px;
+    height: 20px;
+    margin-top: -10px;
+    border-start-end-radius: 4px;
+    border-end-end-radius: 4px;
+    background-color: var(--text-strong, var(--nf-text, #fff));
+    content: "";
+    pointer-events: none;
+  }
+
   .category.active svg {
     fill: var(--interactive-icon-active, var(--nf-text, #fff));
   }
@@ -432,8 +501,15 @@
     min-height: 0;
     overflow: hidden scroll;
     scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thin-thumb, rgb(255 255 255 / 20%)) var(--scrollbar-thin-track, transparent);
+  }
+
+  /* Setting these turns off the ::-webkit-scrollbar styles below in Chromium, so like Discord they only
+     apply where those do not exist (Firefox). */
+  @supports not selector(::-webkit-scrollbar) {
+    .body {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thin-thumb, rgb(255 255 255 / 20%)) var(--scrollbar-thin-track, transparent);
+    }
   }
 
   .body::-webkit-scrollbar {
@@ -453,13 +529,18 @@
     background-color: var(--scrollbar-thin-thumb, rgb(255 255 255 / 20%));
   }
 
+  .body::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+
   .section {
     padding-bottom: 8px;
   }
 
+  /* Aligned with the first cell, as in Discord. */
   .section-header {
     margin: 0;
-    padding: 12px 8px 8px 16px;
+    padding: 8px 8px 6px;
   }
 
   .section-toggle {
@@ -476,7 +557,11 @@
     transition: color 0.125s;
   }
 
-  .section-toggle:hover {
+  .section-toggle:disabled {
+    cursor: default;
+  }
+
+  .section-toggle:hover:not(:disabled) {
     color: var(--interactive-text-active, #fff);
   }
 
@@ -484,7 +569,7 @@
     flex-shrink: 0;
     width: 16px;
     height: 16px;
-    margin-inline-end: 8px;
+    margin-inline-end: 4px;
     fill: currentcolor;
   }
 
@@ -510,7 +595,10 @@
     transform: rotate(-90deg);
   }
 
-  :global(html[data-nf-reduced-motion="true"]) .chevron {
+  .reduced .chevron,
+  .reduced .category,
+  .reduced .category svg,
+  .reduced .section-toggle {
     transition: none;
   }
 
