@@ -110,18 +110,21 @@
 {/if}
 
 <style>
+  /* Sized and colored like Discord's expression picker, without its tab bar. */
   .panel {
+    --nf-header-top: 16px;
+
     position: fixed;
     box-sizing: border-box;
-    width: min(440px, calc(100vw - 16px));
-    height: 440px;
+    width: min(498px, calc(100vw - 16px));
+    height: 442px;
     overflow: hidden;
-    border: 1px solid var(--nf-border, #3f4147);
-    border-radius: var(--nf-radius, 8px);
-    background: var(--nf-bg-elevated, #2b2d31);
-    color: var(--nf-text, #dbdee1);
+    border: 1px solid var(--border-subtle, var(--nf-border, #3f4147));
+    border-radius: var(--radius-sm, var(--nf-radius, 8px));
+    background-color: var(--background-surface-high, var(--nf-bg-elevated, #2b2d31));
+    color: var(--text-default, var(--nf-text, #dbdee1));
     box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
-    font-family: inherit;
+    font-family: var(--font-primary, inherit);
   }
 
   .panel :global(*) {

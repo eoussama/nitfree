@@ -11,9 +11,16 @@ panel:
   placeholder: Vos emojis, stickers et GIF apparaîtront ici.
   search: Rechercher dans Nitfree
   filter: Filtrer par tags
-  add: Ajouter des fichiers
+  add: Ajouter
   error: Impossible de charger votre bibliothèque.
   noResults: Aucun résultat pour « {query} ».
+  sectionsLabel: Sections
+  animated: animé
+  types:
+    emoji: Emoji
+    sticker: Sticker
+    gif: GIF
+    image: Image
   sections:
     favorites: Favoris
     recent: Récents

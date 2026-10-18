@@ -1,8 +1,9 @@
 <svelte:options css="injected" />
 
 <!--
-  One library item in the panel's grid. The thumbnail is fetched from the background only once
-  the tile scrolls into view.
+  One library item in the panel's grid, a square cell like Discord's emoji picker: no caption; the
+  name shows in the inspector bar when the cell is hovered or focused. The thumbnail is fetched from
+  the background only once the cell scrolls into view.
 -->
 <script lang="ts">
   import type { TItem } from "~/lib/db";
@@ -18,9 +19,10 @@
     tabbable: boolean;
     onpick: (item: TItem, send: boolean) => void;
     onfocus: () => void;
+    oninspect: (item: TItem) => void;
   };
 
-  const { item, tabbable, onpick, onfocus }: TProps = $props();
+  const { item, tabbable, onpick, onfocus, oninspect }: TProps = $props();
 
   let url: string | null = $state(null);
 
@@ -63,68 +65,55 @@
   type="button"
   data-tile={item.id}
   tabindex={tabbable ? 0 : -1}
-  title={item.title}
+  aria-label={item.title}
   onclick={event => onpick(item, !event.shiftKey)}
-  onfocus={onfocus}
+  onfocus={() => {
+    onfocus();
+    oninspect(item);
+  }}
+  onpointerenter={() => oninspect(item)}
   {@attach whenVisible}
 >
-  <span class="frame">
-    {#if url}
-      <img class="image" src={url} alt="" draggable="false" />
-    {/if}
-  </span>
-  <span class="title">{item.title}</span>
+  {#if url}
+    <img class="image" src={url} alt="" draggable="false" />
+  {/if}
 </button>
 
 <style>
+  /* Discord's emoji cell: 48 px with a 4 px gutter around a 40 px image. */
   .tile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
+    position: relative;
+    display: block;
+    width: 48px;
+    height: 48px;
     padding: 4px;
     border: none;
-    border-radius: var(--nf-radius, 8px);
+    border-radius: 4px;
     background: none;
-    color: inherit;
-    font: inherit;
     cursor: pointer;
+    outline: none;
   }
 
-  .tile:hover {
-    background: color-mix(in srgb, var(--nf-text, #dbdee1) 6%, transparent);
-  }
-
+  .tile:hover,
   .tile:focus-visible {
-    outline: 2px solid var(--nf-accent, #5865f2);
-    outline-offset: -2px;
+    background-color: var(--interactive-background-selected, var(--nf-bg-hover, rgb(151 151 159 / 20%)));
   }
 
-  .frame {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    aspect-ratio: 1;
-    overflow: hidden;
-    border-radius: calc(var(--nf-radius, 8px) - 2px);
-    background: color-mix(in srgb, var(--nf-text, #dbdee1) 4%, transparent);
+  .tile:focus-visible::before {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--interactive-text-hover, var(--nf-accent, #fff));
+    border-radius: 4px;
+    content: "";
+    pointer-events: none;
   }
 
   .image {
-    max-width: 100%;
-    max-height: 100%;
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
     object-fit: contain;
-  }
-
-  .title {
-    width: 100%;
-    overflow: hidden;
-    font-size: 12px;
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--nf-muted, #949ba4);
+    pointer-events: none;
   }
 </style>
