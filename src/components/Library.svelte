@@ -615,7 +615,7 @@
     height: 32px;
     padding: 0;
     border: none;
-    border-radius: var(--radius-sm, 8px);
+    border-radius: var(--radius-md, 12px);
     background: transparent;
     color: var(--interactive-icon-default, var(--nf-muted, #949ba4));
     cursor: pointer;
