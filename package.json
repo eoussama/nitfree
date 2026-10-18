@@ -19,7 +19,7 @@
     "zip:edge": "wxt zip -b edge",
     "lint": "dx lint",
     "lint:fix": "dx fix",
-    "typecheck": "svelte-check --tsconfig ./tsconfig.json",
+    "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "postinstall": "wxt prepare"
   },
@@ -29,6 +29,7 @@
   "devDependencies": {
     "@eoussama/dx": "^0.1.1",
     "@types/node": "^26.6.5",
+    "@typescript/native": "npm:typescript@^7",
     "@wxt-dev/module-svelte": "^2.0.5",
     "eslint": "^10.13.0",
     "eslint-plugin-svelte": "^3.23.1",
