@@ -12,9 +12,9 @@ jobs:
     name: Zip Chrome, Edge and Firefox
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -27,19 +27,20 @@ jobs:
       - run: pnpm wxt zip -b chrome
       - run: pnpm wxt zip -b edge
       - run: pnpm wxt zip -b firefox
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: zips
           path: .output/*.zip
           if-no-files-found: error
+          include-hidden-files: true
 
   safari:
     name: Xcode project for Safari
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -52,11 +53,12 @@ jobs:
           --bundle-identifier es.ouss.nitfree
           --copy-resources --no-open --no-prompt --force
       - run: cd .output/xcode && zip -qr "../nitfree-${GITHUB_REF_NAME#v}-safari-xcode.zip" .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: safari
           path: .output/*-safari-xcode.zip
           if-no-files-found: error
+          include-hidden-files: true
 
   release:
     name: GitHub release
@@ -65,8 +67,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
