@@ -5,24 +5,34 @@ import { expect, test } from "./fixtures";
 
 
 const DISCORD_URL = "https://discord.com/channels/@me";
+const MARKETING_URL = "https://discord.com/nitro";
 
 /**
- * A stand-in for Discord's page: the theme class on <html> and a few of its design tokens.
+ * A stand-in for Discord's app: the theme class on <html> and a few of its design tokens.
  */
-const DISCORD_PAGE = `<!doctype html>
+const APP_PAGE = `<!doctype html>
 <html class="theme-light">
   <head>
     <style>
       .theme-light { --background-primary: rgb(250, 250, 250); --text-normal: rgb(10, 10, 10); }
       .theme-dark { --background-primary: rgb(30, 31, 34); --text-normal: rgb(220, 221, 222); }
     </style>
+    <style id="client-theme"></style>
   </head>
   <body></body>
 </html>`;
 
-async function openDiscord(page: Page): Promise<void> {
-  await page.context().route("https://discord.com/**", route => route.fulfill({ contentType: "text/html", body: DISCORD_PAGE }));
-  await page.goto(DISCORD_URL);
+/**
+ * A stand-in for Discord's marketing pages, which carry no theme.
+ */
+const MARKETING_PAGE = "<!doctype html><html><head></head><body></body></html>";
+
+async function openDiscord(page: Page, url = DISCORD_URL): Promise<void> {
+  await page.context().route("https://discord.com/**", route => route.fulfill({
+    contentType: "text/html",
+    body: new URL(route.request().url()).pathname.startsWith("/channels/") ? APP_PAGE : MARKETING_PAGE,
+  }));
+  await page.goto(url);
   await expect(page.locator("html")).toHaveAttribute("data-nitfree");
 }
 
@@ -77,4 +87,36 @@ test("theme follows discord live and reaches the popup", async ({ context, page,
 
   await expect(popup.locator("body")).toHaveCSS("background-color", "rgb(30, 31, 34)");
   await expect(popup.locator("body")).toHaveCSS("color", "rgb(220, 221, 222)");
+});
+
+test("client themes that edit an existing style are picked up", async ({ page }) => {
+  await openDiscord(page);
+  await expect.poll(() => rootVariable(page, "--nf-bg")).toBe("rgb(250, 250, 250)");
+
+  await page.evaluate(() => {
+    const style = document.getElementById("client-theme");
+
+    if (style) {
+      style.textContent = ".theme-light { --background-primary: rgb(1, 2, 3); }";
+    }
+  });
+
+  await expect.poll(() => rootVariable(page, "--nf-bg")).toBe("rgb(1, 2, 3)");
+});
+
+test("pages without a discord theme leave the stored palette alone", async ({ context, page, extensionId }) => {
+  await openDiscord(page);
+  await page.evaluate(() => document.documentElement.classList.replace("theme-light", "theme-dark"));
+  await expect.poll(() => rootVariable(page, "--nf-bg")).toBe("rgb(30, 31, 34)");
+
+  const marketing = await context.newPage();
+
+  await openDiscord(marketing, MARKETING_URL);
+  expect(await rootVariable(marketing, "--nf-bg")).toBe("");
+
+  const popup = await context.newPage();
+
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+
+  await expect(popup.locator("body")).toHaveCSS("background-color", "rgb(30, 31, 34)");
 });

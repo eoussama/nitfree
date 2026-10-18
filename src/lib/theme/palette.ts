@@ -8,12 +8,12 @@ import { DISCORD_VARIABLES, FALLBACK_PALETTES, THEME_NAMES, TOKEN_VARIABLES } fr
  * Finds Discord's theme from the classes on `<html>`.
  *
  * @param classes - The class names on Discord's root element.
- * @returns The theme in use, dark when none is found.
+ * @returns The theme in use, or null on pages without one, such as Discord's marketing pages.
  */
-export function detectTheme(classes: Iterable<string>): TThemeName {
+export function detectTheme(classes: Iterable<string>): TThemeName | null {
   const names = new Set(classes);
 
-  return THEME_NAMES.find(name => names.has(`theme-${name}`)) ?? "dark";
+  return THEME_NAMES.find(name => names.has(`theme-${name}`)) ?? null;
 }
 
 /**

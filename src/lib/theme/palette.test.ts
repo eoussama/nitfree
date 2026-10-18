@@ -12,8 +12,9 @@ describe("detectTheme", () => {
     expect(detectTheme(["theme-light"])).toBe("light");
   });
 
-  it("defaults to dark", () => {
-    expect(detectTheme([])).toBe("dark");
+  it("finds no theme on pages without one", () => {
+    expect(detectTheme([])).toBeNull();
+    expect(detectTheme(["font-size-16"])).toBeNull();
   });
 });
 
