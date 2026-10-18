@@ -8,6 +8,7 @@
   import type { TItemType } from "~/lib/db";
   import type { TDraft } from "~/lib/ui/editor.svelte";
 
+  import X from "@lucide/svelte/icons/x";
   import { tick } from "svelte";
 
   // Not from "~/lib/db": that would bundle Dexie into the content script, and Chrome refuses its "\uffff" key bound as invalid UTF-8.
@@ -87,7 +88,7 @@
       <header class="modal-header">
         <h2 class="modal-title" id="nf-editor-title">{heading}</h2>
         <button class="close" type="button" aria-label={i18n.t("editor.cancel")} disabled={editor.saving} onclick={closeEditor}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.3 5.3a1 1 0 1 1 1.4 1.4L13.42 12l5.3 5.3a1 1 0 0 1-1.42 1.4L12 13.42l-5.3 5.3a1 1 0 0 1-1.4-1.42L10.58 12l-5.3-5.3a1 1 0 0 1 1.42-1.4L12 10.58l5.3-5.3Z" /></svg>
+          <X size={24} aria-hidden="true" />
         </button>
       </header>
 
@@ -238,14 +239,12 @@
     cursor: pointer;
   }
 
-  .close svg {
-    width: 24px;
-    height: 24px;
-    fill: var(--interactive-icon-default, var(--nf-muted, #949ba4));
+  .close {
+    color: var(--interactive-icon-default, var(--nf-muted, #949ba4));
   }
 
-  .close:hover svg {
-    fill: var(--interactive-icon-hover, #fff);
+  .close:hover {
+    color: var(--interactive-icon-hover, #fff);
   }
 
   .modal-content {

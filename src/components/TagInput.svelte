@@ -7,6 +7,8 @@
 <script lang="ts">
   import type { TTag } from "~/lib/db";
 
+  import X from "@lucide/svelte/icons/x";
+
   import { parseTagNames, suggestTags } from "~/lib/ui/drafts";
   import { onEscape } from "~/lib/ui/escape";
 
@@ -92,7 +94,7 @@
         // The chip's button goes away with it.
         input?.focus();
       }}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.3 5.3a1 1 0 1 1 1.4 1.4L13.42 12l5.3 5.3a1 1 0 0 1-1.42 1.4L12 13.42l-5.3 5.3a1 1 0 0 1-1.4-1.42L10.58 12l-5.3-5.3a1 1 0 0 1 1.42-1.4L12 10.58l5.3-5.3Z" /></svg>
+        <X size={12} strokeWidth={3} aria-hidden="true" />
       </button>
     </span>
   {/each}
@@ -200,14 +202,12 @@
     cursor: pointer;
   }
 
-  .chip-remove svg {
-    width: 12px;
-    height: 12px;
-    fill: var(--interactive-icon-default, var(--nf-muted, #949ba4));
+  .chip-remove {
+    color: var(--interactive-icon-default, var(--nf-muted, #949ba4));
   }
 
-  .chip-remove:hover svg {
-    fill: var(--interactive-icon-hover, var(--nf-text, #fff));
+  .chip-remove:hover {
+    color: var(--interactive-icon-hover, var(--nf-text, #fff));
   }
 
   .input {

@@ -187,6 +187,24 @@ test.describe("panel navigation in a long library", () => {
     await expect(inspector).toContainText(":file4:");
   });
 
+  test("lines the sidebar up with the sections and the inspector, like Discord's", async ({ page }) => {
+    await openPanel(page);
+
+    const center = (box: { y: number; height: number } | null) => (box ? box.y + box.height / 2 : Number.NaN);
+    const category = await dialog(page).getByRole("navigation").getByRole("button").first().boundingBox();
+    const header = await dialog(page).locator(".section-toggle").first().boundingBox();
+
+    expect(Math.abs(center(category) - center(header))).toBeLessThanOrEqual(1);
+
+    // The inspector's top border runs on under the sidebar.
+    const footer = await dialog(page).locator(".sidebar-footer").boundingBox();
+    const inspector = await dialog(page).locator("[data-inspector]").boundingBox();
+
+    expect(footer?.y).toBe(inspector?.y);
+    expect(footer?.height).toBe(inspector?.height);
+    expect(await dialog(page).locator(".sidebar-footer").evaluate(element => getComputedStyle(element).borderTopWidth)).toBe("1px");
+  });
+
   test("uses Discord's 8 px scrollbar", async ({ page }) => {
     await openPanel(page);
 

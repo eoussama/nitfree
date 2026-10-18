@@ -169,6 +169,9 @@ importers:
       '@eoussama/core':
         specifier: ^0.1.0
         version: 0.1.0
+      '@lucide/svelte':
+        specifier: ^1.50.0
+        version: 1.50.0(svelte@5.57.2(@typescript-eslint/types@8.71.2))
       '@wxt-dev/i18n':
         specifier: ^0.2.8
         version: 0.2.8(wxt@0.21.4(@typescript/typescript6@6.0.2)(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))(rolldown@1.2.14)(vite@8.3.4(@types/node@26.6.5)(jiti@2.7.0)(yaml@2.9.1))(web-ext@10.8.0(jiti@2.7.0)(supports-color@7.2.0)))
@@ -550,6 +553,11 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@lucide/svelte@1.50.0':
+    resolution: {integrity: sha512-0VGYwm1YgZd7UMv/DLZIUV0QXj9QbVds3b/ElkoTj9TwpI5GIHAV1Yk74TQ3dAzY0ShT4X/2xq7pihzBNVnvxQ==}
+    peerDependencies:
+      svelte: ^5
 
   '@mdn/browser-compat-data@8.1.4':
     resolution: {integrity: sha512-Cgp3OP3u9x57kT1sZPI115SP5H1IyaBhdDPnvnHRYZ1988kW83wuqcIdcMinLJXlMKOL5Y2cufWHzngh5cVtow==}
@@ -3853,6 +3861,10 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@lucide/svelte@1.50.0(svelte@5.57.2(@typescript-eslint/types@8.71.2))':
+    dependencies:
+      svelte: 5.57.2(@typescript-eslint/types@8.71.2)
 
   '@mdn/browser-compat-data@8.1.4': {}
 

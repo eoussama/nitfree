@@ -5,6 +5,11 @@
   Delete in red. Arrow keys move, Enter picks, Escape closes.
 -->
 <script lang="ts">
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Star from "@lucide/svelte/icons/star";
+  import StarOff from "@lucide/svelte/icons/star-off";
+  import Trash from "@lucide/svelte/icons/trash";
+
   import { sendMessage } from "~/lib/messaging";
   import { startEdit } from "~/lib/ui/editor.svelte";
   import { closeMenu, menu } from "~/lib/ui/menu.svelte";
@@ -110,16 +115,16 @@
   >
     <button class="item" type="button" role="menuitem" onclick={toggleFavorite}>
       {menu.item.favorite ? i18n.t("menu.unfavorite") : i18n.t("menu.favorite")}
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.26-1.93-1.4l1.9-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z" /></svg>
+      {#if menu.item.favorite}<StarOff size={18} aria-hidden="true" />{:else}<Star size={18} aria-hidden="true" />{/if}
     </button>
     <button class="item" type="button" role="menuitem" onclick={edit}>
       {i18n.t("menu.edit")}
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13.96 5.46 4.58 4.58a1 1 0 0 0 1.42 0l1.38-1.38a2 2 0 0 0 0-2.82l-3.18-3.18a2 2 0 0 0-2.82 0l-1.38 1.38a1 1 0 0 0 0 1.42ZM2.11 20.16l.73-4.22a3 3 0 0 1 .83-1.61l7.87-7.87a1 1 0 0 1 1.42 0l4.58 4.58a1 1 0 0 1 0 1.42l-7.87 7.87a3 3 0 0 1-1.6.83l-4.23.73a1.5 1.5 0 0 1-1.73-1.73Z" /></svg>
+      <Pencil size={18} aria-hidden="true" />
     </button>
     <div class="separator" role="separator"></div>
     <button class="item danger" type="button" role="menuitem" onclick={remove}>
       {i18n.t("menu.delete")}
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.25 1c.41 0 .75.34.75.75V3h5.25c.41 0 .75.34.75.75v.5c0 .41-.34.75-.75.75H3.75A.75.75 0 0 1 3 4.25v-.5c0-.41.34-.75.75-.75H9V1.75c0-.41.34-.75.75-.75h4.5ZM5.06 7a1 1 0 0 0-1 1.06l.76 12.13a3 3 0 0 0 3 2.81h8.36a3 3 0 0 0 3-2.81l.75-12.13a1 1 0 0 0-1-1.06H5.07Z" /></svg>
+      <Trash size={18} aria-hidden="true" />
     </button>
   </div>
 {/if}
@@ -163,11 +168,8 @@
     cursor: pointer;
   }
 
-  .item svg {
+  .item :global(svg) {
     flex: none;
-    width: 18px;
-    height: 18px;
-    fill: currentcolor;
   }
 
   .item:hover,

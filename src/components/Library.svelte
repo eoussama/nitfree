@@ -14,6 +14,12 @@
   import type { TGridKey } from "~/lib/ui/grid";
   import type { TSectionId } from "~/lib/ui/sections";
 
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Clock from "@lucide/svelte/icons/clock";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import Search from "@lucide/svelte/icons/search";
+  import Star from "@lucide/svelte/icons/star";
+  import Tag from "@lucide/svelte/icons/tag";
   import { tick } from "svelte";
 
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
@@ -36,11 +42,10 @@
 
   const { onpick = () => undefined }: TProps = $props();
 
-  // Solid glyphs that fill their box, like Discord's category icons.
-  const ICONS: Record<TSectionId, string> = {
-    favorites: "M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.26-1.93-1.4l1.9-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z",
-    recent: "M12 23a11 11 0 1 0 0-22 11 11 0 0 0 0 22Zm1-18a1 1 0 1 0-2 0v7c0 .27.1.52.3.7l3 3a1 1 0 0 0 1.4-1.4L13 11.58V5Z",
-    all: "M2 4a2 2 0 0 1 2-2h6v9H2V4Zm11-2h7a2 2 0 0 1 2 2v7h-9V2ZM2 13h9v9H4a2 2 0 0 1-2-2v-7Zm11 0h9v7a2 2 0 0 1-2 2h-7v-9Z",
+  const ICONS: Record<TSectionId, typeof Star> = {
+    favorites: Star,
+    recent: Clock,
+    all: LayoutGrid,
   };
 
   /**
@@ -272,9 +277,7 @@
 >
   <header class="header">
     <label class="search">
-      <span class="search-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 0 1 5.6 11.2l4.6 4.6-1.4 1.4-4.6-4.6A7 7 0 1 1 10 3Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z" /></svg>
-      </span>
+      <span class="search-icon" aria-hidden="true"><Search size={16} /></span>
       <input
         bind:this={search}
         bind:value={query}
@@ -286,7 +289,7 @@
       />
     </label>
     <button class="icon-button" type="button" disabled aria-label={i18n.t("panel.filter")} title={i18n.t("panel.filter")}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h7l11 11-6 6L4 10V4Zm4 2.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>
+      <Tag size={20} aria-hidden="true" />
     </button>
     <button class="text-button" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
     <input bind:this={fileInput} class="file-input" type="file" accept={ACCEPTED_FILES} multiple tabindex="-1" aria-hidden="true" onchange={onPicked} />
@@ -297,18 +300,23 @@
   {/if}
 
   <nav class="sidebar" aria-label={i18n.t("panel.sectionsLabel")}>
-    {#each sections as section (section.id)}
-      <button
-        class="category"
-        class:active={highlighted === section.id}
-        type="button"
-        aria-label={i18n.t(`panel.sections.${section.id}`)}
-        title={i18n.t(`panel.sections.${section.id}`)}
-        onclick={() => void jumpTo(section.id)}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d={ICONS[section.id]} /></svg>
-      </button>
-    {/each}
+    <div class="categories">
+      {#each sections as section (section.id)}
+        {@const Icon = ICONS[section.id]}
+        <button
+          class="category"
+          class:active={highlighted === section.id}
+          type="button"
+          aria-label={i18n.t(`panel.sections.${section.id}`)}
+          title={i18n.t(`panel.sections.${section.id}`)}
+          onclick={() => void jumpTo(section.id)}
+        >
+          <Icon size={20} aria-hidden="true" />
+        </button>
+      {/each}
+    </div>
+    <!-- Level with the inspector, its border running across the whole panel as in Discord. -->
+    <div class="sidebar-footer"></div>
   </nav>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -332,6 +340,7 @@
       <p class="message">{i18n.t("panel.noResults", { query: query.trim() })}</p>
     {:else}
       {#each sections as section (section.id)}
+        {@const SectionIcon = ICONS[section.id]}
         <section class="section" aria-labelledby="nf-section-{section.id}">
           <h3 class="section-header" data-section={section.id}>
             <button
@@ -344,9 +353,9 @@
                 collapsed[section.id] = !collapsed[section.id];
               }}
             >
-              <svg class="section-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d={ICONS[section.id]} /></svg>
+              <span class="section-icon" aria-hidden="true"><SectionIcon size={16} /></span>
               <span class="section-label">{i18n.t(`panel.sections.${section.id}`)}</span>
-              <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.3 9.3a1 1 0 0 1 1.4 0L12 14.6l5.3-5.3a1 1 0 1 1 1.4 1.4l-6 6a1 1 0 0 1-1.4 0l-6-6a1 1 0 0 1 0-1.4Z" /></svg>
+              <span class="chevron" aria-hidden="true"><ChevronDown size={16} /></span>
             </button>
           </h3>
           {#if !isCollapsed(section.id)}
@@ -442,12 +451,7 @@
     justify-content: center;
     width: 30px;
     height: 30px;
-  }
-
-  .search-icon svg {
-    width: 16px;
-    height: 16px;
-    fill: var(--input-icon-default, var(--nf-muted, #949ba4));
+    color: var(--input-icon-default, var(--nf-muted, #949ba4));
   }
 
   .input {
@@ -483,15 +487,11 @@
     border: 1px solid transparent;
     border-radius: var(--radius-sm, 8px);
     background: transparent;
+    color: var(--control-icon-only-icon-default, var(--nf-muted, #949ba4));
     cursor: pointer;
     transition: background-color 0.15s ease-out;
   }
 
-  .icon-button svg {
-    width: 20px;
-    height: 20px;
-    fill: var(--control-icon-only-icon-default, var(--nf-muted, #949ba4));
-  }
 
   .icon-button:hover:not(:disabled) {
     background-color: var(--control-icon-only-background-hover, var(--nf-bg-hover, rgb(255 255 255 / 6%)));
@@ -574,12 +574,27 @@
     flex-direction: column;
     grid-row: 2 / 4;
     grid-column: 1;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 0;
-    overflow: hidden;
+    min-height: 0;
     border-end-start-radius: 8px;
     background-color: var(--background-base-lower, var(--nf-bg, #313338));
+  }
+
+  /* The first icon is centered on the first section's header, like Discord's. */
+  .categories {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 0;
+    padding: 1px 0 8px;
+    overflow: hidden;
+  }
+
+  .sidebar-footer {
+    flex: none;
+    height: 48px;
+    border-top: 1px solid var(--border-normal, var(--nf-border, #3f4147));
   }
 
   .category {
@@ -593,27 +608,19 @@
     border: none;
     border-radius: var(--radius-sm, 8px);
     background: transparent;
+    color: var(--interactive-icon-default, var(--nf-muted, #949ba4));
     cursor: pointer;
-    transition: background-color 0.1s ease-in-out;
-  }
-
-  .category svg {
-    width: 24px;
-    height: 24px;
-    fill: var(--interactive-icon-default, var(--nf-muted, #949ba4));
-    transition: fill 0.1s ease-in-out;
+    transition: background-color 0.1s ease-in-out, color 0.1s ease-in-out;
   }
 
   .category:hover {
     background-color: var(--interactive-background-hover, var(--nf-bg-hover, rgb(255 255 255 / 6%)));
+    color: var(--interactive-icon-hover, var(--nf-text, #dbdee1));
   }
 
-  .category:hover svg {
-    fill: var(--interactive-icon-hover, var(--nf-text, #dbdee1));
-  }
-
+  /* Like Discord, the selected category has no box: a bright icon and the pill. */
   .category.active {
-    background-color: var(--interactive-background-selected, rgb(151 151 159 / 20%));
+    color: var(--interactive-icon-active, var(--nf-text, #fff));
   }
 
   /* Discord marks the selected category with a pill on the sidebar's edge. */
@@ -629,10 +636,6 @@
     background-color: var(--text-strong, var(--nf-text, #fff));
     content: "";
     pointer-events: none;
-  }
-
-  .category.active svg {
-    fill: var(--interactive-icon-active, var(--nf-text, #fff));
   }
 
   /* Body: the scrolling list of sections. */
@@ -708,11 +711,9 @@
   }
 
   .section-icon {
+    display: flex;
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
     margin-inline-end: 4px;
-    fill: currentcolor;
   }
 
   .section-label {
@@ -725,11 +726,9 @@
   }
 
   .chevron {
+    display: flex;
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
     margin-inline-start: 4px;
-    fill: currentcolor;
     transition: transform 0.1s;
   }
 
@@ -739,7 +738,6 @@
 
   .reduced .chevron,
   .reduced .category,
-  .reduced .category svg,
   .reduced .section-toggle {
     transition: none;
   }
