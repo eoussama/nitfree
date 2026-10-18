@@ -19,13 +19,14 @@ Notable changes to Nitfree, newest first. Versions follow [Semantic Versioning](
 ### Changed
 
 - `tsc` runs on TypeScript 7; TypeScript 6 stays for ESLint (#32).
+- `@eoussama/core` 0.1.2 and `@eoussama/dx` 0.1.3, with the pnpm supply-chain settings dx now enforces (#32).
 
 ### Fixed
 
 - The 512 px icon was 1080 px wide (#37).
 - The add and edit dialog could not be typed in while Discord's picker was open, as the picker's focus lock pulled focus back (#29).
 - A paste after clicking an empty spot in the panel went to Discord's chat box instead of adding the image (#29).
-- The sidebar's pill slides in on hover and grows on the selected category, the previous one shrinking away to the edge, like Discord's server list (#22).
+- The sidebar's pill slides in on hover and grows on the selected category, the previous one shrinking away to the edge, like Discord's server list, on backgrounds rounded like Discord's (#22).
 - The panel's sidebar ends level with the inspector, its border running across like Discord's, and its first icon lines up with the first section; icons come from Lucide (#22).
 - The chat bar button's logo is 20 px, the size of the glyphs on Discord's own buttons (#24).
 
