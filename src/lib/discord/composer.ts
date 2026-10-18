@@ -1,4 +1,4 @@
-import { SELECTORS } from "./selectors";
+import { BEHAVIOR_CLASSES, CLASS_PATTERNS, SELECTORS } from "./selectors";
 
 
 
@@ -8,11 +8,10 @@ export type TChatButtonClasses = {
   wrapper: string;
 };
 
-/**
- * Classes Discord uses for picker logic rather than looks; copying them would make Discord treat
- * Nitfree's button as one of its own.
- */
-const BEHAVIOR_CLASSES = new Set(["expression-picker-chat-input-button"]);
+export type TPickerTabClasses = {
+  base: string;
+  active: string;
+};
 
 /**
  * Finds elements with the first selector of a list that matches anything, so a fallback is only used
@@ -49,6 +48,45 @@ export function findChatButtonGroups(root: ParentNode = document): Element[] {
 }
 
 /**
+ * Finds the composer button group an element sits in.
+ *
+ * @param element - An element inside a composer, such as Nitfree's button.
+ * @returns The group, or null.
+ */
+export function chatButtonGroupOf(element: Element): Element | null {
+  return element.closest(SELECTORS.chatButtonGroup.join(","));
+}
+
+/**
+ * Finds the chat bar buttons that open Discord's expression picker.
+ *
+ * @param root - A composer button group, or the whole page.
+ * @returns The buttons, in order: GIF, sticker, emoji.
+ */
+export function findPickerButtons(root: ParentNode = document): HTMLElement[] {
+  return findAll(root, SELECTORS.pickerButton) as HTMLElement[];
+}
+
+/**
+ * Finds a composer's emoji button, falling back to its last picker button.
+ *
+ * @param group - A composer button group.
+ * @returns The button, or null.
+ */
+export function findEmojiButton(group: Element): HTMLElement | null {
+  return (findAll(group, SELECTORS.emojiButton)[0] as HTMLElement | undefined) ?? findPickerButtons(group).at(-1) ?? null;
+}
+
+/**
+ * Finds the chat bar button whose picker tab Discord considers open, in any composer.
+ *
+ * @returns The button, or null when the picker is closed.
+ */
+export function findExpandedPickerButton(): HTMLElement | null {
+  return findPickerButtons().find(button => button.getAttribute("aria-expanded") === "true") ?? null;
+}
+
+/**
  * Reads the classes that give Discord's chat buttons their size and hover and active states,
  * so Nitfree's button looks exactly like its neighbours.
  *
@@ -58,10 +96,26 @@ export function findChatButtonGroups(root: ParentNode = document): Element[] {
 export function readChatButtonClasses(group: Element): TChatButtonClasses {
   const model = findAll(group, SELECTORS.chatButtonModel)[0];
   const button = model?.querySelector("[role=\"button\"]");
+  const wrapper = [...button?.children ?? []].find(child => [...child.classList].some(name => CLASS_PATTERNS.chatButtonWrapper.test(name)));
 
   return {
-    container: looksOnly(model, /^buttonContainer_/),
-    button: looksOnly(button, /^button_/),
-    wrapper: looksOnly(button?.querySelector("[class^=\"buttonWrapper_\"]"), /^buttonWrapper_/),
+    container: looksOnly(model, CLASS_PATTERNS.chatButtonContainer),
+    button: looksOnly(button, CLASS_PATTERNS.chatButton),
+    wrapper: looksOnly(wrapper, CLASS_PATTERNS.chatButtonWrapper),
+  };
+}
+
+/**
+ * Reads the classes of Discord's picker tabs, so the Nitfree tab looks like them.
+ *
+ * @param tabList - The picker's tab bar.
+ * @returns The classes every tab has, and the one Discord adds to the selected tab.
+ */
+export function readPickerTabClasses(tabList: Element): TPickerTabClasses {
+  const names = [...tabList.querySelectorAll(":scope > [role=\"tab\"]")].flatMap(tab => [...tab.classList]);
+
+  return {
+    base: [...new Set(names.filter(name => CLASS_PATTERNS.pickerTab.test(name) && !CLASS_PATTERNS.pickerTabActive.test(name)))].join(" "),
+    active: names.find(name => CLASS_PATTERNS.pickerTabActive.test(name)) ?? "",
   };
 }

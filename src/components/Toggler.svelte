@@ -29,6 +29,11 @@
   function onKeydown(event: KeyboardEvent): void {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+
+      if (button) {
+        notePress(button);
+      }
+
       toggle();
     }
   }

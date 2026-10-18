@@ -3,7 +3,7 @@ import type { TItem } from "~/lib/db";
 import { mount, unmount } from "svelte";
 
 import Library from "~/components/Library.svelte";
-import { findAll, SELECTORS } from "~/lib/discord";
+import { findAll, findPickerButtons, readPickerTabClasses, SELECTORS } from "~/lib/discord";
 
 
 
@@ -25,14 +25,15 @@ const STYLE = `
 [data-nitfree-selected] > #${PANEL_ID} { display: block; }
 `;
 
+type TLibraryExports = { focusSearch: () => void };
+
 type TInjected = {
   tabList: Element;
   observer: MutationObserver;
   container: HTMLElement;
   tab: HTMLElement;
   host: HTMLElement;
-  library: { focusSearch: () => void };
-  component: object;
+  library: TLibraryExports | null;
 };
 
 export type TPickerTab = {
@@ -60,7 +61,7 @@ export type TPickerTab = {
   deselect: () => void;
 
   /**
-   * Removes the tab and everything it added.
+   * Removes the tab and everything it added, and gives Discord its tab back.
    */
   stop: () => void;
 };
@@ -77,14 +78,8 @@ function setAttribute(element: Element, name: string, value: string): void {
   }
 }
 
-function tabClasses(tabList: Element): { base: string; active: string } {
-  const tabs = [...tabList.querySelectorAll(":scope > [role=\"tab\"]")];
-  const names = tabs.flatMap(tab => [...tab.classList]);
-
-  return {
-    base: [...new Set(names.filter(name => /^nav(?:Button|Item)_/.test(name) && !/Active/.test(name)))].join(" "),
-    active: names.find(name => name.startsWith("navButtonActive_")) ?? "",
-  };
+function isActivation(event: Event): boolean {
+  return event.type === "click" || (event instanceof KeyboardEvent && (event.key === "Enter" || event.key === " "));
 }
 
 /**
@@ -122,35 +117,52 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     }
   }
 
-  // Leaving the Nitfree tab for one of Discord's, or switching tabs from Discord's chat bar buttons.
+  function restoreSilenced(): void {
+    if (silenced?.isConnected && activeClass) {
+      silenced.classList.add(activeClass);
+      silenced.setAttribute("aria-selected", "true");
+    }
+
+    silenced = null;
+  }
+
+  // Leaving the Nitfree tab for one of Discord's, by click or keyboard. Discord's tabs act on Enter and
+  // Space themselves, without a click.
   const onDiscordTab = (event: Event): void => {
     const target = event.target as Element | null;
 
-    if (selected && target?.closest("[role=\"tab\"]") && !target.closest(`#${TAB_ID}`)) {
+    if (selected && isActivation(event) && target?.closest("[role=\"tab\"]") && !target.closest(`#${TAB_ID}`)) {
       deselect();
     }
   };
 
-  const onChatButton = (event: Event): void => {
-    const target = event.target as Element | null;
-
-    if (!selected || !target?.closest(".expression-picker-chat-input-button")) {
+  // Discord's GIF, sticker and emoji chat bar buttons. Discord still thinks the tab it last showed is
+  // open, so that tab's button would close the picker; show that tab instead, as the button does from
+  // any other tab. The other buttons switch tabs as usual.
+  const onPickerButton = (event: Event): void => {
+    if (!selected || !isActivation(event)) {
       return;
     }
 
-    // Discord still thinks its emoji tab is showing, so its emoji button would close the picker.
-    // Show the emoji tab instead, as that button does from any other tab.
-    const backToEmoji = silenced?.id === "emoji-picker-tab" && findAll(target.closest(".expression-picker-chat-input-button")!, SELECTORS.emojiButton).length > 0;
+    const target = event.target as Element | null;
+    const button = target && findPickerButtons().find(candidate => candidate.contains(target));
+
+    if (!button) {
+      return;
+    }
+
+    const showsHiddenTab = button.getAttribute("aria-expanded") === "true";
 
     deselect();
 
-    if (backToEmoji) {
+    if (showsHiddenTab) {
       event.preventDefault();
       event.stopPropagation();
     }
   };
 
-  document.addEventListener("click", onChatButton, true);
+  document.addEventListener("click", onPickerButton, true);
+  document.addEventListener("keydown", onPickerButton, true);
 
   function inject(tabList: Element): TInjected | null {
     const dialog = tabList.closest("[role=\"dialog\"]") ?? tabList.parentElement?.parentElement;
@@ -160,7 +172,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
       return null;
     }
 
-    const classes = tabClasses(tabList);
+    const classes = readPickerTabClasses(tabList);
 
     activeClass ||= classes.active;
 
@@ -187,20 +199,19 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     host.id = PANEL_ID;
     host.setAttribute("role", "tabpanel");
     host.setAttribute("aria-labelledby", TAB_ID);
-
-    // `mount` returns the component's exports, here Library's focusSearch.
-    const library = mount(Library, { target: host.attachShadow({ mode: "open" }), props: { onpick } }) as unknown as { focusSearch: () => void };
+    host.attachShadow({ mode: "open" });
 
     tabList.append(tab);
     container.append(host);
     tabList.addEventListener("click", onDiscordTab, true);
+    tabList.addEventListener("keydown", onDiscordTab, true);
 
     // React re-applies its own classes when it re-renders the tabs; put the selection back each time.
     const observer = new MutationObserver(() => sync());
 
     observer.observe(tabList, { attributes: true, subtree: true, attributeFilter: ["class", "aria-selected"] });
 
-    return { tabList, observer, container, tab, host, library, component: library };
+    return { tabList, observer, container, tab, host, library: null };
   }
 
   function teardown(): void {
@@ -210,12 +221,16 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
 
     current.observer.disconnect();
     current.tabList.removeEventListener("click", onDiscordTab, true);
-    void unmount(current.component);
+    current.tabList.removeEventListener("keydown", onDiscordTab, true);
+
+    if (current.library) {
+      void unmount(current.library);
+    }
+
     current.tab.remove();
     current.host.remove();
     delete current.container.dataset.nitfreeSelected;
     current = null;
-    silenced = null;
   }
 
   function sync(): void {
@@ -258,6 +273,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
       const keep = selected && tabList !== null;
 
       teardown();
+      silenced = null;
 
       if (!keep) {
         setSelected(false);
@@ -277,13 +293,18 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
   }
 
   function select(): boolean {
-    if (!current) {
-      current = findTabList() ? inject(findTabList()!) : null;
+    const tabList = current ? null : findTabList();
+
+    if (tabList) {
+      current = inject(tabList);
     }
 
     if (!current) {
       return false;
     }
+
+    // The library is only rendered once the Nitfree tab is actually used.
+    current.library ??= mount(Library, { target: current.host.shadowRoot!, props: { onpick } }) as unknown as TLibraryExports;
 
     const height = discordPanel(current.container)?.getBoundingClientRect().height || current.host.getBoundingClientRect().height;
 
@@ -296,12 +317,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
   }
 
   function deselect(): void {
-    if (silenced?.isConnected && activeClass) {
-      silenced.classList.add(activeClass);
-      silenced.setAttribute("aria-selected", "true");
-    }
-
-    silenced = null;
+    restoreSilenced();
     setSelected(false);
     sync();
   }
@@ -312,7 +328,9 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     deselect,
     isOpen: () => findTabList() !== null,
     stop: () => {
-      document.removeEventListener("click", onChatButton, true);
+      document.removeEventListener("click", onPickerButton, true);
+      document.removeEventListener("keydown", onPickerButton, true);
+      restoreSilenced();
       teardown();
       setSelected(false);
       style.remove();

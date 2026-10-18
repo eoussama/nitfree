@@ -17,6 +17,7 @@ export const SELECTORS = {
    */
   composerBox: [
     "[class*=\"channelTextArea_\"]",
+    "form:has([role=\"textbox\"])",
   ],
 
   /**
@@ -29,11 +30,19 @@ export const SELECTORS = {
   ],
 
   /**
-   * The emoji button in a composer's button group, which opens Discord's expression picker.
+   * The chat bar buttons that open Discord's expression picker on one of its tabs (GIF, sticker, emoji).
+   * Discord marks the one whose tab is showing with aria-expanded="true". The emoji button is the last.
+   */
+  pickerButton: [
+    ".expression-picker-chat-input-button [role=\"button\"]",
+    "[class^=\"buttonContainer_\"] > [role=\"button\"][aria-controls]",
+  ],
+
+  /**
+   * The emoji button in a composer's button group. When this stops matching, the last picker button is used.
    */
   emojiButton: [
     "[class*=\"emojiButton_\"][role=\"button\"]",
-    ".expression-picker-chat-input-button:last-of-type [role=\"button\"]",
   ],
 
   /**
@@ -45,3 +54,23 @@ export const SELECTORS = {
     "[role=\"tablist\"]:has(> #emoji-picker-tab)",
   ],
 } as const satisfies Record<string, readonly string[]>;
+
+/**
+ * Discord class names, matched on their prefix, that Nitfree copies so its own elements look native.
+ */
+export const CLASS_PATTERNS = {
+  /** A chat bar button's container, its button and the button's inner wrapper. */
+  chatButtonContainer: /^buttonContainer_/,
+  chatButton: /^button_/,
+  chatButtonWrapper: /^buttonWrapper_/,
+
+  /** A tab in the expression picker, and the class Discord adds to the selected one. */
+  pickerTab: /^nav(?:Button|Item)_/,
+  pickerTabActive: /^navButtonActive_/,
+} as const;
+
+/**
+ * Discord classes that drive behavior rather than looks; copying them would make Discord treat
+ * Nitfree's elements as its own.
+ */
+export const BEHAVIOR_CLASSES: ReadonlySet<string> = new Set(["expression-picker-chat-input-button"]);

@@ -2,7 +2,7 @@ import type { ContentScriptContext } from "#imports";
 
 import type { TItem } from "~/lib/db";
 
-import { findAll, SELECTORS } from "~/lib/discord";
+import { chatButtonGroupOf, findEmojiButton, findExpandedPickerButton } from "~/lib/discord";
 
 import { mountPopover, mountToggler, watchChatButtonGroups } from "./inject";
 import { followLibrary } from "./library.svelte";
@@ -24,25 +24,21 @@ const PICKER_TIMEOUT = 600;
  */
 function pick(_item: TItem, _send: boolean): void {}
 
-function composerOf(anchor: HTMLElement): Element | null {
-  return anchor.closest(SELECTORS.chatButtonGroup.join(","));
-}
-
 function emojiButtonOf(anchor: HTMLElement): HTMLElement | null {
-  const group = composerOf(anchor);
+  const group = chatButtonGroupOf(anchor);
 
-  return group ? (findAll(group, SELECTORS.emojiButton)[0] as HTMLElement | undefined) ?? null : null;
+  return group ? findEmojiButton(group) : null;
 }
 
 /**
- * The chat bar button of the composer whose picker is open, for when the Nitfree tab is chosen
- * from the picker itself.
+ * The Nitfree button of the composer whose picker is open, for when the Nitfree tab is chosen from
+ * the picker itself. Discord marks the GIF, sticker or emoji button that opened it as expanded.
  *
  * @returns The button, or null.
  */
 function anchorOfOpenPicker(): HTMLElement | null {
-  const expanded = findAll(document, SELECTORS.emojiButton).find(button => button.getAttribute("aria-expanded") === "true");
-  const group = expanded?.closest(SELECTORS.chatButtonGroup.join(","));
+  const expanded = findExpandedPickerButton();
+  const group = expanded && chatButtonGroupOf(expanded);
 
   return group?.querySelector<HTMLElement>("[data-nitfree-toggler] [role=\"button\"]") ?? null;
 }
@@ -54,8 +50,8 @@ function anchorOfOpenPicker(): HTMLElement | null {
  * @param ctx - The content script's context.
  * @returns A function that removes it all.
  */
-export function startContent(ctx: ContentScriptContext): () => void {
-  let pending: { anchor: HTMLElement; timer: number } | null = null;
+export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () => void {
+  let pending: { anchor: HTMLElement; emoji: HTMLElement; timer: ReturnType<typeof setTimeout> } | null = null;
 
   const stopLibrary = followLibrary();
   const removePopover = mountPopover(pick);
@@ -80,19 +76,33 @@ export function startContent(ctx: ContentScriptContext): () => void {
     }
   }
 
-  function closeDiscordPicker(anchor: HTMLElement | null): void {
+  function closeDiscordPicker(): void {
     picker.deselect();
 
     const target = document.activeElement ?? document.body;
 
     target.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true, cancelable: true }));
 
-    // If Escape did not reach Discord's picker, its emoji button closes it.
-    ctx.requestAnimationFrame(() => {
-      if (picker.isOpen() && anchor) {
-        emojiButtonOf(anchor)?.click();
+    // If Escape did not reach Discord's picker, the button of the tab it is showing closes it.
+    requestAnimationFrame(() => {
+      if (picker.isOpen()) {
+        findExpandedPickerButton()?.click();
       }
     });
+  }
+
+  /**
+   * Shows the popover instead, first closing whatever the emoji button opened that Nitfree cannot use.
+   *
+   * @param anchor - The Nitfree button that was clicked.
+   * @param emoji - The emoji button that was clicked on its behalf.
+   */
+  function fallBackToPopover(anchor: HTMLElement, emoji: HTMLElement): void {
+    if (emoji.getAttribute("aria-expanded") === "true") {
+      emoji.click();
+    }
+
+    openPanel("popover", anchor);
   }
 
   function toggle(anchor: HTMLElement): void {
@@ -101,7 +111,7 @@ export function startContent(ctx: ContentScriptContext): () => void {
     if (wasOpenFor(anchor)) {
       // Discord may already have closed its picker on the press, as it does for any press outside it.
       if (picker.isOpen()) {
-        closeDiscordPicker(anchor);
+        closeDiscordPicker();
       }
 
       closePanel();
@@ -129,10 +139,11 @@ export function startContent(ctx: ContentScriptContext): () => void {
 
     pending = {
       anchor,
-      timer: ctx.setTimeout(() => {
-        if (pending?.anchor === anchor) {
+      emoji,
+      timer: setTimeout(() => {
+        if (pending?.anchor === anchor && !ctx.isInvalid) {
           pending = null;
-          openPanel("popover", anchor);
+          fallBackToPopover(anchor, emoji);
         }
       }, PICKER_TIMEOUT),
     };
@@ -144,7 +155,7 @@ export function startContent(ctx: ContentScriptContext): () => void {
     picker.scan();
 
     if (pending && picker.isOpen()) {
-      const { anchor } = pending;
+      const { anchor, emoji } = pending;
 
       cancelPending();
 
@@ -152,7 +163,7 @@ export function startContent(ctx: ContentScriptContext): () => void {
         openPanel("picker", anchor);
       }
       else {
-        openPanel("popover", anchor);
+        fallBackToPopover(anchor, emoji);
       }
     }
   }

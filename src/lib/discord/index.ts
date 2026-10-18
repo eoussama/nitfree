@@ -1,5 +1,16 @@
-export { findAll, findChatButtonGroups, readChatButtonClasses, type TChatButtonClasses } from "./composer";
-export { SELECTORS } from "./selectors";
+export {
+  chatButtonGroupOf,
+  findAll,
+  findChatButtonGroups,
+  findEmojiButton,
+  findExpandedPickerButton,
+  findPickerButtons,
+  readChatButtonClasses,
+  readPickerTabClasses,
+  type TChatButtonClasses,
+  type TPickerTabClasses,
+} from "./composer";
+export { CLASS_PATTERNS, SELECTORS } from "./selectors";
 
 /**
  * Pages the content script runs on and the background worker talks to.

@@ -37,14 +37,14 @@ export function mountToggler(group: Element): () => void {
  * the composer on channel switches, threads, DMs and edits, so the page is watched and the button
  * put back whenever it goes missing, never twice.
  *
- * @param ctx - The content script's context. Scans are scheduled through it, so the first page change
- * after Nitfree is disabled or updated notices it and runs the content script's cleanup.
+ * @param ctx - The content script's context. Every scan checks it, so the first page change after
+ * Nitfree is disabled or updated notices it and runs the content script's cleanup.
  * @param inject - Adds a button to a group and returns how to remove it.
  * @param afterScan - Runs after every scan, for other parts of the page that follow Discord's re-renders.
  * @returns A function that stops watching and removes every button.
  */
 export function watchChatButtonGroups(
-  ctx: Pick<ContentScriptContext, "requestAnimationFrame">,
+  ctx: Pick<ContentScriptContext, "isInvalid">,
   inject: (group: Element) => () => void,
   afterScan: () => void = () => undefined,
 ): () => void {
@@ -53,6 +53,11 @@ export function watchChatButtonGroups(
 
   const scan = (): void => {
     frame = 0;
+
+    // Reading it notices a disabled or updated extension and runs the cleanup, which stops this watcher.
+    if (ctx.isInvalid) {
+      return;
+    }
 
     for (const [group, remove] of mounted) {
       if (!group.isConnected || !group.querySelector(MARKER)) {
@@ -74,9 +79,10 @@ export function watchChatButtonGroups(
     afterScan();
   };
 
-  // Discord changes the page constantly; one scan per frame is plenty.
+  // Discord changes the page constantly; one scan per frame is plenty. The plain requestAnimationFrame
+  // is used because WXT's version adds a listener to the context on every call and never removes it.
   const observer = new MutationObserver(() => {
-    frame ||= ctx.requestAnimationFrame(scan);
+    frame ||= requestAnimationFrame(scan);
   });
 
   observer.observe(document.body, { childList: true, subtree: true });

@@ -17,27 +17,35 @@ type TPanelState = {
 export const panel: TPanelState = $state({ open: false, anchor: null, mode: null });
 
 let handler: (anchor: HTMLElement) => void = togglePopover;
-let press: { anchor: HTMLElement; open: boolean } | null = null;
+let press: { anchor: HTMLElement; open: boolean; at: number } | null = null;
 
 /**
- * Remembers whether the panel was open for a button when the pointer went down on it. Discord closes
- * its picker on a press outside it, so by the time the click arrives the panel already looks closed.
+ * How long a press is remembered: longer than any click, short enough that a press dragged off the
+ * button without clicking does not affect a later activation.
+ */
+const PRESS_MEMORY = 1500;
+
+/**
+ * Remembers whether the panel was open for a button when it was pressed or activated with the keyboard.
+ * Discord closes its picker on a press outside it, so by the time the click arrives the panel already
+ * looks closed.
  *
  * @param anchor - The chat bar button being pressed.
  */
 export function notePress(anchor: HTMLElement): void {
-  press = { anchor, open: panel.open && panel.anchor === anchor };
+  press = { anchor, open: panel.open && panel.anchor === anchor, at: performance.now() };
 }
 
 /**
- * Whether the panel was open for a button, as of the press that led to this click, or as of now
- * for keyboard activation.
+ * Whether the panel was open for a button, as of the press that led to this click, or as of now when
+ * there was no recent press.
  *
  * @param anchor - The chat bar button that was clicked.
  * @returns Whether the click should close the panel.
  */
 export function wasOpenFor(anchor: HTMLElement): boolean {
-  const pressed = press?.anchor === anchor ? press.open : null;
+  const recent = press?.anchor === anchor && performance.now() - press.at < PRESS_MEMORY;
+  const pressed = recent ? press!.open : null;
 
   press = null;
 
