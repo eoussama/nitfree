@@ -184,7 +184,7 @@ test.describe("Nitfree tab in Discord's picker", () => {
     await request(popup, "library:add", { file: PNG, type: "emoji", title: "wave" });
 
     await button(page).click();
-    await expect(nitfreePanel(page).getByRole("region", { name: "All files" }).getByRole("button")).toHaveText(["wave"]);
+    await expect(nitfreePanel(page).getByRole("region", { name: "All files" }).locator("[data-tile]")).toHaveAttribute("aria-label", "wave");
   });
 });
 
