@@ -20,8 +20,8 @@ let handler: (anchor: HTMLElement) => void = togglePopover;
 let press: { anchor: HTMLElement; open: boolean; at: number } | null = null;
 
 /**
- * How long a press is remembered: longer than any click, short enough that a press dragged off the
- * button without clicking does not affect a later activation.
+ * How long a press is remembered after the button is released: the click follows the release at once,
+ * and a press dragged off the button without clicking stops counting soon after.
  */
 const PRESS_MEMORY = 1500;
 
@@ -34,6 +34,17 @@ const PRESS_MEMORY = 1500;
  */
 export function notePress(anchor: HTMLElement): void {
   press = { anchor, open: panel.open && panel.anchor === anchor, at: performance.now() };
+}
+
+/**
+ * Restarts the press memory when the button is released, so a long press still counts for its click.
+ *
+ * @param anchor - The chat bar button being released.
+ */
+export function noteRelease(anchor: HTMLElement): void {
+  if (press?.anchor === anchor) {
+    press.at = performance.now();
+  }
 }
 
 /**

@@ -8,7 +8,7 @@
 <script lang="ts">
   import type { TChatButtonClasses } from "~/lib/discord";
 
-  import { notePress, panel, togglePanel } from "~/lib/ui/panel.svelte";
+  import { notePress, noteRelease, panel, togglePanel } from "~/lib/ui/panel.svelte";
 
   import Logo from "./Logo.svelte";
 
@@ -49,6 +49,7 @@
     aria-haspopup="dialog"
     aria-expanded={open}
     onpointerdown={() => button && notePress(button)}
+    onpointerup={() => button && noteRelease(button)}
     onclick={toggle}
     onkeydown={onKeydown}
   >

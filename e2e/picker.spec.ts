@@ -141,6 +141,18 @@ test.describe("Nitfree tab in Discord's picker", () => {
     await expect(button(page)).toHaveAttribute("aria-expanded", "false");
   });
 
+  test("closes with a long press on the chat bar button", async ({ page }) => {
+    await button(page).click();
+    await expectNitfreeShowing(page);
+
+    await button(page).hover();
+    await page.mouse.down();
+    await page.waitForTimeout(2000);
+    await page.mouse.up();
+    await expect(picker(page)).toHaveCount(0);
+    await expect(button(page)).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("stays selected when Discord re-renders the picker or its tabs", async ({ page }) => {
     await button(page).click();
     await expectNitfreeShowing(page);
