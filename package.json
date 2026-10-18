@@ -25,13 +25,13 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
-    "@eoussama/core": "^0.1.0",
+    "@eoussama/core": "^0.1.2",
     "@lucide/svelte": "^1.50.0",
     "@wxt-dev/i18n": "^0.2.8",
     "dexie": "^4.4.6"
   },
   "devDependencies": {
-    "@eoussama/dx": "^0.1.1",
+    "@eoussama/dx": "^0.1.3",
     "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "@typescript/native": "npm:typescript@^7",

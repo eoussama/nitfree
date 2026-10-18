@@ -1,0 +1,11 @@
+minimumReleaseAgeExcludePrune: true
+minimumReleaseAgeExclude:
+  - "@eoussama/core@0.1.2"
+  - "@eoussama/dx@0.1.3"
+
+trustPolicy: no-downgrade
+# chokidar 4.0.2 and 4.0.3 were published without the provenance 4.0.1 had; svelte-check needs ^4.
+trustPolicyExclude:
+  - chokidar@4.0.3
+
+shellEmulator: true
