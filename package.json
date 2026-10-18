@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "@eoussama/core": "^0.1.0",
-    "@wxt-dev/i18n": "^0.2.8"
+    "@wxt-dev/i18n": "^0.2.8",
+    "dexie": "^4.4.6"
   },
   "devDependencies": {
     "@eoussama/dx": "^0.1.1",
@@ -36,6 +37,7 @@
     "@wxt-dev/module-svelte": "^2.0.5",
     "eslint": "^10.13.0",
     "eslint-plugin-svelte": "^3.23.1",
+    "fake-indexeddb": "^6.2.6",
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.7",
     "svelte-eslint-parser": "^1.9.0",

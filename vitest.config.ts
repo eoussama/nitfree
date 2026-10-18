@@ -7,5 +7,6 @@ export default defineConfig({
   plugins: [WxtVitest()],
   test: {
     exclude: [...configDefaults.exclude, "e2e/**"],
+    setupFiles: ["fake-indexeddb/auto"],
   },
 });
