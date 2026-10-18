@@ -9,3 +9,12 @@ toggler:
 panel:
   label: Nitfree library
   placeholder: Your emojis, stickers and GIFs will show up here.
+  search: Search Nitfree
+  filter: Filter by tags
+  add: Add files
+  error: Your library could not be loaded.
+  noResults: Nothing matches “{query}”.
+  sections:
+    favorites: Favorites
+    recent: Recent
+    all: All files
