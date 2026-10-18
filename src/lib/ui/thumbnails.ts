@@ -23,13 +23,22 @@ export function thumbnail(item: TItem): Promise<string | null> {
     return cached.url;
   }
 
-  const url = sendMessage("library:file", { id: item.id })
+  const entry = { hash: item.hash, url: Promise.resolve<string | null>(null) };
+
+  entry.url = sendMessage("library:file", { id: item.id })
     .then(file => (file ? URL.createObjectURL(file) : null))
-    .catch(() => null);
+    .catch(() => {
+      // Not cached, so the next time the tile shows it tries again, e.g. once the background is back.
+      if (thumbnails.get(item.id) === entry) {
+        thumbnails.delete(item.id);
+      }
 
-  thumbnails.set(item.id, { hash: item.hash, url });
+      return null;
+    });
 
-  return url;
+  thumbnails.set(item.id, entry);
+
+  return entry.url;
 }
 
 /**

@@ -137,6 +137,11 @@
 </div>
 
 <style>
+  .library,
+  .library :global(*) {
+    box-sizing: border-box;
+  }
+
   .library {
     display: flex;
     flex-direction: column;

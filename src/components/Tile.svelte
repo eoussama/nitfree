@@ -7,6 +7,8 @@
 <script lang="ts">
   import type { TItem } from "~/lib/db";
 
+  import { untrack } from "svelte";
+
   import { thumbnail } from "~/lib/ui/thumbnails";
 
 
@@ -22,19 +24,37 @@
 
   let url: string | null = $state(null);
 
+  // The library reloads as new objects on every change; only a new file should refetch the thumbnail.
+  const hash = $derived(item.hash);
+
+  // Reading the hash here re-runs the attachment, and so fetches the thumbnail again, when the file changes.
   function whenVisible(node: HTMLElement): () => void {
+    void hash;
+
+    const current = untrack(() => item);
+
+    let active = true;
+
+    url = null;
+
     const observer = new IntersectionObserver((entries) => {
       if (entries.some(entry => entry.isIntersecting)) {
         observer.disconnect();
-        void thumbnail(item).then((found) => {
-          url = found;
+        void thumbnail(current).then((found) => {
+          // A newer file may have replaced this one while it loaded.
+          if (active) {
+            url = found;
+          }
         });
       }
     });
 
     observer.observe(node);
 
-    return () => observer.disconnect();
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
   }
 </script>
 

@@ -16,27 +16,15 @@ type TLibraryState = {
 };
 
 /**
+ * Retry delays after a failed load, for when the background worker is restarting.
+ */
+const RETRY_DELAYS = [500, 1000, 2000, 4000, 8000];
+
+/**
  * The library as the Discord tab sees it, kept in step with the background worker.
+ * `error` is only set while nothing has ever loaded; a failed reload keeps showing the last library.
  */
 export const library: TLibraryState = $state({ items: [], tags: [], loaded: false, error: null });
-
-async function load(): Promise<void> {
-  const [error, result] = await tryCatch(Promise.all([sendMessage("library:list"), sendMessage("tags:list")]));
-
-  if (error) {
-    library.error = toError(error).message;
-
-    return;
-  }
-
-  const [items, tags] = result;
-
-  library.items = items;
-  library.tags = tags;
-  library.loaded = true;
-  library.error = null;
-  forgetThumbnails(items);
-}
 
 /**
  * Loads the library and reloads it whenever the background announces a change,
@@ -45,11 +33,53 @@ async function load(): Promise<void> {
  * @returns A function that stops following and frees the thumbnails.
  */
 export function followLibrary(): () => void {
+  let latest = 0;
+  let attempt = 0;
+  let retry: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+
+  async function load(): Promise<void> {
+    clearTimeout(retry);
+
+    const request = ++latest;
+    const [error, result] = await tryCatch(Promise.all([sendMessage("library:list"), sendMessage("tags:list")]));
+
+    // Overlapping reloads: only the newest one counts.
+    if (stopped || request !== latest) {
+      return;
+    }
+
+    if (error) {
+      if (!library.loaded) {
+        library.error = toError(error).message;
+      }
+
+      const delay = RETRY_DELAYS[attempt++];
+
+      if (delay !== undefined) {
+        retry = setTimeout(() => void load(), delay);
+      }
+
+      return;
+    }
+
+    const [items, tags] = result;
+
+    attempt = 0;
+    library.items = items;
+    library.tags = tags;
+    library.loaded = true;
+    library.error = null;
+    forgetThumbnails(items);
+  }
+
   void load();
 
   const stops = [onEvent("library:changed", () => void load()), onEvent("tags:changed", () => void load())];
 
   return () => {
+    stopped = true;
+    clearTimeout(retry);
     stops.forEach(stop => stop());
     forgetThumbnails([]);
   };
