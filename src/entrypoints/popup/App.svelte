@@ -1,9 +1,12 @@
 <script lang="ts">
   import logo from "~/assets/logo.png";
+  import { followStoredTheme } from "~/lib/theme";
 
 
 
   const { version } = browser.runtime.getManifest();
+
+  $effect(() => followStoredTheme(document.documentElement));
 </script>
 
 <main>
@@ -15,8 +18,8 @@
 <style>
   :global(body) {
     margin: 0;
-    background: #313338;
-    color: #dbdee1;
+    background: var(--nf-bg);
+    color: var(--nf-text);
     font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
@@ -38,6 +41,6 @@
   p {
     margin: 0;
     font-size: 12px;
-    color: #949ba4;
+    color: var(--nf-muted);
   }
 </style>
