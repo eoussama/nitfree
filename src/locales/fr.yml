@@ -1,0 +1,5 @@
+extName: Nitfree
+extDescription: L'alternative gratuite ultime à Discord Nitro
+popup:
+  logo: Logo de Nitfree
+  version: Version {version}

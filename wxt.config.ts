@@ -5,10 +5,11 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   srcDir: "src",
   manifestVersion: 3,
-  modules: ["@wxt-dev/module-svelte"],
+  modules: ["@wxt-dev/module-svelte", "@wxt-dev/i18n/module"],
   manifest: {
-    name: "Nitfree",
-    description: "The definitive freemium Discord Nitro alternative",
+    name: "__MSG_extName__",
+    description: "__MSG_extDescription__",
+    default_locale: "en",
     permissions: ["storage"],
     host_permissions: ["*://discord.com/*"],
   },

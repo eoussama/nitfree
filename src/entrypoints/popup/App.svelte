@@ -6,13 +6,15 @@
 
   const { version } = browser.runtime.getManifest();
 
+  document.documentElement.lang = browser.i18n.getUILanguage();
+
   $effect(() => followStoredTheme(document.documentElement));
 </script>
 
 <main>
-  <img src={logo} alt="Nitfree" width="48" height="48" />
-  <h1>Nitfree</h1>
-  <p>v{version}</p>
+  <img src={logo} alt={i18n.t("popup.logo")} width="48" height="48" />
+  <h1>{i18n.t("extName")}</h1>
+  <p>{i18n.t("popup.version", { version })}</p>
 </main>
 
 <style>

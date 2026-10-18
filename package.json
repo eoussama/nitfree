@@ -24,7 +24,8 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
-    "@eoussama/core": "^0.1.0"
+    "@eoussama/core": "^0.1.0",
+    "@wxt-dev/i18n": "^0.2.8"
   },
   "devDependencies": {
     "@eoussama/dx": "^0.1.1",

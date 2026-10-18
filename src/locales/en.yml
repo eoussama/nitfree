@@ -1,0 +1,5 @@
+extName: Nitfree
+extDescription: The definitive freemium Discord Nitro alternative
+popup:
+  logo: Nitfree logo
+  version: Version {version}
