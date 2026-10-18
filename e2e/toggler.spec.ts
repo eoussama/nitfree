@@ -26,6 +26,11 @@ test.describe("chat bar button", () => {
     await expect(button(page).locator("> div")).toHaveClass(/buttonWrapper__24af7/);
     await expect(button(page)).toHaveAttribute("aria-expanded", "false");
 
+    // As big as the glyphs of Discord's own buttons, not their whole 24 px box.
+    const logo = await button(page).locator("span.logo").boundingBox();
+
+    expect([logo?.width, logo?.height]).toEqual([20, 20]);
+
     // Discord keeps changing the page; the button must not multiply.
     await page.evaluate(() => document.body.append(document.createElement("div")));
     await page.waitForTimeout(200);

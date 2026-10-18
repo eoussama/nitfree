@@ -60,12 +60,13 @@
 </div>
 
 <style>
+  /* Discord draws 24px icons whose glyph fills about 20px; a solid logo looks right at that size. */
   .logo {
     display: block;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     overflow: hidden;
-    border-radius: 6px;
+    border-radius: 5px;
     filter: grayscale(1) brightness(1.15);
     opacity: 0.85;
     transform: scale(1);
