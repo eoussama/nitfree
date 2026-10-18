@@ -1,3 +1,4 @@
+export { createLibraryHandlers, type TNotify } from "./handlers";
 export { createLibrary, type TLibrary } from "./library";
 export { LEGACY_DATABASE_NAME, migrateLegacyDatabase, type TMigrationResult } from "./migrate";
 export { DATABASE_NAME, NitfreeDatabase } from "./schema";

@@ -1,8 +1,11 @@
-import { handleMessages } from "~/lib/messaging";
+import { createLibrary, createLibraryHandlers, createTags, migrateLegacyDatabase, NitfreeDatabase } from "~/lib/db";
+import { broadcast, handleMessages } from "~/lib/messaging";
 
 
 
 export default defineBackground(() => {
+  const db = new NitfreeDatabase();
+
   browser.runtime.onInstalled.addListener(({ reason }) => {
     if (reason === "install") {
       void browser.storage.local.set({ installedOn: Date.now() });
@@ -11,5 +14,10 @@ export default defineBackground(() => {
 
   handleMessages({
     "runtime:ping": () => ({ version: browser.runtime.getManifest().version }),
+    ...createLibraryHandlers(createLibrary(db), createTags(db), broadcast),
+  });
+
+  migrateLegacyDatabase(db).catch((error: unknown) => {
+    console.error("Moving the previous version's library failed; it will be retried on the next start.", error);
   });
 });

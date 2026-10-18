@@ -1,0 +1,77 @@
+import type { TNotify } from "./handlers";
+
+import type { THandlers } from "~/lib/messaging";
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { png } from "~/lib/media/fixtures";
+
+import { createLibraryHandlers } from "./handlers";
+import { createLibrary } from "./library";
+import { createTags } from "./tags";
+import { openTestDatabase } from "./testing";
+
+
+
+const sender: Browser.runtime.MessageSender = {};
+
+let handlers: Partial<THandlers>;
+let notify: ReturnType<typeof vi.fn<TNotify>>;
+
+beforeEach(async () => {
+  const db = await openTestDatabase();
+
+  notify = vi.fn<TNotify>(async () => undefined);
+  handlers = createLibraryHandlers(createLibrary(db), createTags(db), notify);
+});
+
+describe("library handlers", () => {
+  it("route every library request and announce each change", async () => {
+    const item = await handlers["library:add"]!({ file: new Blob([png(4, 4)]), type: "emoji", title: "wave" }, sender);
+
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "added", ids: [item.id] });
+    expect(await handlers["library:list"]!(undefined, sender)).toEqual([item]);
+    expect(await handlers["library:get"]!({ id: item.id }, sender)).toEqual(item);
+    expect((await handlers["library:file"]!({ id: item.id }, sender))?.size).toBe(png(4, 4).length);
+
+    await handlers["library:update"]!({ id: item.id, patch: { title: "hi" } }, sender);
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "updated", ids: [item.id] });
+
+    await handlers["library:use"]!({ id: item.id }, sender);
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "updated", ids: [item.id] });
+
+    expect(await handlers["library:remove"]!({ id: item.id }, sender)).toBe(true);
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "removed", ids: [item.id] });
+    expect(notify).toHaveBeenCalledTimes(4);
+  });
+
+  it("announce nothing when nothing changed", async () => {
+    expect(await handlers["library:remove"]!({ id: "missing" }, sender)).toBe(false);
+    await expect(handlers["library:update"]!({ id: "missing", patch: {} }, sender)).rejects.toThrow(/No item/);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("announce tag changes, and item changes when removing a tag touches items", async () => {
+    const tag = await handlers["tags:add"]!({ name: "Cats" }, sender);
+
+    expect(notify).toHaveBeenLastCalledWith("tags:changed", { change: "added", ids: [tag.id] });
+
+    const item = await handlers["library:add"]!({ file: new Blob([png(1, 1)]), type: "image", title: "x", tags: [tag.id] }, sender);
+
+    await handlers["tags:update"]!({ id: tag.id, patch: { color: "#000000" } }, sender);
+    expect(notify).toHaveBeenLastCalledWith("tags:changed", { change: "updated", ids: [tag.id] });
+    expect(await handlers["tags:list"]!(undefined, sender)).toHaveLength(1);
+
+    await handlers["tags:remove"]!({ id: tag.id }, sender);
+    expect(notify).toHaveBeenCalledWith("tags:changed", { change: "removed", ids: [tag.id] });
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "updated", ids: [item.id] });
+  });
+
+  it("still answers when an announcement fails", async () => {
+    notify.mockRejectedValue(new Error("no receivers"));
+
+    const item = await handlers["library:add"]!({ file: new Blob([png(1, 1)]), type: "image", title: "x" }, sender);
+
+    expect(item.title).toBe("x");
+  });
+});

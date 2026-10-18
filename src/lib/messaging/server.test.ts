@@ -1,10 +1,12 @@
+import type { MockInstance } from "vitest";
+
 import type { TRequestEnvelope } from "./envelope";
 
 import type { THandlers } from "./server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { decode, encode } from "./codec";
 import { CHANNEL } from "./envelope";
-import { dispatch } from "./server";
+import { broadcast, dispatch } from "./server";
 
 
 
@@ -62,5 +64,29 @@ describe("dispatch", () => {
     const restored = decode(reply.ok ? reply.data : undefined) as Blob;
 
     expect(await restored.text()).toBe("abc");
+  });
+});
+
+describe("broadcast", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("reaches extension pages and every Discord tab, skipping receivers that are not listening", async () => {
+    // tabs.query is overloaded; the spy needs its promise form.
+    const query = (vi.spyOn(browser.tabs, "query") as unknown as MockInstance<() => Promise<Browser.tabs.Tab[]>>)
+      .mockResolvedValue([{ id: 3 }, {}, { id: 5 }] as Browser.tabs.Tab[]);
+    const toTab = vi.spyOn(browser.tabs, "sendMessage").mockRejectedValueOnce(new Error("Receiving end does not exist")).mockResolvedValue(undefined);
+    const toPages = vi.spyOn(browser.runtime, "sendMessage").mockRejectedValue(new Error("Could not establish connection"));
+
+    await expect(broadcast("library:changed", { change: "added", ids: ["a"] })).resolves.toBeUndefined();
+
+    const envelope = { channel: CHANNEL, kind: "event", name: "library:changed", data: { change: "added", ids: ["a"] } };
+
+    expect(query).toHaveBeenCalledWith({ url: ["*://discord.com/*"] });
+    expect(toPages).toHaveBeenCalledWith(envelope);
+    expect(toTab).toHaveBeenCalledTimes(2);
+    expect(toTab).toHaveBeenCalledWith(3, envelope);
+    expect(toTab).toHaveBeenCalledWith(5, envelope);
   });
 });
