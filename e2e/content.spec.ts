@@ -103,7 +103,7 @@ test.describe("panel content", () => {
   test("names the hovered or focused item in the inspector bar", async ({ page }) => {
     await openPanel(page);
 
-    const inspector = dialog(page).getByRole("contentinfo");
+    const inspector = dialog(page).locator("[data-inspector]");
 
     // All files lists the newest first: cat.
     await tiles(page, "All files").first().hover();
@@ -134,4 +134,64 @@ test("an empty library shows the empty state", async ({ page }) => {
   await openPanel(page);
 
   await expect(dialog(page)).toContainText("Your emojis, stickers and GIFs will show up here.");
+});
+
+test.describe("panel navigation in a long library", () => {
+  test.beforeEach(async ({ context, extensionId }) => {
+    const popup = await context.newPage();
+
+    await openPopup(popup, extensionId);
+    await seed(popup, [
+      ...Array.from({ length: 40 }, (_, i) => ({ title: `fav${i}`, favorite: true })),
+      ...Array.from({ length: 5 }, (_, i) => ({ title: `file${i}` })),
+    ]);
+    await popup.close();
+  });
+
+  const sidebar = (page: Page, name: string) => dialog(page).getByRole("navigation", { name: "Sections" }).getByRole("button", { name });
+  const toggle = (page: Page, name: string) => section(page, name).getByRole("button", { name, exact: true }).first();
+
+  test("jumps into a collapsed section and keeps the clicked category highlighted", async ({ page }) => {
+    await openPanel(page);
+    await toggle(page, "All files").click();
+    await expect(tiles(page, "All files")).toHaveCount(0);
+
+    await sidebar(page, "All files").click();
+    await expect(tiles(page, "All files")).toHaveCount(45);
+    await expect(tiles(page, "All files").first()).toBeInViewport();
+    await page.waitForTimeout(600);
+    await expect(sidebar(page, "All files")).toHaveClass(/active/);
+  });
+
+  test("shows every match while searching, even in a collapsed section", async ({ page }) => {
+    await openPanel(page);
+    await toggle(page, "Favorites").click();
+    await search(page).fill("fav1");
+
+    await expect(tiles(page, "Favorites")).not.toHaveCount(0);
+    await expect(toggle(page, "Favorites")).toBeDisabled();
+
+    await search(page).fill("");
+    await expect(tiles(page, "Favorites")).toHaveCount(0);
+  });
+
+  test("the inspector follows what is shown", async ({ page }) => {
+    await openPanel(page);
+
+    const inspector = dialog(page).locator("[data-inspector]");
+
+    await tiles(page, "All files").last().hover();
+    await expect(inspector).toContainText(":fav0:");
+
+    await search(page).fill("file");
+    await expect(inspector).toContainText(":file4:");
+  });
+
+  test("uses Discord's 8 px scrollbar", async ({ page }) => {
+    await openPanel(page);
+
+    const gutter = await dialog(page).locator(".body").evaluate((body: HTMLElement) => body.offsetWidth - body.clientWidth);
+
+    expect(gutter).toBe(8);
+  });
 });
