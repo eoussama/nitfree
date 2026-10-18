@@ -4,3 +4,8 @@ extDescription: L'alternative gratuite ultime à Discord Nitro
 popup:
   logo: Logo de Nitfree
   version: Version {version}
+toggler:
+  label: Ouvrir Nitfree
+panel:
+  label: Bibliothèque Nitfree
+  placeholder: Vos emojis, stickers et GIF apparaîtront ici.

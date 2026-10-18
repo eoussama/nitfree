@@ -1,0 +1,107 @@
+import type { ContentScriptContext } from "#imports";
+
+import { mount, unmount } from "svelte";
+
+import Popover from "~/components/Popover.svelte";
+import Toggler from "~/components/Toggler.svelte";
+import { findChatButtonGroups, readChatButtonClasses } from "~/lib/discord";
+
+import { closePanel, panel } from "./panel.svelte";
+
+
+
+const MARKER = ":scope > [data-nitfree-toggler]";
+
+/**
+ * Puts a Nitfree button first in a composer's button group.
+ *
+ * @param group - The composer's button group.
+ * @returns A function that removes the button.
+ */
+export function mountToggler(group: Element): () => void {
+  const component = mount(Toggler, {
+    target: group,
+    anchor: group.firstChild ?? undefined,
+    props: { classes: readChatButtonClasses(group) },
+  });
+
+  return () => {
+    void unmount(component);
+  };
+}
+
+/**
+ * Keeps a Nitfree button in every composer: the channel's and any open thread's. Discord re-renders
+ * the composer on channel switches, threads, DMs and edits, so the page is watched and the button
+ * put back whenever it goes missing, never twice.
+ *
+ * @param ctx - The content script's context. Scans are scheduled through it, so the first page change
+ * after Nitfree is disabled or updated notices it and runs the content script's cleanup.
+ * @param inject - Adds a button to a group and returns how to remove it.
+ * @returns A function that stops watching and removes every button.
+ */
+export function watchChatButtonGroups(ctx: Pick<ContentScriptContext, "requestAnimationFrame">, inject: (group: Element) => () => void): () => void {
+  const mounted = new Map<Element, () => void>();
+  let frame = 0;
+
+  const scan = (): void => {
+    frame = 0;
+
+    for (const [group, remove] of mounted) {
+      if (!group.isConnected || !group.querySelector(MARKER)) {
+        remove();
+        mounted.delete(group);
+      }
+    }
+
+    for (const group of findChatButtonGroups()) {
+      if (!mounted.has(group) && !group.querySelector(MARKER)) {
+        mounted.set(group, inject(group));
+      }
+    }
+
+    if (panel.open && !panel.anchor?.isConnected) {
+      closePanel();
+    }
+  };
+
+  // Discord changes the page constantly; one scan per frame is plenty.
+  const observer = new MutationObserver(() => {
+    frame ||= ctx.requestAnimationFrame(scan);
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+  scan();
+
+  return () => {
+    observer.disconnect();
+    cancelAnimationFrame(frame);
+
+    for (const remove of mounted.values()) {
+      remove();
+    }
+
+    mounted.clear();
+    closePanel();
+  };
+}
+
+/**
+ * Adds the panel's host to the page, in its own shadow root.
+ *
+ * @returns A function that removes it.
+ */
+export function mountPopover(): () => void {
+  const host = document.createElement("div");
+
+  host.dataset.nitfreePanel = "";
+  host.style.cssText = "position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483000;";
+  document.body.append(host);
+
+  const component = mount(Popover, { target: host.attachShadow({ mode: "open" }), props: { host } });
+
+  return () => {
+    void unmount(component);
+    host.remove();
+  };
+}

@@ -4,3 +4,8 @@ extDescription: The definitive freemium Discord Nitro alternative
 popup:
   logo: Nitfree logo
   version: Version {version}
+toggler:
+  label: Open Nitfree
+panel:
+  label: Nitfree library
+  placeholder: Your emojis, stickers and GIFs will show up here.
