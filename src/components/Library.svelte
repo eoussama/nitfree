@@ -16,9 +16,14 @@
 
   import { tick } from "svelte";
 
+  import { ACCEPTED_FILES } from "~/lib/ui/drafts";
+  import { startAdd } from "~/lib/ui/editor.svelte";
   import { GRID_KEYS, nextTile } from "~/lib/ui/grid";
   import { library } from "~/lib/ui/library.svelte";
+  import { openMenu } from "~/lib/ui/menu.svelte";
   import { buildSections, filterItems } from "~/lib/ui/sections";
+  import { focusAfterRemoval } from "~/lib/ui/tiles";
+  import { deleteWithUndo, trash } from "~/lib/ui/trash.svelte";
 
   import Inspector from "./Inspector.svelte";
   import Tile from "./Tile.svelte";
@@ -53,8 +58,12 @@
   let reduced = $state(reducedMotion());
   let search: HTMLInputElement | undefined = $state();
   let body: HTMLElement | undefined = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
+  let dragging = $state(false);
 
-  const sections = $derived(buildSections(filterItems(library.items, query)));
+  // Items deleted in this tab disappear at once, while their deletion can still be undone.
+  const items = $derived(library.items.filter(item => !trash.pending.some(pending => pending.item.id === item.id)));
+  const sections = $derived(buildSections(filterItems(items, query)));
   // While searching, every match shows, whatever the user collapsed; their choice comes back after.
   const searching = $derived(query.trim() !== "");
   const isCollapsed = (id: TSectionId): boolean => !searching && collapsed[id] === true;
@@ -79,11 +88,48 @@
     return body ? [...body.querySelectorAll<HTMLElement>("[data-tile]")] : [];
   }
 
+  function itemOf(tile: Element | null): TItem | null {
+    const id = tile?.closest<HTMLElement>("[data-tile]")?.dataset.tile;
+
+    return items.find(item => item.id === id) ?? null;
+  }
+
   function onBodyKeydown(event: KeyboardEvent): void {
     const all = tiles();
     const from = all.findIndex(tile => tile === event.target);
 
-    if (from === -1 || !GRID_KEYS.includes(event.key)) {
+    if (from === -1) {
+      return;
+    }
+
+    // The menu key or Shift+F10 opens the item's menu under the tile; Delete removes it, with undo.
+    if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) {
+      const item = itemOf(all[from]!);
+      const rect = all[from]!.getBoundingClientRect();
+
+      event.preventDefault();
+
+      if (item) {
+        openMenu(item, rect.left, rect.bottom, all[from]!);
+      }
+
+      return;
+    }
+
+    if (event.key === "Delete") {
+      const item = itemOf(all[from]!);
+
+      event.preventDefault();
+      focusAfterRemoval(all[from]!);
+
+      if (item) {
+        deleteWithUndo(item);
+      }
+
+      return;
+    }
+
+    if (!GRID_KEYS.includes(event.key)) {
       return;
     }
 
@@ -99,6 +145,66 @@
     }
 
     all[to]?.focus();
+  }
+
+  function onContextMenu(event: MouseEvent): void {
+    const tile = (event.target as Element | null)?.closest<HTMLElement>("[data-tile]") ?? null;
+    const item = itemOf(tile);
+
+    // Discord opens its own menus on right-click; this one is Nitfree's.
+    if (item) {
+      event.preventDefault();
+      event.stopPropagation();
+      openMenu(item, event.clientX, event.clientY, tile);
+    }
+  }
+
+  function hasFiles(event: DragEvent): boolean {
+    return event.dataTransfer?.types.includes("Files") ?? false;
+  }
+
+  // Dropped files are added to Nitfree, not uploaded to the channel by Discord.
+  function onDragOver(event: DragEvent): void {
+    if (hasFiles(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragging = true;
+    }
+  }
+
+  function onDragLeave(event: DragEvent): void {
+    if (!(event.currentTarget as Element).contains(event.relatedTarget as Node | null)) {
+      dragging = false;
+    }
+  }
+
+  function onDrop(event: DragEvent): void {
+    dragging = false;
+
+    if (hasFiles(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      void startAdd(event.dataTransfer?.files ?? []);
+    }
+  }
+
+  // Pasting an image adds it; pasting text into the search field still works as usual.
+  function onPaste(event: ClipboardEvent): void {
+    const files = [...event.clipboardData?.files ?? []];
+
+    if (files.length) {
+      event.preventDefault();
+      event.stopPropagation();
+      void startAdd(files);
+    }
+  }
+
+  function onPicked(): void {
+    void startAdd(fileInput?.files ?? []);
+
+    if (fileInput) {
+      fileInput.value = "";
+    }
   }
 
   function onSearchKeydown(event: KeyboardEvent): void {
@@ -153,7 +259,17 @@
   }
 </script>
 
-<div class="library" class:reduced>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="library"
+  class:reduced
+  class:dragging
+  ondragenter={onDragOver}
+  ondragover={onDragOver}
+  ondragleave={onDragLeave}
+  ondrop={onDrop}
+  onpaste={onPaste}
+>
   <header class="header">
     <label class="search">
       <span class="search-icon" aria-hidden="true">
@@ -172,8 +288,13 @@
     <button class="icon-button" type="button" disabled aria-label={i18n.t("panel.filter")} title={i18n.t("panel.filter")}>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h7l11 11-6 6L4 10V4Zm4 2.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>
     </button>
-    <button class="text-button" type="button" disabled>{i18n.t("panel.add")}</button>
+    <button class="text-button" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
+    <input bind:this={fileInput} class="file-input" type="file" accept={ACCEPTED_FILES} multiple tabindex="-1" aria-hidden="true" onchange={onPicked} />
   </header>
+
+  {#if dragging}
+    <div class="drop" aria-hidden="true">{i18n.t("editor.drop")}</div>
+  {/if}
 
   <nav class="sidebar" aria-label={i18n.t("panel.sectionsLabel")}>
     {#each sections as section (section.id)}
@@ -195,6 +316,7 @@
     bind:this={body}
     class="body"
     onkeydown={onBodyKeydown}
+    oncontextmenu={onContextMenu}
     onscroll={onScroll}
     onscrollend={stopJumping}
     onwheel={stopJumping}
@@ -204,7 +326,7 @@
       <p class="message">{i18n.t("panel.error")}</p>
     {:else if !library.loaded}
       <p class="message" aria-busy="true"></p>
-    {:else if library.items.length === 0}
+    {:else if items.length === 0}
       <p class="message">{i18n.t("panel.placeholder")}</p>
     {:else if sections.length === 0}
       <p class="message">{i18n.t("panel.noResults", { query: query.trim() })}</p>
@@ -264,6 +386,7 @@
   }
 
   .library {
+    position: relative;
     display: grid;
     grid-template-columns: 48px minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
@@ -413,8 +536,27 @@
     cursor: default;
   }
 
-  .text-button:disabled {
-    opacity: 0.5;
+  .file-input {
+    display: none;
+  }
+
+  /* Shown while files are dragged over the panel. */
+  .drop {
+    position: absolute;
+    inset: 8px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    border: 2px dashed var(--border-focus, var(--nf-accent, #5865f2));
+    border-radius: 8px;
+    background-color: var(--background-base-lower, var(--nf-bg, #313338));
+    color: var(--text-strong, var(--nf-text, #fff));
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
     pointer-events: none;
   }
 

@@ -78,7 +78,10 @@
     const onPointerDown = (event: PointerEvent): void => {
       const path = event.composedPath();
 
-      if (!path.includes(host) && !(panel.anchor && path.includes(panel.anchor))) {
+      // Presses in Nitfree's overlay (the dialog, the item menu) belong to the panel too.
+      const inOverlay = path.some(node => node instanceof HTMLElement && node.dataset.nitfreeOverlay !== undefined);
+
+      if (!inOverlay && !path.includes(host) && !(panel.anchor && path.includes(panel.anchor))) {
         closePanel();
       }
     };

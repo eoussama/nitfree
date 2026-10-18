@@ -5,6 +5,7 @@ import { toError, tryCatch } from "@eoussama/core";
 import { onEvent, sendMessage } from "~/lib/messaging";
 
 import { forgetThumbnails } from "./thumbnails";
+import { pruneTrash } from "./trash.svelte";
 
 
 
@@ -71,6 +72,7 @@ export function followLibrary(): () => void {
     library.loaded = true;
     library.error = null;
     forgetThumbnails(items);
+    pruneTrash(items);
   }
 
   void load();

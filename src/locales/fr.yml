@@ -25,3 +25,33 @@ panel:
     favorites: Favoris
     recent: Récents
     all: Tous les fichiers
+editor:
+  addTitle: Ajouter à Nitfree
+  editTitle: Modifier l'élément
+  title: Nom
+  type: Type
+  tags: Tags
+  tagsPlaceholder: Ajoutez des tags, séparés par des virgules
+  description: Description
+  optional: Facultatif
+  replace: Remplacer le fichier
+  remove: Retirer
+  cancel: Annuler
+  save: Enregistrer
+  addCount:
+    1: Ajouter 1 fichier
+    n: Ajouter $1 fichiers
+  unsupported: Ce fichier n'est pas une image prise en charge.
+  unreadable: Impossible de lire ce fichier. Il a peut-être été déplacé ou modifié.
+  titleRequired: Chaque élément doit avoir un nom.
+  saveFailed: "Échec de l'enregistrement : {error}"
+  removeTag: Retirer {tag}
+  drop: Déposez pour ajouter à Nitfree
+menu:
+  favorite: Ajouter aux favoris
+  unfavorite: Retirer des favoris
+  edit: Modifier
+  delete: Supprimer
+toast:
+  deleted: « {title} » supprimé
+  undo: Annuler

@@ -4,10 +4,13 @@ import type { TItem } from "~/lib/db";
 
 import { chatButtonGroupOf, findEmojiButton, findExpandedPickerButton } from "~/lib/discord";
 
-import { mountPopover, mountToggler, watchChatButtonGroups } from "./inject";
+import { resetEditor } from "./editor.svelte";
+import { mountOverlay, mountPopover, mountToggler, watchChatButtonGroups } from "./inject";
 import { followLibrary } from "./library.svelte";
+import { closeMenu } from "./menu.svelte";
 import { closePanel, openPanel, panel, setToggleHandler, togglePopover, wasOpenFor } from "./panel.svelte";
 import { createPickerTab } from "./picker";
+import { flushTrash } from "./trash.svelte";
 
 
 
@@ -55,6 +58,10 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
 
   const stopLibrary = followLibrary();
   const removePopover = mountPopover(pick);
+  const removeOverlay = mountOverlay();
+
+  // Deletions waiting for their undo delay are made final when the page goes away.
+  window.addEventListener("pagehide", flushTrash);
 
   const picker = createPickerTab({
     onpick: pick,
@@ -177,6 +184,11 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     setToggleHandler(togglePopover);
     stopTogglers();
     picker.stop();
+    window.removeEventListener("pagehide", flushTrash);
+    flushTrash();
+    resetEditor();
+    closeMenu();
+    removeOverlay();
     removePopover();
     stopLibrary();
   };

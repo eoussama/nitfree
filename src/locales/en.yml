@@ -25,3 +25,33 @@ panel:
     favorites: Favorites
     recent: Recent
     all: All files
+editor:
+  addTitle: Add to Nitfree
+  editTitle: Edit item
+  title: Name
+  type: Type
+  tags: Tags
+  tagsPlaceholder: Add tags, separated by commas
+  description: Description
+  optional: Optional
+  replace: Replace file
+  remove: Remove
+  cancel: Cancel
+  save: Save
+  addCount:
+    1: Add 1 file
+    n: Add $1 files
+  unsupported: This file is not a supported image.
+  unreadable: This file could not be read. It may have been moved or changed.
+  titleRequired: Every item needs a name.
+  saveFailed: "Could not save: {error}"
+  removeTag: Remove {tag}
+  drop: Drop to add to Nitfree
+menu:
+  favorite: Add to Favorites
+  unfavorite: Remove from Favorites
+  edit: Edit
+  delete: Delete
+toast:
+  deleted: Deleted “{title}”
+  undo: Undo

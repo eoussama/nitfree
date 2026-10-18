@@ -4,10 +4,12 @@ import type { TItem } from "~/lib/db";
 
 import { mount, unmount } from "svelte";
 
+import Overlay from "~/components/Overlay.svelte";
 import Popover from "~/components/Popover.svelte";
 import Toggler from "~/components/Toggler.svelte";
 import { findChatButtonGroups, readChatButtonClasses } from "~/lib/discord";
 
+import { isolate } from "./isolate";
 import { closePanel, panel } from "./panel.svelte";
 
 
@@ -115,8 +117,33 @@ export function mountPopover(onpick: (item: TItem, send: boolean) => void): () =
   document.body.append(host);
 
   const component = mount(Popover, { target: host.attachShadow({ mode: "open" }), props: { host, onpick } });
+  const release = isolate(host);
 
   return () => {
+    release();
+    void unmount(component);
+    host.remove();
+  };
+}
+
+/**
+ * Adds the page overlay: the add and edit dialog, the item menu and the undo toast, above everything.
+ *
+ * @returns A function that removes it.
+ */
+export function mountOverlay(): () => void {
+  const host = document.createElement("div");
+
+  host.dataset.nitfreeOverlay = "";
+  host.style.cssText = "position: fixed; inset: 0; z-index: 2147483001; pointer-events: none;";
+  document.body.append(host);
+
+  const component = mount(Overlay, { target: host.attachShadow({ mode: "open" }), props: { host } });
+  // Working in the dialog must not count as a click outside Discord's picker.
+  const release = isolate(host, { pointer: true });
+
+  return () => {
+    release();
     void unmount(component);
     host.remove();
   };

@@ -5,6 +5,8 @@ import { mount, unmount } from "svelte";
 import Library from "~/components/Library.svelte";
 import { findAll, findPickerButtons, readPickerTabClasses, SELECTORS } from "~/lib/discord";
 
+import { isolate } from "./isolate";
+
 
 
 const TAB_ID = "nitfree-picker-tab";
@@ -200,6 +202,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     host.setAttribute("role", "tabpanel");
     host.setAttribute("aria-labelledby", TAB_ID);
     host.attachShadow({ mode: "open" });
+    isolate(host);
 
     tabList.append(tab);
     container.append(host);
