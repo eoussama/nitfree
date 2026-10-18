@@ -13,6 +13,13 @@ export const SELECTORS = {
   ],
 
   /**
+   * The composer box around the text field and its buttons; panels open above it, aligned to its right edge.
+   */
+  composerBox: [
+    "[class*=\"channelTextArea_\"]",
+  ],
+
+  /**
    * One of Discord's own buttons in that group, used as the model for Nitfree's button.
    * The GIF button comes first and carries no extra state classes.
    */

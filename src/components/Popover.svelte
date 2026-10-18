@@ -1,31 +1,42 @@
 <svelte:options css="injected" />
 
 <!--
-  The standalone Nitfree panel, anchored above the chat bar button that opened it.
-  Lives in a shadow root so Discord's styles cannot reach it; colors come from the theme engine's
-  --nf-* variables, which inherit into the shadow root.
+  The standalone Nitfree panel, used when Discord's picker cannot host the Nitfree tab. It opens
+  above the composer that holds the button that opened it, aligned to the composer's right edge
+  like Discord's picker. Lives in a shadow root so Discord's styles cannot reach it; colors come
+  from the theme engine's --nf-* variables, which inherit into the shadow root.
 -->
 <script lang="ts">
+  import type { TItem } from "~/lib/db";
+
   import { cubicOut } from "svelte/easing";
 
+  import { SELECTORS } from "~/lib/discord";
   import { closePanel, panel } from "~/lib/ui/panel.svelte";
 
-  import Logo from "./Logo.svelte";
+  import Library from "./Library.svelte";
 
 
 
-  const { host }: { host: HTMLElement } = $props();
+  type TProps = {
+    host: HTMLElement;
+    onpick?: (item: TItem, send: boolean) => void;
+  };
+
+  const { host, onpick }: TProps = $props();
 
   const GAP = 8;
+  const MARGIN = 16;
 
-  let dialog: HTMLElement | undefined = $state();
+  let content: ReturnType<typeof Library> | undefined = $state();
   let position = $state({ bottom: 0, right: 0 });
 
   function place(): void {
-    const rect = panel.anchor?.getBoundingClientRect();
+    const anchor = panel.anchor;
+    const box = (anchor?.closest(SELECTORS.composerBox.join(",")) ?? anchor)?.getBoundingClientRect();
 
-    if (rect) {
-      position = { bottom: window.innerHeight - rect.top + GAP, right: Math.max(GAP, window.innerWidth - rect.right) };
+    if (box) {
+      position = { bottom: window.innerHeight - box.top + GAP, right: Math.max(GAP, window.innerWidth - box.right) };
     }
   }
 
@@ -48,7 +59,7 @@
     }
 
     place();
-    dialog?.focus();
+    content?.focusSearch();
 
     const onKeydown = (event: KeyboardEvent): void => {
       if (event.key !== "Escape") {
@@ -86,70 +97,34 @@
 
 {#if panel.open}
   <div
-    bind:this={dialog}
     class="panel"
     role="dialog"
     aria-label={i18n.t("panel.label")}
-    tabindex="-1"
     style:bottom="{position.bottom}px"
     style:right="{position.right}px"
+    style:max-height="calc(100vh - {position.bottom + MARGIN}px)"
     transition:pop
   >
-    <header class="header">
-      <span class="mark"><Logo /></span>
-      <h2 class="title">{i18n.t("extName")}</h2>
-    </header>
-    <p class="placeholder">{i18n.t("panel.placeholder")}</p>
+    <Library bind:this={content} {onpick} />
   </div>
 {/if}
 
 <style>
   .panel {
     position: fixed;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     box-sizing: border-box;
     width: min(440px, calc(100vw - 16px));
-    min-height: 240px;
-    padding: 16px;
+    height: 440px;
+    overflow: hidden;
     border: 1px solid var(--nf-border, #3f4147);
     border-radius: var(--nf-radius, 8px);
     background: var(--nf-bg-elevated, #2b2d31);
     color: var(--nf-text, #dbdee1);
     box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
     font-family: inherit;
-    outline: none;
   }
 
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .mark {
-    display: block;
-    width: 20px;
-    height: 20px;
-    overflow: hidden;
-    border-radius: 5px;
-  }
-
-  .title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  .placeholder {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    text-align: center;
-    font-size: 14px;
-    color: var(--nf-muted, #949ba4);
+  .panel :global(*) {
+    box-sizing: border-box;
   }
 </style>
