@@ -6,7 +6,8 @@ Notable changes to Nitfree, newest first. Versions follow [Semantic Versioning](
 
 ### Added
 
-- Typed messaging between the content script, popup and background worker, binary payloads included (#33).
+- Typed messaging between the content script, popup and background worker, binary payloads included, with library and tag requests answered by the background and changes announced to open pages (#33).
+- Library database (Dexie) owned by the background worker, in the extension's own storage: items, files with cached sized copies, and tags. The previous version's library moves over on first start (#38).
 - Theme engine that mirrors Discord's palette live, on Discord and in the popup, and respects reduced motion (#34).
 - English and French localization (#35).
 - CI: lint, typecheck, unit tests, end-to-end tests in Chromium and zips for Chrome, Edge and Firefox (#36).
