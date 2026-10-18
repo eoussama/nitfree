@@ -23,7 +23,9 @@ Notable changes to Nitfree, newest first. Versions follow [Semantic Versioning](
 ### Fixed
 
 - The 512 px icon was 1080 px wide (#37).
-- The add and edit dialog could not be typed in while Discord's picker was open, as the picker pulled focus back (#29).
+- The add and edit dialog could not be typed in while Discord's picker was open, as the picker's focus lock pulled focus back (#29).
+- A paste after clicking an empty spot in the panel went to Discord's chat box instead of adding the image (#29).
+- The sidebar's pill slides in on hover and grows on the selected category, the previous one shrinking away to the edge, like Discord's server list (#22).
 - The panel's sidebar ends level with the inspector, its border running across like Discord's, and its first icon lines up with the first section; icons come from Lucide (#22).
 - The chat bar button's logo is 20 px, the size of the glyphs on Discord's own buttons (#24).
 
