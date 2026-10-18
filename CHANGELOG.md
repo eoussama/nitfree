@@ -7,6 +7,7 @@ Notable changes to Nitfree, newest first. Versions follow [Semantic Versioning](
 ### Added
 
 - Typed messaging between the content script, popup and background worker, binary payloads included, with library and tag requests answered by the background and changes announced to open pages (#33).
+- Nitfree button first in Discord's chat bar, in every composer, styled like Discord's own buttons, with a logo that blinks on hover; it opens a placeholder panel that closes on Escape or a click outside (#24).
 - Library database (Dexie) owned by the background worker, in the extension's own storage: items, files with cached sized copies, and tags. The previous version's library moves over on first start (#38).
 - Theme engine that mirrors Discord's palette live, on Discord and in the popup, and respects reduced motion (#34).
 - English and French localization (#35).
