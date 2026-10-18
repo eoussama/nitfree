@@ -6,7 +6,7 @@
 
   const { version } = browser.runtime.getManifest();
 
-  document.documentElement.lang = browser.i18n.getUILanguage();
+  document.documentElement.lang = i18n.t("locale");
 
   $effect(() => followStoredTheme(document.documentElement));
 </script>

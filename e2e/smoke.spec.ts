@@ -58,6 +58,7 @@ test("popup renders in english", async ({ page, extensionId }) => {
   await expect(page.getByRole("heading", { name: "Nitfree" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Nitfree logo" })).toBeVisible();
   await expect(page.getByText(/^Version \d+\.\d+\.\d+$/)).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
 
 test.describe("in french", () => {
@@ -67,6 +68,18 @@ test.describe("in french", () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
     await expect(page.getByRole("img", { name: "Logo de Nitfree" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  });
+});
+
+test.describe("in an unsupported language", () => {
+  test.use({ locale: "de-DE" });
+
+  test("popup falls back to english and says so", async ({ page, extensionId }) => {
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+
+    await expect(page.getByRole("img", { name: "Nitfree logo" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
   });
 });
 
