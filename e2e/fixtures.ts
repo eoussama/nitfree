@@ -23,6 +23,8 @@ export const test = base.extend<TFixtures>({
     const context = await chromium.launchPersistentContext("", {
       channel: process.env.E2E_CHANNEL ?? "chromium",
       locale: language,
+      // Chromium on Linux ignores --lang and takes its UI language from the environment.
+      env: { ...process.env, LANGUAGE: language.replace("-", "_") },
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
