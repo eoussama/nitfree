@@ -1,0 +1,32 @@
+# Changelog
+
+Notable changes to Nitfree, newest first. Versions follow [Semantic Versioning](https://semver.org).
+
+## [Unreleased]
+
+### Added
+
+- Typed messaging between the content script, popup and background worker, binary payloads included (#33).
+- Theme engine that mirrors Discord's palette live, on Discord and in the popup, and respects reduced motion (#34).
+- English and French localization (#35).
+- CI: lint, typecheck, unit tests, end-to-end tests in Chromium and zips for Chrome, Edge and Firefox (#36).
+- Release workflow, Firefox add-on ID and data collection declaration, store listing copy (#37).
+
+### Changed
+
+- `tsc` runs on TypeScript 7; TypeScript 6 stays for ESLint (#32).
+
+### Fixed
+
+- The 512 px icon was 1080 px wide (#37).
+
+## [0.2.0]
+
+### Changed
+
+- Rebuilt on WXT and Svelte 5, targeting Chrome, Edge, Firefox and Safari (#31).
+- Every dependency at its latest version, with `@eoussama/dx` and `@eoussama/core` (#32).
+
+## [0.1.0]
+
+- First version, built with Vue. Kept on the `legacy` branch.

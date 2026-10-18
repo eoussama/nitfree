@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  zip:
+    name: Zip Chrome, Edge and Firefox
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the tag matches package.json
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm wxt zip -b chrome
+      - run: pnpm wxt zip -b edge
+      - run: pnpm wxt zip -b firefox
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zips
+          path: .output/*.zip
+          if-no-files-found: error
+
+  safari:
+    name: Xcode project for Safari
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:safari
+      - run: >
+          xcrun safari-web-extension-converter .output/safari-mv3
+          --project-location .output/xcode
+          --app-name Nitfree
+          --bundle-identifier es.ouss.nitfree
+          --copy-resources --no-open --no-prompt --force
+      - run: cd .output/xcode && zip -qr "../nitfree-${GITHUB_REF_NAME#v}-safari-xcode.zip" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: safari
+          path: .output/*-safari-xcode.zip
+          if-no-files-found: error
+
+  release:
+    name: GitHub release
+    needs: [zip, safari]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Release notes from the changelog
+        run: awk -v heading="## [${GITHUB_REF_NAME#v}]" 'index($0, "## [") == 1 { found = ($0 == heading); next } found' CHANGELOG.md > notes.md
+      - run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "$GITHUB_REF_NAME" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
