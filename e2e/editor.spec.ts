@@ -366,9 +366,17 @@ test.describe("in Discord's picker", () => {
     await expect(pickerTile(page, "wave")).toBeFocused();
   });
 
-  test("clicks in the dialog keep the picker open, and saving updates the tab", async ({ page }) => {
+  test("the dialog's fields can be typed in while the picker holds focus, and saving updates the tab", async ({ page }) => {
     await pickerTile(page, "wave").click({ button: "right" });
     await menu(page).getByRole("menuitem", { name: "Edit" }).click();
+
+    // Discord's picker pulls focus that leaves it back in; the dialog must keep it.
+    const description = editDialog(page).getByRole("textbox", { name: "Description" });
+
+    await description.click();
+    await description.pressSequentially("waving hand");
+    await expect(description).toBeFocused();
+    await expect(description).toHaveValue("waving hand");
     await editDialog(page).getByRole("textbox", { name: "Name" }).fill("hello");
     await editDialog(page).getByRole("radio", { name: "Sticker" }).click();
     await editDialog(page).getByRole("button", { name: "Save" }).click();

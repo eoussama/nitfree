@@ -2,7 +2,9 @@
  * Plays Discord's part on the stand-in page, the way its React app behaves:
  * - the GIF, sticker and emoji buttons open the picker on their tab, or close it when that tab is already showing;
  * - a tab click, or Enter or Space on a tab, re-renders the tabs only when the selected tab changes;
- * - Escape and any press outside the picker close it.
+ * - Escape and any press outside the picker close it;
+ * - focus stays in the open picker, like the focus lock of Discord's popouts (react-focus-lock): focus
+ *   that lands elsewhere is pulled back, unless it is inside an element marked `data-no-focus-lock`.
  * Expects `PICKER` (the captured markup) and `NO_TABS` (open the picker without its tab bar, as if
  * Discord's markup had changed) to be defined before it runs.
  */
@@ -79,3 +81,43 @@ document.addEventListener("pointerdown", (event) => {
     close();
   }
 });
+
+// The element's ancestors, crossing shadow roots to their hosts.
+function* ancestors(node) {
+  for (let current = node; current; current = current.parentNode ?? current.host) {
+    yield current;
+  }
+}
+
+function deepActiveElement() {
+  let element = document.activeElement;
+
+  while (element?.shadowRoot?.activeElement) {
+    element = element.shadowRoot.activeElement;
+  }
+
+  return element;
+}
+
+let lastInside = null;
+
+document.addEventListener("focusin", () => {
+  // react-focus-lock checks once the focus change has settled.
+  setTimeout(() => {
+    const layer = picker();
+    const element = deepActiveElement();
+
+    if (!layer || !element || element === document.body) {
+      return;
+    }
+
+    const path = [...ancestors(element)];
+
+    if (path.includes(layer)) {
+      lastInside = element;
+    }
+    else if (!path.some(node => node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-no-focus-lock"))) {
+      (lastInside?.isConnected ? lastInside : layer.querySelector("[role=\"tab\"]"))?.focus();
+    }
+  });
+}, true);
