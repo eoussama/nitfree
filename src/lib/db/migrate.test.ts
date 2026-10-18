@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { gif, png } from "~/lib/media/fixtures";
 
-import { hashBytes } from "./library";
+import { createLibrary, hashBytes } from "./library";
 import { LEGACY_DATABASE_NAME, migrateLegacyDatabase } from "./migrate";
 import { createTags } from "./tags";
 import { openTestDatabase } from "./testing";
@@ -85,7 +85,7 @@ describe("migrateLegacyDatabase", () => {
       ],
     });
 
-    expect(await migrateLegacyDatabase(db, () => 5)).toEqual({ items: 2, tags: 1, skipped: 0 });
+    expect(await migrateLegacyDatabase(db, () => 5)).toEqual({ items: ["m-1", "m-2"], tags: ["t-other"], skipped: 0 });
     expect(await Dexie.exists(LEGACY_DATABASE_NAME)).toBe(false);
 
     const wave = await db.items.get("m-1");
@@ -122,7 +122,7 @@ describe("migrateLegacyDatabase", () => {
       ],
     });
 
-    expect(await migrateLegacyDatabase(db)).toEqual({ items: 1, tags: 0, skipped: 2 });
+    expect(await migrateLegacyDatabase(db)).toEqual({ items: ["m-1"], tags: [], skipped: 2 });
     expect((await db.items.get("m-1"))?.tags).toEqual([existing.id]);
     expect(await db.tags.count()).toBe(1);
   });
@@ -130,8 +130,35 @@ describe("migrateLegacyDatabase", () => {
   it("runs once", async () => {
     await createLegacyDatabase({ Files: [{ id: "f-1", data: new Blob([png(8, 8)]) }], Metadata: [{ id: "m-1", fileId: "f-1", title: "a" }] });
 
-    expect(await migrateLegacyDatabase(db)).toMatchObject({ items: 1 });
+    expect(await migrateLegacyDatabase(db)).toMatchObject({ items: ["m-1"] });
     expect(await migrateLegacyDatabase(db)).toBeNull();
     expect(await db.items.count()).toBe(1);
+  });
+
+  it("never copies again after a run that copied but could not delete the old database", async () => {
+    const seed = {
+      Tags: [{ id: "t-1", name: "Cats" }],
+      Files: [{ id: "f-1", data: new Blob([png(8, 8)]) }, { id: "f-2", data: new Blob([png(9, 9)]) }],
+      Metadata: [{ id: "m-1", fileId: "f-1", tagId: "t-1", title: "a" }, { id: "m-2", fileId: "f-2", title: "b" }],
+    };
+
+    await createLegacyDatabase(seed);
+    await migrateLegacyDatabase(db);
+
+    const library = createLibrary(db);
+
+    await library.update("m-1", { title: "edited", favorite: true });
+    await library.use("m-1");
+    await library.remove("m-2");
+    await createTags(db).remove("t-1");
+
+    // The old database is back, as if deleting it had failed after the copy committed.
+    await createLegacyDatabase(seed);
+
+    expect(await migrateLegacyDatabase(db)).toBeNull();
+    expect(await Dexie.exists(LEGACY_DATABASE_NAME)).toBe(false);
+    expect(await library.get("m-1")).toMatchObject({ title: "edited", favorite: true, usageCount: 1, tags: [] });
+    expect(await library.get("m-2")).toBeNull();
+    expect(await db.tags.count()).toBe(0);
   });
 });

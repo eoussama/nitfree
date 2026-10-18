@@ -17,7 +17,18 @@ export default defineBackground(() => {
     ...createLibraryHandlers(createLibrary(db), createTags(db), broadcast),
   });
 
-  migrateLegacyDatabase(db).catch((error: unknown) => {
-    console.error("Moving the previous version's library failed; it will be retried on the next start.", error);
-  });
+  // Pages that loaded the library while the migration ran refresh on these announcements.
+  migrateLegacyDatabase(db)
+    .then(async (result) => {
+      if (result?.tags.length) {
+        await broadcast("tags:changed", { change: "added", ids: result.tags });
+      }
+
+      if (result?.items.length) {
+        await broadcast("library:changed", { change: "added", ids: result.items });
+      }
+    })
+    .catch((error: unknown) => {
+      console.error("Moving the previous version's library failed; it will be retried on the next start.", error);
+    });
 });

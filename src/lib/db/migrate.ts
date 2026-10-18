@@ -27,7 +27,12 @@ type TLegacyMetadata = {
   updatedOn?: Date;
 };
 
-export type TMigrationResult = { items: number; tags: number; skipped: number };
+/**
+ * Written in the same transaction as the copied rows, so an interrupted run never copies twice.
+ */
+export const MIGRATED_KEY = "legacy-migrated";
+
+export type TMigrationResult = { items: string[]; tags: string[]; skipped: number };
 
 
 
@@ -41,15 +46,22 @@ async function readTable<T>(legacy: Dexie, name: string): Promise<T[]> {
 
 /**
  * Copies the previous version's library into the current database once, then deletes the old database.
- * Safe to run on every start: it does nothing when there is no old database, and a failed run leaves
- * the old database in place to retry.
+ * Safe to run on every start: it does nothing when there is no old database, a run that fails before
+ * copying leaves the old database in place to retry, and a run interrupted after copying only finishes
+ * deleting the old database next time, so later edits are never overwritten.
  *
  * @param db - The library database.
  * @param now - Clock, replaceable in tests.
- * @returns What was copied, or null when there was nothing to migrate.
+ * @returns The ids of the copied items and tags, or null when there was nothing to migrate.
  */
 export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => number = Date.now): Promise<TMigrationResult | null> {
   if (!(await Dexie.exists(LEGACY_DATABASE_NAME))) {
+    return null;
+  }
+
+  if (await db.meta.get(MIGRATED_KEY)) {
+    await Dexie.delete(LEGACY_DATABASE_NAME);
+
     return null;
   }
 
@@ -105,7 +117,11 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
     blobs.push({ itemId: metadata.id, original: inspected.file, variants: {} });
   }
 
-  const result = await db.transaction("rw", db.items, db.blobs, db.tags, async () => {
+  const result = await db.transaction("rw", [db.items, db.blobs, db.tags, db.meta], async (): Promise<TMigrationResult | null> => {
+    if (await db.meta.get(MIGRATED_KEY)) {
+      return null;
+    }
+
     // Tags are unique by name: an old tag whose name is taken merges into the existing one.
     const tagIds = new Map<string, string>();
     const tags: TTagRow[] = [];
@@ -136,8 +152,9 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
     await db.tags.bulkPut(tags);
     await db.items.bulkPut(items);
     await db.blobs.bulkPut(blobs);
+    await db.meta.put({ key: MIGRATED_KEY, value: timestamp });
 
-    return { items: items.length, tags: tags.length, skipped };
+    return { items: items.map(item => item.id), tags: tags.map(tag => tag.id), skipped };
   });
 
   await Dexie.delete(LEGACY_DATABASE_NAME);

@@ -74,3 +74,8 @@ export type TBlobRow = {
  * How tags are stored: `key` is the normalized name that keeps names unique regardless of case.
  */
 export type TTagRow = TTag & { key: string };
+
+/**
+ * Bookkeeping for the database itself, such as whether the previous version's library was moved over.
+ */
+export type TMetaRow = { key: string; value: unknown };

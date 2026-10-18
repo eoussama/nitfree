@@ -1,6 +1,6 @@
 import type { EntityTable } from "dexie";
 
-import type { TBlobRow, TItemRow, TTagRow } from "./types";
+import type { TBlobRow, TItemRow, TMetaRow, TTagRow } from "./types";
 
 import Dexie from "dexie";
 
@@ -16,6 +16,7 @@ export class NitfreeDatabase extends Dexie {
   items!: EntityTable<TItemRow, "id">;
   blobs!: EntityTable<TBlobRow, "itemId">;
   tags!: EntityTable<TTagRow, "id">;
+  meta!: EntityTable<TMetaRow, "key">;
 
   /**
    * Opens, or creates, the library database.
@@ -29,6 +30,7 @@ export class NitfreeDatabase extends Dexie {
       items: "id, title, *tags, type, favorite, usedAt, hash, createdAt",
       blobs: "itemId",
       tags: "id, &key",
+      meta: "key",
     });
   }
 }
