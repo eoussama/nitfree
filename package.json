@@ -20,7 +20,8 @@
     "lint": "dx lint",
     "lint:fix": "dx fix",
     "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@eoussama/dx": "^0.1.1",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "@typescript/native": "npm:typescript@^7",
     "@wxt-dev/module-svelte": "^2.0.5",
