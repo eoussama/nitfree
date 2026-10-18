@@ -77,6 +77,41 @@ test.describe("Nitfree tab in Discord's picker", () => {
     await expectNitfreeShowing(page);
   });
 
+  test("works the same when the picker was opened from the GIF button", async ({ page }) => {
+    await page.getByRole("button", { name: "Open GIF picker" }).click();
+    await nitfreeTab(page).click();
+    await expect(nitfreeTab(page)).toHaveAttribute("aria-selected", "true");
+    await expect(gifTab(page)).not.toHaveClass(/navButtonActive__08434/);
+    await expect(button(page)).toHaveAttribute("aria-expanded", "true");
+
+    // The GIF button goes back to GIFs instead of closing the picker.
+    await page.getByRole("button", { name: "Open GIF picker" }).click();
+    await expect(picker(page)).toBeVisible();
+    await expectDiscordShowing(page, "gif");
+
+    // And the Nitfree button closes it, even though the GIF button opened it.
+    await nitfreeTab(page).click();
+    await button(page).hover();
+    await page.mouse.down();
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    await expect(picker(page)).toHaveCount(0);
+    await expect(button(page)).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("hands over to Discord's tabs from the keyboard", async ({ page }) => {
+    await button(page).click();
+    await expectNitfreeShowing(page);
+
+    await gifTab(page).focus();
+    await page.keyboard.press("Enter");
+    await expectDiscordShowing(page, "gif");
+
+    await nitfreeTab(page).focus();
+    await page.keyboard.press("Enter");
+    await expectNitfreeShowing(page);
+  });
+
   test("Discord's emoji button goes back to Emoji instead of closing the picker", async ({ page }) => {
     await button(page).click();
     await expectNitfreeShowing(page);
@@ -147,4 +182,12 @@ test("falls back to the popover when Discord's picker does not open", async ({ p
 
   await expect(page.getByRole("dialog", { name: "Nitfree library" })).toBeVisible();
   await expect(button(page)).toHaveAttribute("aria-expanded", "true");
+});
+
+test("falls back to the popover, closing Discord's picker, when the picker has no tab bar", async ({ page }) => {
+  await openDiscord(page, { picker: "no-tabs" });
+  await button(page).click();
+
+  await expect(page.getByRole("dialog", { name: "Nitfree library" })).toBeVisible();
+  await expect(picker(page)).toHaveCount(0);
 });

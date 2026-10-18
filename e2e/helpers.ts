@@ -52,69 +52,21 @@ export const COMPOSER = fs.readFileSync(path.resolve(import.meta.dirname, "fixtu
 export const PICKER = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/picker.html"), "utf8");
 
 /**
- * Plays Discord's part, the way its React app behaves: the emoji and GIF buttons open the picker on
- * their tab, or close it when that tab is already showing; a tab click re-renders the tabs only when
- * the selected tab changes; Escape and any press outside the picker close it.
+ * Plays Discord's part on the stand-in page; see the file for how it imitates Discord's React picker.
  */
-const PICKER_SCRIPT = `
-const PICKER = ${JSON.stringify(PICKER)};
-const layers = document.getElementById("layers");
-let active = null;
+const PICKER_SCRIPT = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/discord-picker.js"), "utf8");
 
-const picker = () => layers.querySelector('[class*="expressionPickerPositionLayer"]');
-const button = name => document.querySelector(name === "emoji" ? '[aria-label="Add Emoji"]' : '[aria-label="Open GIF picker"]');
-
-function render() {
-  for (const tab of picker().querySelectorAll('[role="tablist"] > [role="tab"]:not([data-nitfree-tab])')) {
-    const on = tab.id === active + "-picker-tab";
-    tab.className = "navButton__08434 navItem__08434" + (on ? " navButtonActive__08434" : "");
-    tab.setAttribute("aria-selected", String(on));
-  }
-  const panel = picker().querySelector('[role="tabpanel"]:not(#nitfree-picker-tab-panel)');
-  panel.id = active + "-picker-tab-panel";
-  panel.dataset.discordTab = active;
-  panel.setAttribute("aria-labelledby", active + "-picker-tab");
-}
-
-function open(name) {
-  if (!picker()) layers.insertAdjacentHTML("beforeend", PICKER);
-  active = name;
-  render();
-  for (const which of ["emoji", "gif"]) button(which).setAttribute("aria-expanded", String(which === name));
-}
-
-function close() {
-  layers.replaceChildren();
-  active = null;
-  for (const which of ["emoji", "gif"]) button(which).setAttribute("aria-expanded", "false");
-}
-
-for (const name of ["emoji", "gif"]) {
-  button(name).addEventListener("click", () => (picker() && active === name ? close() : open(name)));
-}
-
-layers.addEventListener("click", (event) => {
-  const tab = event.target.closest('[role="tab"]');
-  const name = tab?.id.replace("-picker-tab", "");
-  if (tab && !tab.hasAttribute("data-nitfree-tab") && name !== active) {
-    active = name;
-    render();
-  }
-});
-
-document.addEventListener("keydown", event => event.key === "Escape" && picker() && close());
-document.addEventListener("pointerdown", (event) => {
-  if (picker() && !event.target.closest('[class*="expressionPickerPositionLayer"], .expression-picker-chat-input-button')) close();
-});
-`;
+type TPicker = boolean | "no-tabs";
 
 /**
  * A stand-in Discord channel page.
  *
- * @param picker - Whether Discord's expression picker opens from the emoji and GIF buttons.
+ * @param picker - Whether Discord's expression picker opens from the chat bar buttons, and whether it has its tab bar.
  * @returns The page's HTML.
  */
-function pageHtml(picker: boolean): string {
+function pageHtml(picker: TPicker): string {
+  const script = picker ? `<script>const PICKER = ${JSON.stringify(PICKER)}; const NO_TABS = ${picker === "no-tabs"};\n${PICKER_SCRIPT}</script>` : "";
+
   return `<!doctype html>
 <html class="theme-dark">
   <head>
@@ -137,7 +89,7 @@ function pageHtml(picker: boolean): string {
     <main id="chat">${COMPOSER}</main>
     <aside id="thread"></aside>
     <div id="layers"></div>
-    ${picker ? `<script>${PICKER_SCRIPT}</script>` : ""}
+    ${script}
   </body>
 </html>`;
 }
@@ -148,10 +100,11 @@ function pageHtml(picker: boolean): string {
  *
  * @param page - The page to use.
  * @param options - The stand-in's behavior.
- * @param options.picker - Whether Discord's expression picker opens from the emoji and GIF buttons.
+ * @param options.picker - Whether Discord's expression picker opens from the chat bar buttons: true for the
+ * captured picker, "no-tabs" for one whose tab bar is gone.
  * @returns Resolves once Nitfree's content script has started.
  */
-export async function openDiscord(page: Page, { picker = false }: { picker?: boolean } = {}): Promise<void> {
+export async function openDiscord(page: Page, { picker = false }: { picker?: TPicker } = {}): Promise<void> {
   await page.context().route("https://discord.com/**", route => route.fulfill({ contentType: "text/html", body: pageHtml(picker) }));
   await page.goto("https://discord.com/channels/@me");
   await expect(page.locator("html")).toHaveAttribute("data-nitfree");
