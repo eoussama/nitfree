@@ -7,7 +7,7 @@ Copy for the Chrome Web Store, Edge Add-ons, Firefox Add-ons and the App Store. 
 | Field                  | Value                                                              |
 | ---------------------- | ------------------------------------------------------------------ |
 | Name                   | Nitfree                                                            |
-| Category               | Social & Communication (Chrome, Edge, Firefox), Social Networking (App Store) |
+| Category               | Chrome: Social Media & Networking; Edge: closest match in Partner Center (Communication or Social); Firefox: Social & Communication; App Store: Social Networking |
 | Website                | https://github.com/eoussama/nitfree                                 |
 | Support                | https://github.com/eoussama/nitfree/issues                         |
 | Firefox add-on ID      | `nitfree@ouss.es`                                                  |
@@ -55,9 +55,9 @@ Keep a personal library of emojis, stickers and GIFs in the browser and send the
 
 > Your emojis, stickers and GIFs
 
-**App Store keywords** (100 characters max)
+**App Store keywords** (100 characters max; no third-party trademarks such as Discord or Nitro, per guideline 2.3.7)
 
-> discord,emoji,sticker,gif,nitro,library,chat,custom emoji,animated
+> emoji,sticker,gif,library,chat,custom emoji,animated,meme,reaction,emote
 
 ## Français
 
@@ -85,7 +85,7 @@ Keep a personal library of emojis, stickers and GIFs in the browser and send the
 
 **Mots-clés App Store** (100 caractères maximum)
 
-> discord,emoji,sticker,gif,nitro,bibliothèque,chat,emoji personnalisé,animé
+> emoji,sticker,gif,bibliothèque,chat,emoji personnalisé,animé,mème,réaction
 
 ## Assets still needed
 
