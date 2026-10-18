@@ -135,16 +135,13 @@ export function mountOverlay(): () => void {
   const host = document.createElement("div");
 
   host.dataset.nitfreeOverlay = "";
-  // Discord's open popouts, such as the expression picker, pull focus back into themselves
-  // (react-focus-lock), which would make the dialog's fields impossible to type in. The lock leaves
-  // alone focus inside elements carrying this attribute.
-  host.dataset.noFocusLock = "";
   host.style.cssText = "position: fixed; inset: 0; z-index: 2147483001; pointer-events: none;";
   document.body.append(host);
 
   const component = mount(Overlay, { target: host.attachShadow({ mode: "open" }), props: { host } });
-  // Working in the dialog must not count as a click outside Discord's picker.
-  const release = isolate(host, { pointer: true });
+  // Working in the dialog must not count as a click outside Discord's picker, nor let the picker
+  // take focus back from its fields.
+  const release = isolate(host, { pointer: true, focus: true });
 
   return () => {
     release();

@@ -264,11 +264,16 @@
   }
 </script>
 
+<!--
+  Focusable, so a click anywhere in the panel keeps focus in it: a paste then lands here, not in
+  Discord's chat box, which takes pastes made while nothing editable has focus.
+-->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="library"
   class:reduced
   class:dragging
+  tabindex="-1"
   ondragenter={onDragOver}
   ondragover={onDragOver}
   ondragleave={onDragLeave}
@@ -392,6 +397,10 @@
   .library,
   .library :global(*) {
     box-sizing: border-box;
+  }
+
+  .library:focus {
+    outline: none;
   }
 
   .library {

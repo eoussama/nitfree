@@ -19,6 +19,31 @@ const editDialog = (page: Page) => page.getByRole("dialog", { name: "Edit item" 
 const menu = (page: Page) => page.getByRole("menu");
 const toast = (page: Page) => page.getByRole("status").filter({ hasText: "Deleted" });
 
+/**
+ * Pastes a PNG where the browser would: on the focused element, inside shadow roots.
+ *
+ * @param page - The Discord page.
+ * @param name - The pasted file's name.
+ * @returns Resolves once the paste is dispatched.
+ */
+async function pasteImage(page: Page, name: string): Promise<void> {
+  await page.evaluate(({ data, name }) => {
+    let target: Element | null = document.activeElement;
+
+    while (target?.shadowRoot?.activeElement) {
+      target = target.shadowRoot.activeElement;
+    }
+
+    const bytes = Uint8Array.from(atob(data), char => char.charCodeAt(0));
+    const clipboardData = new DataTransfer();
+
+    clipboardData.items.add(new File([bytes], name, { type: "image/png" }));
+    (target ?? document.body).dispatchEvent(new ClipboardEvent("paste", { clipboardData, bubbles: true, composed: true, cancelable: true }));
+  }, { data: PNG.data, name });
+}
+
+const chatPastes = (page: Page) => page.evaluate(() => (globalThis as unknown as { discordChatPastes?: string[][] }).discordChatPastes ?? []);
+
 async function openPanel(page: Page): Promise<void> {
   await openDiscord(page);
   await page.getByRole("button", { name: "Open Nitfree" }).click();
@@ -315,6 +340,17 @@ test.describe("adding, editing and deleting", () => {
     await expect(tags).toBeFocused();
   });
 
+  test("a paste after clicking anywhere in the panel adds the image, not Discord's chat box", async ({ page }) => {
+    await request(popup, "library:add", { file: PNG, type: "emoji", title: "wave" });
+    await openPanel(page);
+
+    // An empty spot below the tiles.
+    await panel(page).locator(".body").click({ position: { x: 200, y: 200 } });
+    await pasteImage(page, "clicked.png");
+    await expect(addDialog(page).getByRole("textbox", { name: "Name" })).toHaveValue("clicked");
+    expect(await chatPastes(page)).toEqual([]);
+  });
+
   test("keys typed in the dialog do not reach Discord", async ({ page }) => {
     await openPanel(page);
     await page.evaluate(() => {
@@ -364,6 +400,13 @@ test.describe("in Discord's picker", () => {
     await expect(editDialog(page)).toHaveCount(0);
     await expect(tab(page)).toBeVisible();
     await expect(pickerTile(page, "wave")).toBeFocused();
+  });
+
+  test("a paste after clicking anywhere in the tab adds the image, not Discord's chat box", async ({ page }) => {
+    await tab(page).locator(".body").click({ position: { x: 200, y: 200 } });
+    await pasteImage(page, "clicked.png");
+    await expect(addDialog(page).getByRole("textbox", { name: "Name" })).toHaveValue("clicked");
+    expect(await chatPastes(page)).toEqual([]);
   });
 
   test("the dialog's fields can be typed in while the picker holds focus, and saving updates the tab", async ({ page }) => {
