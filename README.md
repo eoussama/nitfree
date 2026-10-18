@@ -6,6 +6,7 @@
 <p align="center">The definitive freemium Discord Nitro alternative</p>
 
 <p align="center">
+  <a href="https://github.com/eoussama/nitfree/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/eoussama/nitfree/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="Latest tag" src="https://img.shields.io/github/v/tag/eoussama/nitfree" />
   <img alt="License" src="https://img.shields.io/github/license/eoussama/nitfree" />
   <img alt="Code size" src="https://img.shields.io/github/languages/code-size/eoussama/nitfree" />
@@ -32,6 +33,7 @@ pnpm dev:firefox    # Firefox with hot reload
 | `pnpm lint`, `pnpm lint:fix`                                   | Lint with `@eoussama/dx`                  |
 | `pnpm typecheck`                                               | Type check TypeScript and Svelte files    |
 | `pnpm test`                                                    | Unit tests with Vitest                    |
+| `pnpm test:e2e`                                                | Load the Chrome build in Chromium with Playwright (run `pnpm build` and `pnpm exec playwright install chromium` first) |
 
 The Safari build is converted into an Xcode project with `xcrun safari-web-extension-converter .output/safari-mv3` on macOS.
 
