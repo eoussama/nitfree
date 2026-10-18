@@ -1,35 +1,7 @@
-import type { Page } from "@playwright/test";
-
 import { expect, test } from "./fixtures";
+import { openPopup, PNG, request } from "./helpers";
 
 
-
-/**
- * A 1x1 PNG, encoded the way the messaging codec sends blobs.
- */
-const PNG = { $nf: "blob", type: "image/png", data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" };
-
-type TReply<T = unknown> = { ok: boolean; data?: T; error?: { message: string } };
-
-/**
- * Sends a raw request to the background worker from an extension page, as the popup would.
- *
- * @param page - An extension page.
- * @param name - The request name.
- * @param data - The encoded payload.
- * @returns The background's reply.
- */
-async function request<T = unknown>(page: Page, name: string, data?: unknown): Promise<TReply<T>> {
-  return page.evaluate(([name, data]) => {
-    const { chrome } = globalThis as unknown as { chrome: { runtime: { sendMessage: (message: unknown) => Promise<TReply<T>> } } };
-
-    return chrome.runtime.sendMessage({ channel: "nitfree", kind: "request", name, data });
-  }, [name, data] as const);
-}
-
-async function openPopup(page: Page, extensionId: string): Promise<void> {
-  await page.goto(`chrome-extension://${extensionId}/popup.html`);
-}
 
 test("adds, reads and removes items through the background", async ({ page, extensionId }) => {
   await openPopup(page, extensionId);

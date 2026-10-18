@@ -1,35 +1,9 @@
 import type { Page } from "@playwright/test";
 
-import fs from "node:fs";
-import path from "node:path";
-
 import { expect, test } from "./fixtures";
+import { COMPOSER, openDiscord } from "./helpers";
 
 
-
-/**
- * Discord's composer as captured from discord.com, with text, images and styles stripped.
- */
-const COMPOSER = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/composer.html"), "utf8");
-
-const PAGE = `<!doctype html>
-<html class="theme-dark">
-  <head>
-    <style>
-      .theme-dark { --background-base-lower: rgb(30, 31, 34); --text-default: rgb(220, 221, 222); }
-      body { margin: 0; height: 100vh; }
-      form { position: fixed; right: 0; bottom: 0; left: 0; }
-      [class^="buttons_"] { display: flex; justify-content: flex-end; }
-    </style>
-  </head>
-  <body><main id="chat">${COMPOSER}</main><aside id="thread"></aside></body>
-</html>`;
-
-async function openDiscord(page: Page): Promise<void> {
-  await page.context().route("https://discord.com/**", route => route.fulfill({ contentType: "text/html", body: PAGE }));
-  await page.goto("https://discord.com/channels/@me");
-  await expect(page.locator("html")).toHaveAttribute("data-nitfree");
-}
 
 const togglers = (page: Page) => page.locator("[data-nitfree-toggler]");
 const button = (page: Page) => page.getByRole("button", { name: "Open Nitfree" });
