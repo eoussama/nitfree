@@ -1,5 +1,7 @@
 import type { ContentScriptContext } from "#imports";
 
+import type { TItem } from "~/lib/db";
+
 import { mount, unmount } from "svelte";
 
 import Popover from "~/components/Popover.svelte";
@@ -38,9 +40,14 @@ export function mountToggler(group: Element): () => void {
  * @param ctx - The content script's context. Scans are scheduled through it, so the first page change
  * after Nitfree is disabled or updated notices it and runs the content script's cleanup.
  * @param inject - Adds a button to a group and returns how to remove it.
+ * @param afterScan - Runs after every scan, for other parts of the page that follow Discord's re-renders.
  * @returns A function that stops watching and removes every button.
  */
-export function watchChatButtonGroups(ctx: Pick<ContentScriptContext, "requestAnimationFrame">, inject: (group: Element) => () => void): () => void {
+export function watchChatButtonGroups(
+  ctx: Pick<ContentScriptContext, "requestAnimationFrame">,
+  inject: (group: Element) => () => void,
+  afterScan: () => void = () => undefined,
+): () => void {
   const mounted = new Map<Element, () => void>();
   let frame = 0;
 
@@ -60,9 +67,11 @@ export function watchChatButtonGroups(ctx: Pick<ContentScriptContext, "requestAn
       }
     }
 
-    if (panel.open && !panel.anchor?.isConnected) {
+    if (panel.open && panel.mode === "popover" && !panel.anchor?.isConnected) {
       closePanel();
     }
+
+    afterScan();
   };
 
   // Discord changes the page constantly; one scan per frame is plenty.
@@ -87,18 +96,19 @@ export function watchChatButtonGroups(ctx: Pick<ContentScriptContext, "requestAn
 }
 
 /**
- * Adds the panel's host to the page, in its own shadow root.
+ * Adds the popover's host to the page, in its own shadow root.
  *
+ * @param onpick - What picking an item does.
  * @returns A function that removes it.
  */
-export function mountPopover(): () => void {
+export function mountPopover(onpick: (item: TItem, send: boolean) => void): () => void {
   const host = document.createElement("div");
 
   host.dataset.nitfreePanel = "";
   host.style.cssText = "position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483000;";
   document.body.append(host);
 
-  const component = mount(Popover, { target: host.attachShadow({ mode: "open" }), props: { host } });
+  const component = mount(Popover, { target: host.attachShadow({ mode: "open" }), props: { host, onpick } });
 
   return () => {
     void unmount(component);

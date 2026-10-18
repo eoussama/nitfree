@@ -14,7 +14,15 @@ export type TChatButtonClasses = {
  */
 const BEHAVIOR_CLASSES = new Set(["expression-picker-chat-input-button"]);
 
-function firstMatchAll(root: ParentNode, selectors: readonly string[]): Element[] {
+/**
+ * Finds elements with the first selector of a list that matches anything, so a fallback is only used
+ * once Discord's markup has stopped matching the preferred one.
+ *
+ * @param root - Where to look.
+ * @param selectors - Alternatives, most specific first.
+ * @returns The matching elements.
+ */
+export function findAll(root: ParentNode, selectors: readonly string[]): Element[] {
   for (const selector of selectors) {
     const found = [...root.querySelectorAll(selector)];
 
@@ -37,7 +45,7 @@ function looksOnly(element: Element | null | undefined, pattern: RegExp): string
  * @returns The groups.
  */
 export function findChatButtonGroups(root: ParentNode = document): Element[] {
-  return firstMatchAll(root, SELECTORS.chatButtonGroup);
+  return findAll(root, SELECTORS.chatButtonGroup);
 }
 
 /**
@@ -48,7 +56,7 @@ export function findChatButtonGroups(root: ParentNode = document): Element[] {
  * @returns The classes, empty when Discord's markup has changed.
  */
 export function readChatButtonClasses(group: Element): TChatButtonClasses {
-  const model = firstMatchAll(group, SELECTORS.chatButtonModel)[0];
+  const model = findAll(group, SELECTORS.chatButtonModel)[0];
   const button = model?.querySelector("[role=\"button\"]");
 
   return {

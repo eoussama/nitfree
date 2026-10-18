@@ -1,7 +1,6 @@
 import { DISCORD_MATCHES } from "~/lib/discord";
 import { applyPalette, themeSnapshot, watchTheme } from "~/lib/theme";
-import { mountPopover, mountToggler, watchChatButtonGroups } from "~/lib/ui/inject";
-import { followLibrary } from "~/lib/ui/library.svelte";
+import { startContent } from "~/lib/ui/content";
 
 
 
@@ -17,15 +16,11 @@ export default defineContentScript({
       applyPalette(root, snapshot.palette, snapshot.reducedMotion);
       void themeSnapshot.setValue(snapshot);
     });
-    const stopLibrary = followLibrary();
-    const removePopover = mountPopover();
-    const stopTogglers = watchChatButtonGroups(ctx, mountToggler);
+    const stopContent = startContent(ctx);
 
     ctx.onInvalidated(() => {
       stopTheme();
-      stopTogglers();
-      removePopover();
-      stopLibrary();
+      stopContent();
     });
   },
 });

@@ -54,7 +54,7 @@
   }
 
   $effect(() => {
-    if (!panel.open) {
+    if (!panel.open || panel.mode !== "popover") {
       return;
     }
 
@@ -95,7 +95,7 @@
   });
 </script>
 
-{#if panel.open}
+{#if panel.open && panel.mode === "popover"}
   <div
     class="panel"
     role="dialog"

@@ -27,4 +27,21 @@ export const SELECTORS = {
     ".expression-picker-chat-input-button",
     "[class^=\"buttonContainer_\"]",
   ],
+
+  /**
+   * The emoji button in a composer's button group, which opens Discord's expression picker.
+   */
+  emojiButton: [
+    "[class*=\"emojiButton_\"][role=\"button\"]",
+    ".expression-picker-chat-input-button:last-of-type [role=\"button\"]",
+  ],
+
+  /**
+   * Discord's expression picker tab bar (GIFs, Stickers, Emoji). The picker is rendered in a layer
+   * outside the composer, so this is searched for in the whole page.
+   */
+  pickerTabList: [
+    "[class*=\"expressionPickerPositionLayer\"] [role=\"tablist\"]",
+    "[role=\"tablist\"]:has(> #emoji-picker-tab)",
+  ],
 } as const satisfies Record<string, readonly string[]>;

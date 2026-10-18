@@ -1,4 +1,4 @@
-export { findChatButtonGroups, readChatButtonClasses, type TChatButtonClasses } from "./composer";
+export { findAll, findChatButtonGroups, readChatButtonClasses, type TChatButtonClasses } from "./composer";
 export { SELECTORS } from "./selectors";
 
 /**

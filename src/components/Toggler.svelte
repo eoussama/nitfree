@@ -8,7 +8,7 @@
 <script lang="ts">
   import type { TChatButtonClasses } from "~/lib/discord";
 
-  import { panel, togglePanel } from "~/lib/ui/panel.svelte";
+  import { notePress, panel, togglePanel } from "~/lib/ui/panel.svelte";
 
   import Logo from "./Logo.svelte";
 
@@ -43,6 +43,7 @@
     aria-label={i18n.t("toggler.label")}
     aria-haspopup="dialog"
     aria-expanded={open}
+    onpointerdown={() => button && notePress(button)}
     onclick={toggle}
     onkeydown={onKeydown}
   >

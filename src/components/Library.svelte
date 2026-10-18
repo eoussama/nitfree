@@ -8,6 +8,8 @@
   import type { TItem } from "~/lib/db";
   import type { TGridKey } from "~/lib/ui/grid";
 
+  import { tick } from "svelte";
+
   import { GRID_KEYS, nextTile } from "~/lib/ui/grid";
   import { library } from "~/lib/ui/library.svelte";
   import { buildSections, filterItems } from "~/lib/ui/sections";
@@ -69,10 +71,11 @@
   }
 
   /**
-   * Puts the cursor in the search field, as Discord's picker does when it opens.
+   * Puts the cursor in the search field, as Discord's picker does when it opens. Waits a tick so it
+   * also works right after the panel is mounted, before the field is bound.
    */
   export function focusSearch(): void {
-    search?.focus();
+    void tick().then(() => search?.focus());
   }
 </script>
 
