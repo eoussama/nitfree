@@ -205,6 +205,24 @@ test.describe("panel navigation in a long library", () => {
     expect(await dialog(page).locator(".sidebar-footer").evaluate(element => getComputedStyle(element).borderTopWidth)).toBe("1px");
   });
 
+  test("slides a pill in on hover and grows it on the selected category, like Discord's server list", async ({ page }) => {
+    await openPanel(page);
+
+    const categories = dialog(page).getByRole("navigation").getByRole("button");
+    const pill = (index: number) => categories.nth(index).evaluate(element => getComputedStyle(element, "::before").height);
+
+    await expect.poll(() => pill(0)).toBe("20px");
+    await expect.poll(() => pill(1)).toBe("0px");
+
+    await categories.nth(1).hover();
+    await expect.poll(() => pill(1)).toBe("8px");
+
+    await categories.nth(1).click();
+    await page.mouse.move(0, 0);
+    await expect.poll(() => pill(1)).toBe("20px");
+    await expect.poll(() => pill(0)).toBe("0px");
+  });
+
   test("uses Discord's 8 px scrollbar", async ({ page }) => {
     await openPanel(page);
 

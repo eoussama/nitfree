@@ -632,19 +632,35 @@
     color: var(--interactive-icon-active, var(--nf-text, #fff));
   }
 
-  /* Discord marks the selected category with a pill on the sidebar's edge. */
-  .category.active::before {
+  /*
+    Discord's pill on the sidebar's edge, as in its server list: hovering slides a small half-round in
+    from the edge, selecting grows it, and the category left behind shrinks its pill away to the edge.
+  */
+  .category::before {
     position: absolute;
     inset-inline-start: -8px;
     top: 50%;
     width: 4px;
-    height: 20px;
-    margin-top: -10px;
+    height: 0;
     border-start-end-radius: 4px;
     border-end-end-radius: 4px;
     background-color: var(--text-strong, var(--nf-text, #fff));
     content: "";
     pointer-events: none;
+    transform: translate(-4px, -50%);
+    transition:
+      height 0.2s ease-out,
+      transform 0.2s ease-out;
+  }
+
+  .category:hover::before {
+    height: 8px;
+    transform: translate(0, -50%);
+  }
+
+  .category.active::before {
+    height: 20px;
+    transform: translate(0, -50%);
   }
 
   /* Body: the scrolling list of sections. */
@@ -747,6 +763,7 @@
 
   .reduced .chevron,
   .reduced .category,
+  .reduced .category::before,
   .reduced .section-toggle {
     transition: none;
   }
