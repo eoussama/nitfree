@@ -6,6 +6,7 @@ Notable changes to Nitfree, newest first. Versions follow [Semantic Versioning](
 
 ### Added
 
+- Adding, editing and deleting library items from the panel: Add Files, drag and drop or paste open a dialog styled like Discord's modals, with a name, type, tags and description per file; right-click or the menu key on an item opens a menu to favorite, edit or delete it; deleting hides the item at once, with a few seconds to undo (#29).
 - Typed messaging between the content script, popup and background worker, binary payloads included, with library and tag requests answered by the background and changes announced to open pages (#33).
 - Nitfree button first in Discord's chat bar, in every composer, styled like Discord's own buttons, with a logo that blinks on hover; it opens a placeholder panel that closes on Escape or a click outside (#24).
 - A Nitfree tab in Discord's expression picker, after GIFs, Stickers and Emoji, laid out and styled like Discord's emoji picker: search, a category sidebar, collapsible Favorites, Recent and All files sections, an inspector bar naming the hovered item, and full keyboard navigation. The chat bar button opens the picker on it, and falls back to a panel above the composer when the picker cannot host it (#22).
