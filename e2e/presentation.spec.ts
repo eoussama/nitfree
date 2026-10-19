@@ -253,6 +253,9 @@ test.describe("a library of a thousand items", () => {
       await request(popup, "library:add", { file: png(64, 64, [i % 256, (i * 7) % 256, (i * 13) % 256, 255]), type: "emoji", title: `item_${String(i).padStart(4, "0")}` });
     }
 
+    // A real popup closes once Discord takes focus; left open, it would keep following the library.
+    await popup.close();
+
     await openPanel(page);
     await expect(panel(page).locator("[data-tile]")).toHaveCount(1000);
 
