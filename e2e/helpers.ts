@@ -56,6 +56,11 @@ export const PICKER = fs.readFileSync(path.resolve(import.meta.dirname, "fixture
  */
 const PICKER_SCRIPT = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/discord-picker.js"), "utf8");
 
+/**
+ * Plays Discord's composer: attachments and sending; see the file.
+ */
+const COMPOSER_SCRIPT = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/discord-composer.js"), "utf8");
+
 type TPicker = boolean | "no-tabs";
 
 /**
@@ -89,6 +94,7 @@ function pageHtml(picker: TPicker): string {
     <main id="chat">${COMPOSER}</main>
     <aside id="thread"></aside>
     <div id="layers"></div>
+    <script>${COMPOSER_SCRIPT}</script>
     ${script}
   </body>
 </html>`;
