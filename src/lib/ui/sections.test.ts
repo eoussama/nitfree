@@ -1,8 +1,8 @@
-import type { TItem } from "~/lib/db";
+import type { TItem, TTag } from "~/lib/db";
 
 import { describe, expect, it } from "vitest";
 
-import { buildSections, filterItems, RECENT_LIMIT } from "./sections";
+import { buildSections, filterItems, foldText, RECENT_LIMIT } from "./sections";
 
 
 
@@ -59,11 +59,65 @@ describe("buildSections", () => {
   });
 });
 
+describe("foldText", () => {
+  it("lowercases and strips accents", () => {
+    expect(foldText("Café ÉTÉ Crème Brûlée")).toBe("cafe ete creme brulee");
+  });
+});
+
 describe("filterItems", () => {
+  const tags: TTag[] = [
+    { id: "t1", name: "Happy Cat", color: null, createdAt: 0 },
+    { id: "t2", name: "dog", color: null, createdAt: 0 },
+  ];
+
   it("matches titles regardless of case and keeps order", () => {
     const items = [item("Party Parrot"), item("cat"), item("PARTY hat")];
 
     expect(filterItems(items, " party ").map(found => found.id)).toEqual(["Party Parrot", "PARTY hat"]);
     expect(filterItems(items, "")).toEqual(items);
+  });
+
+  it("returns a copy for an empty query, not the library itself", () => {
+    const items = [item("a")];
+
+    expect(filterItems(items, "  ")).not.toBe(items);
+  });
+
+  it("matches descriptions", () => {
+    const items = [item("a", { description: "Dancing in the rain" }), item("b")];
+
+    expect(filterItems(items, "rain").map(found => found.id)).toEqual(["a"]);
+  });
+
+  it("matches part of a tag name, listing every item with that tag", () => {
+    const items = [item("a", { tags: ["t1"] }), item("b", { tags: ["t2"] }), item("c", { tags: ["t1", "t2"] })];
+
+    expect(filterItems(items, "cat", tags).map(found => found.id)).toEqual(["a", "c"]);
+    expect(filterItems(items, "HAPP", tags).map(found => found.id)).toEqual(["a", "c"]);
+  });
+
+  it("ignores tags that no longer exist", () => {
+    expect(filterItems([item("a", { tags: ["gone"] })], "gone", tags)).toEqual([]);
+  });
+
+  it("ignores accents on either side", () => {
+    const items = [item("Café"), item("plain", { description: "crème brûlée" })];
+
+    expect(filterItems(items, "cafe").map(found => found.id)).toEqual(["Café"]);
+    expect(filterItems(items, "CAFÉ").map(found => found.id)).toEqual(["Café"]);
+    expect(filterItems(items, "creme brulee").map(found => found.id)).toEqual(["plain"]);
+  });
+
+  it("needs every word to match, wherever it is found", () => {
+    const items = [item("wave", { description: "hello", tags: ["t1"] }), item("hello", { tags: ["t2"] })];
+
+    expect(filterItems(items, "wave cat hello", tags).map(found => found.id)).toEqual(["wave"]);
+    expect(filterItems(items, "hello dog", tags).map(found => found.id)).toEqual(["hello"]);
+    expect(filterItems(items, "hello zzz", tags)).toEqual([]);
+  });
+
+  it("does not match across the end of one field and the start of the next", () => {
+    expect(filterItems([item("ab", { description: "cd" })], "bc")).toEqual([]);
   });
 });

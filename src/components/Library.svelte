@@ -85,7 +85,7 @@
   // Items deleted in this tab disappear at once, while their deletion can still be undone.
   const items = $derived(library.items.filter(item => !trash.pending.some(pending => pending.item.id === item.id)));
   const filtering = $derived(filterCount(filters) > 0);
-  const sections = $derived(buildSections(applyFilters(filterItems(items, query), filters)));
+  const sections = $derived(buildSections(applyFilters(filterItems(items, query, library.tags), filters)));
   // While searching or filtering, every match shows, whatever the user collapsed; their choice comes back after.
   const narrowed = $derived(query.trim() !== "" || filtering);
   const isCollapsed = (id: TSectionId): boolean => !narrowed && collapsed[id] === true;
@@ -301,6 +301,16 @@
     if (event.key === "ArrowDown") {
       event.preventDefault();
       tiles()[0]?.focus();
+    }
+    // Enter picks the first result, as in Discord's picker; Shift+Enter adds it without sending.
+    else if (event.key === "Enter" && !event.isComposing && query.trim() !== "") {
+      const first = visible[0]?.item;
+
+      event.preventDefault();
+
+      if (first) {
+        onpick(first, !event.shiftKey);
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-import type { TItem } from "~/lib/db";
+import type { TItem, TTag } from "~/lib/db";
 
 
 
@@ -15,16 +15,38 @@ export type TSection = {
 export const RECENT_LIMIT = 16;
 
 /**
- * Keeps the items whose title contains the query, ignoring case.
+ * Lowercases text and strips its accents, so that "Café" and "cafe" meet.
+ *
+ * @param text - Any text.
+ * @returns The text, folded.
+ */
+export function foldText(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase();
+}
+
+/**
+ * Keeps the items that match every word of the query in their title, description or tag names,
+ * ignoring case and accents. A part of a word is enough: "ca" finds an item tagged "cat".
  *
  * @param items - The library.
  * @param query - What was typed in the search field.
+ * @param tags - Every tag, to read the names of the ones items carry.
  * @returns The matching items, in their original order.
  */
-export function filterItems(items: readonly TItem[], query: string): TItem[] {
-  const needle = query.trim().toLocaleLowerCase();
+export function filterItems(items: readonly TItem[], query: string, tags: readonly TTag[] = []): TItem[] {
+  const words = foldText(query).split(/\s+/).filter(Boolean);
 
-  return needle ? items.filter(item => item.title.toLocaleLowerCase().includes(needle)) : [...items];
+  if (!words.length) {
+    return [...items];
+  }
+
+  const names = new Map(tags.map(tag => [tag.id, foldText(tag.name)]));
+
+  return items.filter((item) => {
+    const text = [foldText(item.title), foldText(item.description), ...item.tags.map(id => names.get(id) ?? "")].join("\n");
+
+    return words.every(word => text.includes(word));
+  });
 }
 
 /**
