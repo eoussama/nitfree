@@ -239,7 +239,11 @@ test.describe("popup", () => {
   test("the header stays at the top while the popup scrolls", async () => {
     const header = popup.locator("header");
 
+    // At rest, no line under the header.
     await expect(header).not.toHaveClass(/scrolled/);
+    expect(await header.evaluate(element => getComputedStyle(element).borderBottomColor)).toBe("rgba(0, 0, 0, 0)");
+    expect(await library(popup).evaluate(element => getComputedStyle(element).borderTopStyle)).toBe("none");
+
     await popup.mouse.wheel(0, 400);
     await expect.poll(() => popup.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 

@@ -242,6 +242,13 @@
     border-top: 1px solid var(--nf-border);
   }
 
+  /* Under the header, only the header's own line shows, and only once the popup scrolls. */
+  .header + :global(.popup-section) {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
   :global(.popup-heading) {
     margin: 0 0 12px;
     color: var(--nf-muted);
