@@ -27,10 +27,13 @@
   import { GRID_KEYS, nextTile } from "~/lib/ui/grid";
   import { library } from "~/lib/ui/library.svelte";
   import { openMenu } from "~/lib/ui/menu.svelte";
+  import { motion } from "~/lib/ui/motion.svelte";
   import { buildSections, filterItems } from "~/lib/ui/sections";
   import { focusAfterRemoval } from "~/lib/ui/tiles";
+  import { tooltip } from "~/lib/ui/tooltip.svelte";
   import { deleteWithUndo, trash } from "~/lib/ui/trash.svelte";
 
+  import ActionBar from "./ActionBar.svelte";
   import Inspector from "./Inspector.svelte";
   import Tile from "./Tile.svelte";
 
@@ -60,10 +63,12 @@
   const collapsed: Partial<Record<TSectionId, boolean>> = $state({});
   let activeSection: TSectionId | null = $state(null);
   let jumping = false;
-  let reduced = $state(reducedMotion());
   let search: HTMLInputElement | undefined = $state();
   let body: HTMLElement | undefined = $state();
   let fileInput: HTMLInputElement | undefined = $state();
+  // The cell under the pointer, which gets the action bar, and the focused tile's item.
+  let hovered = $state<{ key: string; id: string; cell: HTMLElement } | null>(null);
+  let focusedId: string | null = $state(null);
   let dragging = $state(false);
 
   // Items deleted in this tab disappear at once, while their deletion can still be undone.
@@ -76,18 +81,16 @@
   const tabbableKey = $derived(visible.some(entry => entry.key === current) ? current : (visible[0]?.key ?? ""));
   // The inspector names the hovered item while it is on screen, else the first item shown.
   const shown = $derived(visible.find(entry => entry.item.id === inspectedId)?.item ?? visible[0]?.item ?? null);
-  const highlighted = $derived(sections.some(section => section.id === activeSection) ? activeSection : (sections[0]?.id ?? null));
+  // Only while its cell is still shown: unfavoriting takes an item out of Favorites, for one.
+  const hoveredItem = $derived(hovered && hovered.cell.isConnected && visible.some(entry => entry.key === hovered?.key) ? (items.find(item => item.id === hovered?.id) ?? null) : null);
 
-  // Discord's reduced motion lives on <html>, which the styles in this shadow root cannot see.
+  // Searching or folding sections moves tiles under a still pointer, so the bar waits for the next hover.
   $effect(() => {
-    const observer = new MutationObserver(() => {
-      reduced = reducedMotion();
-    });
-
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-nf-reduced-motion"] });
-
-    return () => observer.disconnect();
+    void query;
+    void JSON.stringify(collapsed);
+    hovered = null;
   });
+  const highlighted = $derived(sections.some(section => section.id === activeSection) ? activeSection : (sections[0]?.id ?? null));
 
   function tiles(): HTMLElement[] {
     return body ? [...body.querySelectorAll<HTMLElement>("[data-tile]")] : [];
@@ -219,10 +222,6 @@
     }
   }
 
-  function reducedMotion(): boolean {
-    return document.documentElement.dataset.nfReducedMotion === "true";
-  }
-
   function stopJumping(): void {
     jumping = false;
   }
@@ -236,7 +235,7 @@
 
     jumping = true;
     setTimeout(stopJumping, JUMP_TIMEOUT);
-    body?.querySelector(`[data-section="${id}"]`)?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+    body?.querySelector(`[data-section="${id}"]`)?.scrollIntoView({ block: "start", behavior: motion.reduced ? "auto" : "smooth" });
   }
 
   function onScroll(): void {
@@ -271,7 +270,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="library"
-  class:reduced
+  class:reduced={motion.reduced}
   class:dragging
   tabindex="-1"
   ondragenter={onDragOver}
@@ -293,9 +292,12 @@
         onkeydown={onSearchKeydown}
       />
     </label>
-    <button class="icon-button" type="button" disabled aria-label={i18n.t("panel.filter")} title={i18n.t("panel.filter")}>
-      <Tag size={20} aria-hidden="true" />
-    </button>
+    <!-- A disabled button gets no pointer events, so its wrapper carries the tooltip. -->
+    <span class="icon-button-wrapper" {@attach tooltip(i18n.t("panel.filter"))}>
+      <button class="icon-button" type="button" disabled aria-label={i18n.t("panel.filter")}>
+        <Tag size={20} aria-hidden="true" />
+      </button>
+    </span>
     <button class="text-button" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
     <input bind:this={fileInput} class="file-input" type="file" accept={ACCEPTED_FILES} multiple tabindex="-1" aria-hidden="true" onchange={onPicked} />
   </header>
@@ -313,8 +315,8 @@
           class:active={highlighted === section.id}
           type="button"
           aria-label={i18n.t(`panel.sections.${section.id}`)}
-          title={i18n.t(`panel.sections.${section.id}`)}
           onclick={() => void jumpTo(section.id)}
+          {@attach tooltip(i18n.t(`panel.sections.${section.id}`), "right")}
         >
           <Icon size={20} aria-hidden="true" />
         </button>
@@ -334,13 +336,26 @@
     onscrollend={stopJumping}
     onwheel={stopJumping}
     onpointerdown={stopJumping}
+    onpointerleave={() => {
+      hovered = null;
+    }}
+    onfocusin={(event) => {
+      focusedId = (event.target as Element).closest("[data-tile]")?.getAttribute("data-tile") ?? null;
+    }}
+    onfocusout={() => {
+      focusedId = null;
+    }}
   >
     {#if library.error}
       <p class="message">{i18n.t("panel.error")}</p>
     {:else if !library.loaded}
       <p class="message" aria-busy="true"></p>
     {:else if items.length === 0}
-      <p class="message">{i18n.t("panel.placeholder")}</p>
+      <div class="empty">
+        <p class="empty-title">{i18n.t("panel.placeholder")}</p>
+        <p class="empty-hint">{i18n.t("panel.emptyHint")}</p>
+        <button class="empty-add" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
+      </div>
     {:else if sections.length === 0}
       <p class="message">{i18n.t("panel.noResults", { query: query.trim() })}</p>
     {:else}
@@ -367,7 +382,12 @@
             <ul class="grid">
               {#each section.items as item (item.id)}
                 {@const key = `${section.id}:${item.id}`}
-                <li class="cell">
+                <li
+                  class="cell"
+                  onpointerenter={(event) => {
+                    hovered = { key, id: item.id, cell: event.currentTarget };
+                  }}
+                >
                   <Tile
                     {item}
                     tabbable={key === tabbableKey}
@@ -385,11 +405,22 @@
           {/if}
         </section>
       {/each}
+
+      {#if hoveredItem && hovered && body}
+        <ActionBar
+          item={hoveredItem}
+          cell={hovered.cell}
+          container={body}
+          ondone={() => {
+            hovered = null;
+          }}
+        />
+      {/if}
     {/if}
   </div>
 
   <div class="inspector">
-    <Inspector item={shown} />
+    <Inspector item={shown} animate={shown !== null && (shown.id === hovered?.id || shown.id === focusedId)} />
   </div>
 </div>
 
@@ -780,6 +811,58 @@
     width: 48px;
     height: 48px;
     overflow: hidden;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .empty-title {
+    margin: 0;
+    color: var(--text-strong, var(--nf-text, #f2f3f5));
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .empty-hint {
+    margin: 0;
+    color: var(--text-muted, var(--nf-muted, #949ba4));
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  /* Discord's primary button. */
+  .empty-add {
+    height: 32px;
+    margin-top: 8px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-sm, 8px);
+    background-color: var(--control-brand-foreground-new, var(--brand-500, #5865f2));
+    color: var(--white, #fff);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+    transition: background-color 0.17s ease;
+  }
+
+  .empty-add:hover {
+    background-color: var(--brand-560, #4752c4);
+  }
+
+  .empty-add:focus-visible {
+    outline: 2px solid var(--border-focus, var(--nf-accent, #5865f2));
+    outline-offset: 2px;
   }
 
   .message {

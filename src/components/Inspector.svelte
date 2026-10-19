@@ -7,22 +7,34 @@
 <script lang="ts">
   import type { TItem } from "~/lib/db";
 
-  import { thumbnail } from "~/lib/ui/thumbnails";
+  import { still, thumbnail } from "~/lib/ui/thumbnails";
 
 
 
-  const { item }: { item: TItem | null } = $props();
+  type TProps = {
+    item: TItem | null;
+    // Whether the item is the one hovered or focused, so an animated one plays.
+    animate?: boolean;
+  };
+
+  const { item, animate = false }: TProps = $props();
 
   let url: string | null = $state(null);
+  let shownId: string | null = null;
 
   $effect(() => {
     const current = item;
+    const playing = animate && current?.animated;
     let active = true;
 
-    url = null;
+    // Switching between the still and the animation keeps the image until the other is ready.
+    if (current?.id !== shownId) {
+      url = null;
+      shownId = current?.id ?? null;
+    }
 
     if (current) {
-      void thumbnail(current).then((found) => {
+      void (playing ? thumbnail(current) : still(current)).then((found) => {
         if (active) {
           url = found;
         }

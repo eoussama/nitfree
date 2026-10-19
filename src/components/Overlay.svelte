@@ -10,10 +10,12 @@
   import { closeEditor, editor, startAdd } from "~/lib/ui/editor.svelte";
   import { escapeTop } from "~/lib/ui/escape";
   import { closeMenu, menu } from "~/lib/ui/menu.svelte";
+  import { hideTooltip } from "~/lib/ui/tooltip.svelte";
 
   import ContextMenu from "./ContextMenu.svelte";
   import EditorDialog from "./EditorDialog.svelte";
   import Notice from "./Notice.svelte";
+  import Tooltip from "./Tooltip.svelte";
   import UndoToast from "./UndoToast.svelte";
 
 
@@ -32,6 +34,10 @@
 
   $effect(() => {
     const onKeydown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        hideTooltip();
+      }
+
       if (event.key === "Escape" && (menu.item || editor.mode)) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -83,6 +89,8 @@
     };
 
     const onScroll = (): void => {
+      hideTooltip();
+
       if (menu.item) {
         closeMenu();
       }
@@ -143,6 +151,7 @@
 
 <EditorDialog />
 <ContextMenu />
+<Tooltip />
 <div class="toasts">
   <Notice />
   <UndoToast />

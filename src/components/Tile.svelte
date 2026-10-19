@@ -2,15 +2,17 @@
 
 <!--
   One library item in the panel's grid, a square cell like Discord's emoji picker: no caption; the
-  name shows in the inspector bar when the cell is hovered or focused. The thumbnail is fetched from
-  the background only once the cell scrolls into view.
+  name shows in the inspector bar when the cell is hovered or focused. It shows a small still once it
+  scrolls into view; an animated item plays only while hovered or focused. The image lifts a little
+  on hover, unless Discord asks for reduced motion.
 -->
 <script lang="ts">
   import type { TItem } from "~/lib/db";
 
   import { untrack } from "svelte";
 
-  import { thumbnail } from "~/lib/ui/thumbnails";
+  import { motion } from "~/lib/ui/motion.svelte";
+  import { still, thumbnail, whenVisible } from "~/lib/ui/thumbnails";
 
 
 
@@ -24,55 +26,86 @@
 
   const { item, tabbable, onpick, onfocus, oninspect }: TProps = $props();
 
-  let url: string | null = $state(null);
+  let stillUrl: string | null = $state(null);
+  let playingUrl: string | null = $state(null);
+  let hovered = $state(false);
+  let focused = $state(false);
 
-  // The library reloads as new objects on every change; only a new file should refetch the thumbnail.
+  // The library reloads as new objects on every change; only a new file should refetch the images.
   const hash = $derived(item.hash);
+  const playing = $derived(item.animated && (hovered || focused));
+  const url = $derived(playing && playingUrl ? playingUrl : stillUrl);
 
-  // Reading the hash here re-runs the attachment, and so fetches the thumbnail again, when the file changes.
-  function whenVisible(node: HTMLElement): () => void {
+  // Reading the hash here re-runs the attachment, and so fetches the still again, when the file changes.
+  function loadWhenVisible(node: HTMLElement): () => void {
     void hash;
 
     const current = untrack(() => item);
 
     let active = true;
 
-    url = null;
+    stillUrl = null;
+    playingUrl = null;
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some(entry => entry.isIntersecting)) {
-        observer.disconnect();
-        void thumbnail(current).then((found) => {
-          // A newer file may have replaced this one while it loaded.
-          if (active) {
-            url = found;
-          }
-        });
-      }
+    const stop = whenVisible(node, () => {
+      void still(current).then((found) => {
+        // A newer file may have replaced this one while it loaded.
+        if (active) {
+          stillUrl = found;
+        }
+      });
     });
-
-    observer.observe(node);
 
     return () => {
       active = false;
-      observer.disconnect();
+      stop();
     };
   }
+
+  // The animation is only fetched the first time the item is hovered or focused.
+  $effect(() => {
+    if (!playing || playingUrl) {
+      return;
+    }
+
+    let active = true;
+
+    void thumbnail(untrack(() => item)).then((found) => {
+      if (active) {
+        playingUrl = found;
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  });
 </script>
 
 <button
   class="tile"
+  class:reduced={motion.reduced}
   type="button"
   data-tile={item.id}
   tabindex={tabbable ? 0 : -1}
   aria-label={item.title}
   onclick={event => onpick(item, !event.shiftKey)}
   onfocus={() => {
+    focused = true;
     onfocus();
     oninspect(item);
   }}
-  onpointerenter={() => oninspect(item)}
-  {@attach whenVisible}
+  onblur={() => {
+    focused = false;
+  }}
+  onpointerenter={() => {
+    hovered = true;
+    oninspect(item);
+  }}
+  onpointerleave={() => {
+    hovered = false;
+  }}
+  {@attach loadWhenVisible}
 >
   {#if url}
     <img class="image" src={url} alt="" draggable="false" />
@@ -115,5 +148,19 @@
     border-radius: 2px;
     object-fit: contain;
     pointer-events: none;
+    transition: transform 0.15s ease-out;
+  }
+
+  /* The hovered item lifts toward the pointer. */
+  .tile:hover .image,
+  .tile:focus-visible .image {
+    transform: translateY(-2px) scale(1.08);
+  }
+
+  .reduced .image,
+  .reduced:hover .image,
+  .reduced:focus-visible .image {
+    transform: none;
+    transition: none;
   }
 </style>

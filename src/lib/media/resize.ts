@@ -143,3 +143,33 @@ export async function resizeImage(file: Blob, info: TImageInfo, max: number): Pr
 
   return new Blob([encoder.bytes()], { type: "image/gif" });
 }
+
+/**
+ * Makes a small still of an image, its first frame when animated, for showing in a grid. A still
+ * image already within the size comes back as it is.
+ *
+ * @param file - The image.
+ * @param info - What was read from its header.
+ * @param max - The longest side allowed, in pixels.
+ * @returns The still, a PNG, or the file itself.
+ */
+export async function stillImage(file: Blob, info: TImageInfo, max: number): Promise<Blob> {
+  const target = fitWithin(info, max);
+
+  if (!info.animated && target.width === info.width && target.height === info.height) {
+    return file;
+  }
+
+  // An animated image decodes to its first frame.
+  const bitmap = await createImageBitmap(file);
+  let canvas: OffscreenCanvas;
+
+  try {
+    canvas = drawScaled(bitmap, info, target);
+  }
+  finally {
+    bitmap.close();
+  }
+
+  return canvas.convertToBlob({ type: "image/png" });
+}

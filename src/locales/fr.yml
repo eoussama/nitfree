@@ -9,6 +9,7 @@ toggler:
 panel:
   label: Bibliothèque Nitfree
   placeholder: Vos emojis, stickers et GIF apparaîtront ici.
+  emptyHint: Ajoutez des images depuis votre ordinateur, ou déposez-les ou collez-les ici.
   search: Rechercher dans Nitfree
   filter: Filtrer par tags
   add: Ajouter
