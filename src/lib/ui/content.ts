@@ -2,14 +2,19 @@ import type { ContentScriptContext } from "#imports";
 
 import type { TItem } from "~/lib/db";
 
-import { chatButtonGroupOf, findEmojiButton, findExpandedPickerButton } from "~/lib/discord";
+import { toError, tryCatch } from "@eoussama/core";
+
+import { chatButtonGroupOf, composerOf, findEmojiButton, findExpandedPickerButton } from "~/lib/discord";
+import { sendMessage } from "~/lib/messaging";
 
 import { resetEditor } from "./editor.svelte";
 import { mountOverlay, mountPopover, mountToggler, watchChatButtonGroups } from "./inject";
 import { followLibrary } from "./library.svelte";
 import { closeMenu } from "./menu.svelte";
+import { clearNotice, showNotice } from "./notice.svelte";
 import { closePanel, openPanel, panel, setToggleHandler, togglePopover, wasOpenFor } from "./panel.svelte";
 import { createPickerTab } from "./picker";
+import { attachFile, prepareFile, SendError } from "./send";
 import { flushTrash } from "./trash.svelte";
 
 
@@ -18,14 +23,6 @@ import { flushTrash } from "./trash.svelte";
  * How long to wait for Discord's picker after asking it to open, before using the popover instead.
  */
 const PICKER_TIMEOUT = 600;
-
-/**
- * What picking a library item does. Sending lands with #42 and #43; until then picking does nothing.
- *
- * @param _item - The picked item.
- * @param _send - True for a click (send), false for a Shift+click (insert without sending).
- */
-function pick(_item: TItem, _send: boolean): void {}
 
 function emojiButtonOf(anchor: HTMLElement): HTMLElement | null {
   const group = chatButtonGroupOf(anchor);
@@ -55,6 +52,10 @@ function anchorOfOpenPicker(): HTMLElement | null {
  */
 export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () => void {
   let pending: { anchor: HTMLElement; emoji: HTMLElement; timer: ReturnType<typeof setTimeout> } | null = null;
+
+  // Picks waiting their turn, and the items they are for.
+  let queue = Promise.resolve();
+  const picking = new Set<string>();
 
   const stopLibrary = followLibrary();
   const removePopover = mountPopover(pick);
@@ -96,6 +97,76 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
         findExpandedPickerButton()?.click();
       }
     });
+  }
+
+  /**
+   * Puts a picked item in its composer once it is ready, unless the user has moved to another
+   * channel meanwhile.
+   *
+   * @param item - The picked item.
+   * @param send - Whether to send the message.
+   * @param composer - The composer the panel was opened from.
+   * @param path - The page's path when the item was picked.
+   * @returns Resolves once the item is in the composer, or the failure is shown.
+   */
+  async function deliver(item: TItem, send: boolean, composer: Element, path: string): Promise<void> {
+    const [error] = await tryCatch(async () => {
+      const file = await prepareFile(item);
+
+      if (ctx.isInvalid) {
+        return;
+      }
+
+      if (!composer.isConnected || location.pathname !== path) {
+        throw new SendError(i18n.t("send.moved", { title: item.title }));
+      }
+
+      await attachFile(composer, file, { send, title: item.title });
+    });
+
+    if (error) {
+      showNotice(error instanceof SendError ? error.message : i18n.t("send.failed", { title: item.title, error: toError(error).message }));
+
+      return;
+    }
+
+    void sendMessage("library:use", { id: item.id }).catch(() => undefined);
+  }
+
+  /**
+   * Picks a library item for the composer the panel was opened from. A click sends it and closes the
+   * panel, like Discord's sticker and GIF pickers; a Shift+click adds it to the message and keeps the
+   * panel open for more. Picks go one after another, so each file joins the message it was meant
+   * for, and picking an item that is still on its way does nothing. Failures are said in a notice.
+   *
+   * @param item - The picked item.
+   * @param send - True for a click, false for a Shift+click.
+   */
+  function pick(item: TItem, send: boolean): void {
+    const composer = panel.anchor ? composerOf(panel.anchor) : null;
+
+    if (!composer) {
+      showNotice(i18n.t("send.noComposer"));
+
+      return;
+    }
+
+    if (send) {
+      if (picker.isOpen()) {
+        closeDiscordPicker();
+      }
+
+      closePanel();
+    }
+
+    if (picking.has(item.id)) {
+      return;
+    }
+
+    const path = location.pathname;
+
+    picking.add(item.id);
+    queue = queue.then(() => deliver(item, send, composer, path)).finally(() => picking.delete(item.id));
   }
 
   /**
@@ -188,6 +259,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     flushTrash();
     resetEditor();
     closeMenu();
+    clearNotice();
     removeOverlay();
     removePopover();
     stopLibrary();

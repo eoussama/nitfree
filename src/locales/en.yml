@@ -52,6 +52,13 @@ menu:
   unfavorite: Remove from Favorites
   edit: Edit
   delete: Delete
+send:
+  noComposer: Nitfree could not find the message box to send to.
+  missing: The file of “{title}” is missing.
+  tooLarge: “{title}” is over Discord's 10 MB upload limit.
+  notAttached: Discord did not take “{title}”. Try again.
+  moved: “{title}” was not sent, as the channel changed while it was being prepared.
+  failed: "Could not send “{title}”: {error}"
 toast:
   deleted: Deleted “{title}”
   undo: Undo

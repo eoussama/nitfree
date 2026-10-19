@@ -20,13 +20,10 @@
 
 <style>
   .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
     display: flex;
     align-items: center;
     gap: 16px;
-    max-width: calc(100vw - 32px);
+    max-width: 100%;
     padding: 8px 8px 8px 16px;
     border: 1px solid var(--border-subtle, var(--nf-border, #3f4147));
     border-radius: var(--radius-sm, 8px);
@@ -36,7 +33,6 @@
     font-size: 14px;
     line-height: 18px;
     box-shadow: 0 8px 16px rgb(0 0 0 / 24%);
-    transform: translateX(-50%);
     pointer-events: auto;
   }
 

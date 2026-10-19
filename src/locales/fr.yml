@@ -52,6 +52,13 @@ menu:
   unfavorite: Retirer des favoris
   edit: Modifier
   delete: Supprimer
+send:
+  noComposer: Nitfree ne trouve pas la zone de message où envoyer.
+  missing: Le fichier de « {title} » est introuvable.
+  tooLarge: « {title} » dépasse la limite d'envoi de 10 Mo de Discord.
+  notAttached: Discord n'a pas pris « {title} ». Réessayez.
+  moved: « {title} » n'a pas été envoyé, car le salon a changé pendant sa préparation.
+  failed: "Impossible d'envoyer « {title} » : {error}"
 toast:
   deleted: « {title} » supprimé
   undo: Annuler

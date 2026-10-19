@@ -53,6 +53,39 @@ export const SELECTORS = {
     "[class*=\"expressionPickerPositionLayer\"] [role=\"tablist\"]",
     "[role=\"tablist\"]:has(> #emoji-picker-tab)",
   ],
+
+  /**
+   * A whole composer: its text box, hidden upload input, attachment tray and buttons.
+   */
+  composer: [
+    "form:has([role=\"textbox\"])",
+    "[class*=\"channelTextArea_\"]",
+  ],
+
+  /**
+   * The composer's hidden file input. Files put on it and announced with a change event join the
+   * message's attachments, exactly as when picked from the upload button.
+   */
+  uploadInput: [
+    "[class*=\"uploadInput_\"] input[type=\"file\"]",
+    "input.file-input[type=\"file\"]",
+  ],
+
+  /**
+   * The composer's text box. Enter in it sends the message, with its attachments.
+   */
+  messageBox: [
+    "[role=\"textbox\"][data-slate-editor=\"true\"]",
+    "[role=\"textbox\"][contenteditable=\"true\"]",
+  ],
+
+  /**
+   * The attachments waiting in the composer, one per file, in Discord's "attachments" list.
+   */
+  draftAttachment: [
+    "[data-list-id=\"attachments\"] [data-list-item-id]",
+    "[data-list-item-id^=\"attachments___\"]",
+  ],
 } as const satisfies Record<string, readonly string[]>;
 
 /**

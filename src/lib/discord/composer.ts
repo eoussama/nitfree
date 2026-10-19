@@ -58,6 +58,54 @@ export function chatButtonGroupOf(element: Element): Element | null {
 }
 
 /**
+ * Finds the composer an element sits in, such as the one of the Nitfree button that opened the panel.
+ *
+ * @param element - An element inside a composer.
+ * @returns The composer, or null.
+ */
+export function composerOf(element: Element): Element | null {
+  for (const selector of SELECTORS.composer) {
+    const found = element.closest(selector);
+
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Finds a composer's hidden upload input.
+ *
+ * @param composer - The composer.
+ * @returns The input, or null.
+ */
+export function findUploadInput(composer: Element): HTMLInputElement | null {
+  return (findAll(composer, SELECTORS.uploadInput)[0] as HTMLInputElement | undefined) ?? null;
+}
+
+/**
+ * Finds a composer's text box.
+ *
+ * @param composer - The composer.
+ * @returns The text box, or null.
+ */
+export function findMessageBox(composer: Element): HTMLElement | null {
+  return (findAll(composer, SELECTORS.messageBox)[0] as HTMLElement | undefined) ?? null;
+}
+
+/**
+ * Lists the attachments waiting in a composer, by the id Discord gives each.
+ *
+ * @param composer - The composer.
+ * @returns The ids of the files the next message carries.
+ */
+export function draftAttachmentIds(composer: Element): string[] {
+  return findAll(composer, SELECTORS.draftAttachment).map(item => item.getAttribute("data-list-item-id") ?? "");
+}
+
+/**
  * Finds the chat bar buttons that open Discord's expression picker.
  *
  * @param root - A composer button group, or the whole page.

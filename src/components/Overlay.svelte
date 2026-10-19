@@ -1,8 +1,8 @@
 <svelte:options css="injected" />
 
 <!--
-  Everything Nitfree shows above Discord's page: the add and edit dialog, the item menu and the undo
-  toast. Escape closes the tag suggestions, the menu or the dialog first, before Discord or Nitfree's
+  Everything Nitfree shows above Discord's page: the add and edit dialog, the item menu, and the
+  notice and undo toast at the bottom. Escape closes the tag suggestions, the menu or the dialog first, before Discord or Nitfree's
   panel see it; Tab stays inside the dialog while it is open. Files dropped here never reach Discord's
   upload; dropped or pasted on the add dialog, they join it.
 -->
@@ -13,6 +13,7 @@
 
   import ContextMenu from "./ContextMenu.svelte";
   import EditorDialog from "./EditorDialog.svelte";
+  import Notice from "./Notice.svelte";
   import UndoToast from "./UndoToast.svelte";
 
 
@@ -142,4 +143,23 @@
 
 <EditorDialog />
 <ContextMenu />
-<UndoToast />
+<div class="toasts">
+  <Notice />
+  <UndoToast />
+</div>
+
+<style>
+  .toasts {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+</style>
