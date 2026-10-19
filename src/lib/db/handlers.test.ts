@@ -34,6 +34,12 @@ describe("library handlers", () => {
     expect(await handlers["library:get"]!({ id: item.id }, sender)).toEqual(item);
     expect((await handlers["library:file"]!({ id: item.id }, sender))?.size).toBe(png(4, 4).length);
 
+    // Sized copies are stored and read back, silently.
+    expect(await handlers["library:variant"]!({ id: item.id, key: "emoji-48" }, sender)).toBeNull();
+    await handlers["library:storeVariant"]!({ id: item.id, key: "emoji-48", file: new Blob([png(2, 2)]) }, sender);
+    expect((await handlers["library:variant"]!({ id: item.id, key: "emoji-48" }, sender))?.size).toBe(png(2, 2).length);
+    expect(notify).toHaveBeenCalledTimes(1);
+
     await handlers["library:update"]!({ id: item.id, patch: { title: "hi" } }, sender);
     expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "updated", ids: [item.id] });
 

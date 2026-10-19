@@ -24,6 +24,9 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
     "library:list": () => library.list(),
     "library:get": ({ id }) => library.get(id),
     "library:file": ({ id }) => library.file(id),
+    // Sized copies change nothing anyone sees, so storing one is not announced.
+    "library:variant": ({ id, key }) => library.variant(id, key),
+    "library:storeVariant": ({ id, key, file }) => library.storeVariant(id, key, file),
 
     "library:add": async (input) => {
       const item = await library.add(input);

@@ -16,6 +16,8 @@ export interface TProtocol {
   "library:remove": { request: { id: string }; response: boolean };
   "library:use": { request: { id: string }; response: TItem };
   "library:file": { request: { id: string }; response: Blob | null };
+  "library:variant": { request: { id: string; key: string }; response: Blob | null };
+  "library:storeVariant": { request: { id: string; key: string; file: Blob }; response: void };
 
   "tags:list": { request: void; response: TTag[] };
   "tags:add": { request: TNewTag; response: TTag };
