@@ -11,10 +11,21 @@ panel:
   placeholder: Your emojis, stickers and GIFs will show up here.
   emptyHint: Add images from your computer, or drop or paste them here.
   search: Search Nitfree
-  filter: Filter by tags
+  filter: Filter by type or tag
   add: Add Files
   error: Your library could not be loaded.
   noResults: Nothing matches “{query}”.
+  noFilterResults: Nothing matches these filters.
+  noQueryFilterResults: Nothing matches “{query}” with these filters.
+  filters:
+    type: Type
+    tags: Tags
+    noTags: Tag your items to filter by them.
+    find: Find a tag
+    noMatch: No tag matches “{query}”.
+    active: Active filters
+    remove: Remove filter {name}
+    clear: Clear filters
   sectionsLabel: Sections
   animated: animated
   types:

@@ -2,13 +2,13 @@
 
 <!--
   Everything Nitfree shows above Discord's page: the add and edit dialog, the item menu, and the
-  notice and undo toast at the bottom. Escape closes the tag suggestions, the menu or the dialog first, before Discord or Nitfree's
+  notice and undo toast at the bottom. Escape closes the filter menu, the tag suggestions, the menu or the dialog first, before Discord or Nitfree's
   panel see it; Tab stays inside the dialog while it is open. Files dropped here never reach Discord's
   upload; dropped or pasted on the add dialog, they join it.
 -->
 <script lang="ts">
   import { closeEditor, editor, startAdd } from "~/lib/ui/editor.svelte";
-  import { escapeTop } from "~/lib/ui/escape";
+  import { escapeTop, hasEscapeLayer } from "~/lib/ui/escape";
   import { closeMenu, menu } from "~/lib/ui/menu.svelte";
   import { hideTooltip } from "~/lib/ui/tooltip.svelte";
 
@@ -38,7 +38,7 @@
         hideTooltip();
       }
 
-      if (event.key === "Escape" && (menu.item || editor.mode)) {
+      if (event.key === "Escape" && (menu.item || editor.mode || hasEscapeLayer())) {
         event.preventDefault();
         event.stopImmediatePropagation();
 

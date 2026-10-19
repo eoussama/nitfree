@@ -20,10 +20,14 @@
   import Search from "@lucide/svelte/icons/search";
   import Star from "@lucide/svelte/icons/star";
   import Tag from "@lucide/svelte/icons/tag";
-  import { tick } from "svelte";
+  import X from "@lucide/svelte/icons/x";
+  import { tick, untrack } from "svelte";
+
+  import { ITEM_TYPES } from "~/lib/db/types";
 
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
   import { startAdd } from "~/lib/ui/editor.svelte";
+  import { applyFilters, filterCount, noFilters, tagOptions, toggled, typeOptions, withoutMissingTags } from "~/lib/ui/filters";
   import { GRID_KEYS, nextTile } from "~/lib/ui/grid";
   import { library } from "~/lib/ui/library.svelte";
   import { openMenu } from "~/lib/ui/menu.svelte";
@@ -34,6 +38,7 @@
   import { deleteWithUndo, trash } from "~/lib/ui/trash.svelte";
 
   import ActionBar from "./ActionBar.svelte";
+  import FilterMenu from "./FilterMenu.svelte";
   import Inspector from "./Inspector.svelte";
   import Tile from "./Tile.svelte";
 
@@ -67,6 +72,11 @@
   let body: HTMLElement | undefined = $state();
   let root: HTMLElement | undefined = $state();
   let fileInput: HTMLInputElement | undefined = $state();
+  let filters = $state(noFilters());
+  let filterOpen = $state(false);
+  let filterBox: HTMLElement | undefined = $state();
+  let filterButton: HTMLButtonElement | undefined = $state();
+  let chipList: HTMLElement | undefined = $state();
   // The cell under the pointer, which gets the action bar, and the focused tile's item.
   let hovered = $state<{ key: string; id: string; cell: HTMLElement } | null>(null);
   let focusedId: string | null = $state(null);
@@ -74,10 +84,16 @@
 
   // Items deleted in this tab disappear at once, while their deletion can still be undone.
   const items = $derived(library.items.filter(item => !trash.pending.some(pending => pending.item.id === item.id)));
-  const sections = $derived(buildSections(filterItems(items, query)));
-  // While searching, every match shows, whatever the user collapsed; their choice comes back after.
-  const searching = $derived(query.trim() !== "");
-  const isCollapsed = (id: TSectionId): boolean => !searching && collapsed[id] === true;
+  const filtering = $derived(filterCount(filters) > 0);
+  const sections = $derived(buildSections(applyFilters(filterItems(items, query), filters)));
+  // While searching or filtering, every match shows, whatever the user collapsed; their choice comes back after.
+  const narrowed = $derived(query.trim() !== "" || filtering);
+  const isCollapsed = (id: TSectionId): boolean => !narrowed && collapsed[id] === true;
+  const tagName = (id: string): string => library.tags.find(tag => tag.id === id)?.name ?? id;
+  const chips = $derived([
+    ...filters.types.map(value => ({ kind: "type" as const, value, label: i18n.t(`panel.types.${value}`) })),
+    ...filters.tags.map(value => ({ kind: "tag" as const, value, label: tagName(value) })),
+  ]);
   const visible = $derived(sections.flatMap(section => (isCollapsed(section.id) ? [] : section.items.map(item => ({ key: `${section.id}:${item.id}`, item })))));
   const tabbableKey = $derived(visible.some(entry => entry.key === current) ? current : (visible[0]?.key ?? ""));
   // The inspector names the hovered item while it is on screen, else the first item shown.
@@ -85,16 +101,81 @@
   // Only while its cell is still shown: unfavoriting takes an item out of Favorites, for one.
   const hoveredItem = $derived(hovered && hovered.cell.isConnected && visible.some(entry => entry.key === hovered?.key) ? (items.find(item => item.id === hovered?.id) ?? null) : null);
 
-  // Searching or folding sections moves tiles under a still pointer, so the bar waits for the next hover.
+  // Searching, filtering or folding sections moves tiles under a still pointer, so the bar waits for the next hover.
   $effect(() => {
     void query;
     void JSON.stringify(collapsed);
+    void JSON.stringify(filters);
     hovered = null;
+  });
+
+  // A tag deleted elsewhere, such as from another tab, stops being a filter.
+  $effect(() => {
+    const tags = library.loaded ? library.tags : null;
+
+    if (tags) {
+      const next = withoutMissingTags(untrack(() => filters), tags);
+
+      if (next !== untrack(() => filters)) {
+        filters = next;
+      }
+    }
+  });
+
+  // A click anywhere but on the filter button and its menu closes the menu.
+  $effect(() => {
+    if (!filterOpen) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent): void => {
+      if (!filterBox || !event.composedPath().includes(filterBox)) {
+        closeFilters(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", onPointerDown, true);
+
+    return () => window.removeEventListener("pointerdown", onPointerDown, true);
   });
   const highlighted = $derived(sections.some(section => section.id === activeSection) ? activeSection : (sections[0]?.id ?? null));
 
   function tiles(): HTMLElement[] {
     return body ? [...body.querySelectorAll<HTMLElement>("[data-tile]")] : [];
+  }
+
+  function closeFilters(refocus: boolean): void {
+    filterOpen = false;
+
+    if (refocus) {
+      filterButton?.focus();
+    }
+  }
+
+  // Tabbing out of the menu closes it. Focus going nowhere does not: a button that goes, such as Clear
+  // once nothing is chosen, drops focus that way, and clicks elsewhere are caught by the listener above.
+  function onFilterFocusout(event: FocusEvent): void {
+    if (filterOpen && event.relatedTarget instanceof Node && !filterBox?.contains(event.relatedTarget)) {
+      closeFilters(false);
+    }
+  }
+
+  // Taking a chip off moves focus to the next one, or back to the filter button after the last.
+  async function removeChip(chip: { kind: "type" | "tag"; value: string }, index: number): Promise<void> {
+    filters = chip.kind === "type"
+      ? { ...filters, types: filters.types.filter(type => type !== chip.value) }
+      : { ...filters, tags: filters.tags.filter(tag => tag !== chip.value) };
+
+    await tick();
+
+    const removes = chipList?.querySelectorAll<HTMLElement>(".chip-remove") ?? [];
+
+    (removes[Math.min(index, removes.length - 1)] ?? filterButton)?.focus();
+  }
+
+  function clearFilters(focus: HTMLElement | undefined): void {
+    filters = noFilters();
+    focus?.focus();
   }
 
   function itemOf(tile: Element | null): TItem | null {
@@ -285,26 +366,75 @@
   onpaste={onPaste}
 >
   <header class="header">
-    <label class="search">
-      <span class="search-icon" aria-hidden="true"><Search size={16} /></span>
-      <input
-        bind:this={search}
-        bind:value={query}
-        class="input"
-        type="search"
-        placeholder={i18n.t("panel.search")}
-        aria-label={i18n.t("panel.search")}
-        onkeydown={onSearchKeydown}
-      />
-    </label>
-    <!-- A disabled button gets no pointer events, so its wrapper carries the tooltip. -->
-    <span class="icon-button-wrapper" {@attach tooltip(i18n.t("panel.filter"))}>
-      <button class="icon-button" type="button" disabled aria-label={i18n.t("panel.filter")}>
-        <Tag size={20} aria-hidden="true" />
-      </button>
-    </span>
-    <button class="text-button" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
-    <input bind:this={fileInput} class="file-input" type="file" accept={ACCEPTED_FILES} multiple tabindex="-1" aria-hidden="true" onchange={onPicked} />
+    <div class="controls">
+      <label class="search">
+        <span class="search-icon" aria-hidden="true"><Search size={16} /></span>
+        <input
+          bind:this={search}
+          bind:value={query}
+          class="input"
+          type="search"
+          placeholder={i18n.t("panel.search")}
+          aria-label={i18n.t("panel.search")}
+          onkeydown={onSearchKeydown}
+        />
+      </label>
+      <div bind:this={filterBox} class="filter" onfocusout={onFilterFocusout}>
+        <button
+          bind:this={filterButton}
+          class="icon-button"
+          class:on={filterOpen || filtering}
+          type="button"
+          aria-label={i18n.t("panel.filter")}
+          aria-haspopup="dialog"
+          aria-expanded={filterOpen}
+          onclick={() => {
+            filterOpen = !filterOpen;
+          }}
+          {@attach tooltip(i18n.t("panel.filter"))}
+        >
+          <Tag size={20} aria-hidden="true" />
+          {#if filtering}
+            <span class="badge" aria-hidden="true">{filterCount(filters)}</span>
+          {/if}
+        </button>
+        {#if filterOpen}
+          <FilterMenu
+            types={typeOptions(items, ITEM_TYPES)}
+            tags={tagOptions(items, library.tags, filters.tags)}
+            names={library.tags}
+            {filters}
+            ontype={(type) => {
+              filters = { ...filters, types: toggled(filters.types, type) };
+            }}
+            ontag={(id) => {
+              filters = { ...filters, tags: toggled(filters.tags, id) };
+            }}
+            onclear={() => clearFilters(undefined)}
+            onclose={closeFilters}
+          />
+        {/if}
+      </div>
+      <button class="text-button" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
+      <input bind:this={fileInput} class="file-input" type="file" accept={ACCEPTED_FILES} multiple tabindex="-1" aria-hidden="true" onchange={onPicked} />
+    </div>
+
+    {#if chips.length}
+      <ul bind:this={chipList} class="chips" aria-label={i18n.t("panel.filters.active")}>
+        {#each chips as chip, index (`${chip.kind}:${chip.value}`)}
+          <li class="chip">
+            {#if chip.kind === "tag"}<Tag size={12} aria-hidden="true" />{/if}
+            <span class="chip-label">{chip.label}</span>
+            <button class="chip-remove" type="button" aria-label={i18n.t("panel.filters.remove", { name: chip.label })} onclick={() => void removeChip(chip, index)}>
+              <X size={14} aria-hidden="true" />
+            </button>
+          </li>
+        {/each}
+        <li>
+          <button class="chips-clear" type="button" onclick={() => clearFilters(filterButton)}>{i18n.t("panel.filters.clear")}</button>
+        </li>
+      </ul>
+    {/if}
   </header>
 
   {#if dragging}
@@ -358,6 +488,11 @@
         <p class="empty-hint">{i18n.t("panel.emptyHint")}</p>
         <button class="empty-add" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
       </div>
+    {:else if sections.length === 0 && filtering}
+      <div class="empty">
+        <p class="empty-title">{query.trim() ? i18n.t("panel.noQueryFilterResults", { query: query.trim() }) : i18n.t("panel.noFilterResults")}</p>
+        <button class="empty-add" type="button" onclick={() => clearFilters(search)}>{i18n.t("panel.filters.clear")}</button>
+      </div>
     {:else if sections.length === 0}
       <p class="message">{i18n.t("panel.noResults", { query: query.trim() })}</p>
     {:else}
@@ -370,7 +505,7 @@
               class="section-toggle"
               type="button"
               aria-expanded={!isCollapsed(section.id)}
-              disabled={searching}
+              disabled={narrowed}
               onclick={() => {
                 collapsed[section.id] = !collapsed[section.id];
               }}
@@ -461,12 +596,104 @@
   /* Header: Discord's emoji picker header inside the expression picker. */
   .header {
     display: flex;
+    flex-direction: column;
     grid-column: 1 / 3;
-    align-items: center;
-    gap: 12px;
+    gap: 8px;
     /* In Discord's picker the tab bar sits above; the popover has none, so it adds space on top. */
     padding: var(--nf-header-top, 0) 16px 12px;
     border-bottom: 1px solid var(--border-subtle, var(--nf-border, #3f4147));
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Holds the filter button and the menu dropped from it. */
+  .filter {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* The filters in force, each taken off with its cross. */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    height: 24px;
+    padding-inline: 8px 2px;
+    border-radius: var(--radius-xs, 4px);
+    background-color: var(--control-secondary-background-default, rgb(151 151 159 / 12%));
+    color: var(--interactive-text-default, var(--nf-text, #dbdee1));
+  }
+
+  .chip :global(svg) {
+    flex: none;
+  }
+
+  .chip-label {
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chip-remove {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-xs, 4px);
+    background: none;
+    color: var(--interactive-icon-default, var(--nf-muted, #949ba4));
+    cursor: pointer;
+  }
+
+  .chip-remove:hover {
+    background-color: var(--interactive-background-hover, rgb(151 151 159 / 16%));
+    color: var(--interactive-icon-hover, var(--nf-text, #dbdee1));
+  }
+
+  .chips-clear {
+    height: 24px;
+    padding: 0 8px;
+    border: none;
+    border-radius: var(--radius-xs, 4px);
+    background: none;
+    color: var(--text-link, var(--nf-accent, #00a8fc));
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+    cursor: pointer;
+  }
+
+  .chips-clear:hover {
+    text-decoration: underline;
+  }
+
+  .chip-remove:focus-visible,
+  .chips-clear:focus-visible {
+    outline: 2px solid var(--border-focus, var(--nf-accent, #5865f2));
+    outline-offset: -2px;
   }
 
   .search {
@@ -528,6 +755,7 @@
   }
 
   .icon-button {
+    position: relative;
     display: flex;
     flex-shrink: 0;
     align-items: center;
@@ -544,8 +772,30 @@
   }
 
 
-  .icon-button:hover:not(:disabled) {
+  .icon-button:hover,
+  .icon-button.on {
     background-color: var(--control-icon-only-background-hover, var(--nf-bg-hover, rgb(255 255 255 / 6%)));
+  }
+
+  /* Filters in force: the icon lights up, with how many. */
+  .icon-button.on {
+    color: var(--control-icon-only-icon-hover, var(--nf-text, #dbdee1));
+  }
+
+  .badge {
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-end: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background-color: var(--control-brand-foreground-new, var(--brand-500, #5865f2));
+    color: var(--white, #fff);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
   }
 
   .text-button {
@@ -579,12 +829,6 @@
     border-color: var(--control-secondary-border-active, transparent);
     background-color: var(--control-secondary-background-active, rgb(151 151 159 / 20%));
     color: var(--control-secondary-text-active, #fff);
-  }
-
-  /* The disabled filter button still shows its tooltip, so it keeps taking the pointer. */
-  .icon-button:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 
   .file-input {

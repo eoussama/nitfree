@@ -1,8 +1,8 @@
 const layers: (() => void)[] = [];
 
 /**
- * Lets a small popup inside the overlay, such as the tag suggestions, close first on Escape, before
- * the menu or the dialog around it.
+ * Lets a small popup, such as the tag suggestions or the panel's filter menu, close first on Escape,
+ * before the menu, the dialog or the panel around it.
  *
  * @param close - Closes the popup.
  * @returns A function that stops listening, once the popup is closed.
@@ -17,6 +17,15 @@ export function onEscape(close: () => void): () => void {
       layers.splice(index, 1);
     }
   };
+}
+
+/**
+ * Whether a popup is waiting to close on Escape.
+ *
+ * @returns Whether there is one.
+ */
+export function hasEscapeLayer(): boolean {
+  return layers.length > 0;
 }
 
 /**
