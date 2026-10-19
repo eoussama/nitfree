@@ -4,24 +4,27 @@
   Discord, or the OS light or dark one before any.
 -->
 <script lang="ts">
-  import logo from "~/assets/logo.png";
+  import Logo from "~/components/Logo.svelte";
   import { ITEM_TYPES } from "~/lib/db/types";
   import { formatBytes } from "~/lib/format";
   import { followStoredTheme } from "~/lib/theme";
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
   import { editor, startAdd } from "~/lib/ui/editor.svelte";
   import { followLibrary, library } from "~/lib/ui/library.svelte";
+  import { tooltip } from "~/lib/ui/tooltip.svelte";
 
   import Settings from "./Settings.svelte";
 
 
 
   const { version } = browser.runtime.getManifest();
+  const REPOSITORY = "https://github.com/eoussama/nitfree";
   const locale = i18n.t("locale");
 
   let fileInput: HTMLInputElement | undefined = $state();
   let dragging = $state(false);
   let usage: number | null = $state(null);
+  let scrolled = $state(false);
 
   const counts = $derived(ITEM_TYPES.map(type => ({ type, count: library.items.filter(item => item.type === type).length })));
 
@@ -92,15 +95,26 @@
   }
 </script>
 
-<svelte:window onpaste={onPaste} />
+<svelte:window
+  onpaste={onPaste}
+  onscroll={() => {
+    scrolled = window.scrollY > 0;
+  }}
+/>
 
 <main class="popup" class:editing={editor.mode !== null} ondragenter={onDragOver} ondragover={onDragOver} ondragleave={onDragLeave} ondrop={onDrop}>
-  <header class="header">
-    <img src={logo} alt={i18n.t("popup.logo")} width="40" height="40" />
+  <header class="header" class:scrolled>
+    <span class="logo" role="img" aria-label={i18n.t("popup.logo")}><Logo lively /></span>
     <div>
       <h1 class="title">{i18n.t("extName")}</h1>
       <p class="version">{i18n.t("popup.version", { version })}</p>
     </div>
+    <a class="github" href={REPOSITORY} target="_blank" rel="noreferrer" aria-label={i18n.t("popup.github")} {@attach tooltip(i18n.t("popup.github"), "bottom")}>
+      <!-- GitHub's mark; Lucide has no brand icons. -->
+      <svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true">
+        <path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
+      </svg>
+    </a>
   </header>
 
   <section class="popup-section" aria-labelledby="nf-library">
@@ -157,11 +171,55 @@
     min-height: 560px;
   }
 
+  /* Stays at the top while the rest scrolls, with a line under it once something passes beneath. */
   .header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin: -16px -16px 0;
+    padding: 16px;
+    border-bottom: 1px solid transparent;
+    background: var(--nf-bg);
+    transition: border-color 0.15s ease;
+  }
+
+  /* Discord's icon button, at the far end of the header. */
+  .github {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-inline-start: auto;
+    border-radius: 8px;
+    color: var(--nf-muted);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .github:hover {
+    background-color: rgb(151 151 159 / 16%);
+    color: var(--nf-text);
+  }
+
+  .github:focus-visible {
+    outline: 2px solid var(--nf-accent);
+    outline-offset: 2px;
+  }
+
+  .header.scrolled {
+    border-bottom-color: var(--nf-border);
+  }
+
+  .logo {
+    display: block;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: 8px;
   }
 
   .title {

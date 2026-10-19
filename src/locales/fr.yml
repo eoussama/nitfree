@@ -4,6 +4,7 @@ extDescription: L'alternative gratuite ultime à Discord Nitro
 popup:
   logo: Logo de Nitfree
   version: Version {version}
+  github: Voir Nitfree sur GitHub
   library: Bibliothèque
   items:
     1: 1 élément
