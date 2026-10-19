@@ -235,4 +235,78 @@ test.describe("popup", () => {
     await tile(page, "party").hover();
     await expect(tile(page, "party").locator("img")).not.toHaveAttribute("src", still!);
   });
+
+  test("the header stays at the top while the popup scrolls", async () => {
+    const header = popup.locator("header");
+
+    await expect(header).not.toHaveClass(/scrolled/);
+    await popup.mouse.wheel(0, 400);
+    await expect.poll(() => popup.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+    expect((await header.boundingBox())!.y).toBe(0);
+    await expect(header).toHaveClass(/scrolled/);
+    // Nothing shows through it.
+    expect(await header.evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe("rgba(0, 0, 0, 0)");
+  });
+
+  test("the logo's eyes follow the pointer, and it blinks now and then", async ({ extensionId }) => {
+    await popup.clock.install();
+    await openPopup(popup, extensionId);
+
+    const logo = popup.getByRole("img", { name: "Nitfree logo" });
+    const eyes = logo.locator(".look");
+    const offset = () => eyes.evaluate(element => new DOMMatrix(getComputedStyle(element).transform)).then(({ e, f }) => ({ x: e, y: f }));
+    const box = (await logo.boundingBox())!;
+
+    // Down and to the right of the logo, the eyes look that way.
+    await popup.mouse.move(box.x + box.width + 200, box.y + box.height + 200);
+    await expect.poll(async () => (await offset()).x).toBeGreaterThan(10);
+    expect((await offset()).y).toBeGreaterThan(10);
+
+    // To the left, they turn.
+    await popup.mouse.move(0, box.y + box.height / 2);
+    await expect.poll(async () => (await offset()).x).toBeLessThan(-1);
+
+    // Within a few seconds, a blink.
+    await expect(logo.locator("svg")).not.toHaveClass(/blinking/);
+    await popup.clock.fastForward(7000);
+    await expect(logo.locator("svg")).toHaveClass(/blinking/);
+    await popup.clock.fastForward(1000);
+    await expect(logo.locator("svg")).not.toHaveClass(/blinking/);
+  });
+
+  test("with reduced motion, the logo stays still", async ({ extensionId }) => {
+    await popup.emulateMedia({ reducedMotion: "reduce" });
+    await popup.clock.install();
+    await openPopup(popup, extensionId);
+
+    const logo = popup.getByRole("img", { name: "Nitfree logo" });
+    const box = (await logo.boundingBox())!;
+
+    await popup.mouse.move(box.x + 300, box.y + 300);
+    await popup.clock.fastForward(10_000);
+
+    expect(await logo.locator(".look").evaluate((element) => {
+      const { e, f } = new DOMMatrix(getComputedStyle(element).transform);
+
+      return [e, f];
+    })).toEqual([0, 0]);
+    await expect(logo.locator("svg")).not.toHaveClass(/blinking/);
+  });
+
+  test("a GitHub link at the end of the header opens the repository, with a tooltip", async () => {
+    const link = popup.locator("header").getByRole("link", { name: "View Nitfree on GitHub" });
+
+    await expect(link).toHaveAttribute("href", "https://github.com/eoussama/nitfree");
+    await expect(link).toHaveAttribute("target", "_blank");
+
+    const header = (await popup.locator("header").boundingBox())!;
+    const box = (await link.boundingBox())!;
+
+    expect(header.x + header.width - (box.x + box.width)).toBeLessThanOrEqual(16);
+
+    await link.hover();
+    await expect(popup.getByRole("tooltip")).toHaveText("View Nitfree on GitHub");
+    expect((await popup.getByRole("tooltip").boundingBox())!.y).toBeGreaterThan(box.y + box.height);
+  });
 });
