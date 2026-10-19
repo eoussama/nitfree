@@ -93,12 +93,15 @@ test.describe("presentation", () => {
     await tile(page, "wave").hover();
     await expect(toolbar(page).getByRole("button")).toHaveCount(3);
 
-    // The bar sits on the tile's top edge.
+    // The bar floats a little above the tile, its buttons apart.
     const cell = (await tile(page, "wave").boundingBox())!;
     const bar = (await toolbar(page).boundingBox())!;
+    const [first, second] = await Promise.all([0, 1].map(async index => (await toolbar(page).getByRole("button").nth(index).boundingBox())!));
 
-    expect(bar.y + bar.height).toBeGreaterThan(cell.y);
-    expect(bar.y).toBeLessThan(cell.y);
+    expect(cell.y - (bar.y + bar.height)).toBeGreaterThanOrEqual(4);
+    expect(cell.y - (bar.y + bar.height)).toBeLessThanOrEqual(8);
+    expect(second!.x - (first!.x + first!.width)).toBeGreaterThanOrEqual(2);
+    expect(first!.width).toBeGreaterThanOrEqual(28);
 
     // Its tooltips sit centered above each button.
     const favorite = toolbar(page).getByRole("button", { name: "Add to Favorites" });
@@ -117,6 +120,8 @@ test.describe("presentation", () => {
     await favorite.click();
     await expect(panel(page).getByRole("searchbox", { name: "Search Nitfree" })).toBeFocused();
     await expect(panel(page).getByRole("region", { name: "Favorites" }).locator("[data-tile]")).toHaveCount(1);
+    // The new Favorites row moved the tile from under the pointer; hovered again, the bar has turned.
+    await tile(page, "wave").hover();
     await expect(toolbar(page).getByRole("button", { name: "Remove from Favorites" })).toBeVisible();
 
     await toolbar(page).getByRole("button", { name: "Edit" }).click();
@@ -152,11 +157,44 @@ test.describe("presentation", () => {
     const cell = (await tile(page, "gamma").boundingBox())!;
     const bar = (await toolbar(page).boundingBox())!;
 
-    // On its top edge, over it; in the first column, kept inside the panel.
-    expect(bar.y).toBeLessThan(cell.y);
-    expect(bar.y + bar.height).toBeGreaterThan(cell.y);
+    // Just above it; in the first column, kept inside the panel.
+    expect(bar.y + bar.height).toBeLessThan(cell.y);
+    expect(cell.y - (bar.y + bar.height)).toBeLessThanOrEqual(8);
     expect(bar.x).toBeLessThan(cell.x + cell.width);
     expect(bar.x + bar.width).toBeGreaterThan(cell.x);
+  });
+
+  test("the hover bar goes with the pointer, and stays on the way up to it", async ({ page }) => {
+    for (let i = 0; i < 20; i++) {
+      await request(popup, "library:add", { file: png(64, 64), type: "emoji", title: `blob_${String(i).padStart(2, "0")}` });
+    }
+
+    await openPanel(page);
+
+    // A tile in the second row, so the way up to the bar crosses where the first row is.
+    const target = tile(page, "blob_10");
+
+    await target.hover();
+    await expect(toolbar(page)).toBeVisible();
+
+    const cell = (await target.boundingBox())!;
+    const bar = (await toolbar(page).boundingBox())!;
+
+    // Straight up from the tile, over the gap, into the bar.
+    await page.mouse.move(cell.x + cell.width / 2, cell.y + cell.height / 2);
+    await page.mouse.move(cell.x + cell.width / 2, bar.y + bar.height / 2, { steps: 12 });
+    await expect(toolbar(page)).toBeVisible();
+    await expect(toolbar(page)).toHaveAttribute("aria-label", "blob_10");
+
+    // Off the bar and the tile, onto an empty spot of the grid, it goes.
+    await panel(page).locator(".body").hover({ position: { x: 300, y: 300 } });
+    await expect(toolbar(page)).toHaveCount(0);
+
+    // Off the tile straight onto empty grid, too.
+    await target.hover();
+    await expect(toolbar(page)).toBeVisible();
+    await panel(page).locator(".body").hover({ position: { x: 300, y: 300 } });
+    await expect(toolbar(page)).toHaveCount(0);
   });
 
   test("animated items play only while hovered or focused", async ({ page }) => {

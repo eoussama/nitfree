@@ -65,6 +65,7 @@
   let jumping = false;
   let search: HTMLInputElement | undefined = $state();
   let body: HTMLElement | undefined = $state();
+  let root: HTMLElement | undefined = $state();
   let fileInput: HTMLInputElement | undefined = $state();
   // The cell under the pointer, which gets the action bar, and the focused tile's item.
   let hovered = $state<{ key: string; id: string; cell: HTMLElement } | null>(null);
@@ -239,6 +240,9 @@
   }
 
   function onScroll(): void {
+    // The tiles move from under the pointer, so the bar waits for the next hover.
+    hovered = null;
+
     // The scroll from a sidebar jump must not move the highlight off the section that was clicked.
     if (!body || jumping) {
       return;
@@ -269,6 +273,7 @@
 -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+  bind:this={root}
   class="library"
   class:reduced={motion.reduced}
   class:dragging
@@ -336,9 +341,6 @@
     onscrollend={stopJumping}
     onwheel={stopJumping}
     onpointerdown={stopJumping}
-    onpointerleave={() => {
-      hovered = null;
-    }}
     onfocusin={(event) => {
       focusedId = (event.target as Element).closest("[data-tile]")?.getAttribute("data-tile") ?? null;
     }}
@@ -387,6 +389,12 @@
                   onpointerenter={(event) => {
                     hovered = { key, id: item.id, cell: event.currentTarget };
                   }}
+                  onpointerleave={(event) => {
+                    // Up into the action bar keeps it; anywhere else, it goes.
+                    if (!(event.relatedTarget instanceof Element && event.relatedTarget.closest("[data-action-bar]"))) {
+                      hovered = null;
+                    }
+                  }}
                 >
                   <Tile
                     {item}
@@ -406,18 +414,21 @@
         </section>
       {/each}
 
-      {#if hoveredItem && hovered && body}
-        <ActionBar
-          item={hoveredItem}
-          cell={hovered.cell}
-          container={body}
-          ondone={() => {
-            hovered = null;
-          }}
-        />
-      {/if}
     {/if}
   </div>
+
+  <!-- Over the panel rather than in the scrolling grid, so it can rise above the first row. -->
+  {#if hoveredItem && hovered && root}
+    <ActionBar
+      item={hoveredItem}
+      cell={hovered.cell}
+      container={root}
+      bounds={body ?? root}
+      ondone={() => {
+        hovered = null;
+      }}
+    />
+  {/if}
 
   <div class="inspector">
     <Inspector item={shown} animate={shown !== null && (shown.id === hovered?.id || shown.id === focusedId)} />

@@ -2,8 +2,9 @@
 
 <!--
   The quick actions above the hovered item, styled like the bar Discord shows on a hovered message:
-  Favorite, Edit and, apart, Delete. It sits on the tile's top edge, and below it when there is no
-  room above.
+  Favorite, Edit and, apart, Delete. It floats a little above the tile, or below it when there is no
+  room above, and goes once the pointer leaves both. The gap between them still counts as the bar, so
+  moving up to it never passes over the tile above.
 -->
 <script lang="ts">
   import type { TItem } from "~/lib/db";
@@ -25,19 +26,23 @@
   type TProps = {
     item: TItem;
     cell: HTMLElement;
+    // What the bar is placed in, and the area it stays within sideways: the grid, not the sidebar.
     container: HTMLElement;
+    bounds: HTMLElement;
     ondone: () => void;
   };
 
-  const { item, cell, container, ondone }: TProps = $props();
+  const { item, cell, container, bounds, ondone }: TProps = $props();
 
   const favoriteLabel = $derived(item.favorite ? i18n.t("menu.unfavorite") : i18n.t("menu.favorite"));
 
-  const OVERLAP = 8;
+  // The gap between the tile and the bar, which still belongs to the bar's hover zone.
+  const GAP = 6;
   const MARGIN = 4;
 
   let element: HTMLElement | undefined = $state();
-  let position = $state({ left: 0, top: 0 });
+  // Hidden until placed, so it never shows, nor takes the pointer, where it does not belong.
+  let position: { left: number; top: number } | null = $state(null);
   let resized = $state(0);
 
   // A resized panel can change how many tiles fit a row, and so where this one sits.
@@ -61,15 +66,18 @@
     }
 
     const box = container.getBoundingClientRect();
+    const area = bounds.getBoundingClientRect();
     const tile = cell.getBoundingClientRect();
+    // The zone's size, its padding included: the bar plus a gap above and below.
     const { offsetWidth: width, offsetHeight: height } = element;
-    const tileTop = tile.top - box.top + container.scrollTop;
-    const above = tileTop - height + OVERLAP;
-    const right = tile.right - box.left + container.scrollLeft;
+    const tileTop = tile.top - box.top;
+    const above = tileTop - height;
+    const start = area.left - box.left + MARGIN;
+    const end = area.left - box.left + bounds.clientWidth - width - MARGIN;
 
     position = {
-      left: Math.min(Math.max(MARGIN, right - width), container.clientWidth - width - MARGIN),
-      top: above >= container.scrollTop + MARGIN ? above : tileTop + tile.height - OVERLAP,
+      left: Math.min(Math.max(start, tile.right - box.left - width), end),
+      top: above + GAP >= MARGIN ? above : tileTop + tile.height,
     };
   });
 
@@ -104,41 +112,61 @@
   function keepFocus(event: MouseEvent): void {
     event.preventDefault();
   }
+
+  // Back onto the tile keeps the bar; anywhere else, it goes.
+  function onLeave(event: PointerEvent): void {
+    if (!(event.relatedTarget instanceof Node && cell.contains(event.relatedTarget))) {
+      ondone();
+    }
+  }
 </script>
 
 <div
   bind:this={element}
-  class="bar"
-  class:reduced={motion.reduced}
-  role="toolbar"
-  tabindex="-1"
-  aria-label={item.title}
-  style:left="{position.left}px"
-  style:top="{position.top}px"
+  class="zone"
+  data-action-bar
+  role="presentation"
+  style:left="{position?.left ?? 0}px"
+  style:top="{position?.top ?? 0}px"
+  style:visibility={position ? null : "hidden"}
+  style:padding="{GAP}px 0"
+  onpointerleave={onLeave}
 >
-  <button class="button" type="button" tabindex="-1" aria-label={favoriteLabel} onmousedown={keepFocus} onclick={favorite} {@attach tooltip(favoriteLabel)}>
-    {#if item.favorite}
-      <StarOff size={20} aria-hidden="true" />
-    {:else}
-      <Star size={20} aria-hidden="true" />
-    {/if}
-  </button>
-  <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.edit")} onmousedown={keepFocus} onclick={edit} {@attach tooltip(i18n.t("menu.edit"))}>
-    <Pencil size={20} aria-hidden="true" />
-  </button>
-  <span class="separator" aria-hidden="true"></span>
-  <button class="button danger" type="button" tabindex="-1" aria-label={i18n.t("menu.delete")} onmousedown={keepFocus} onclick={remove} {@attach tooltip(i18n.t("menu.delete"))}>
-    <Trash size={20} aria-hidden="true" />
-  </button>
+  <div
+    class="bar"
+    class:reduced={motion.reduced}
+    role="toolbar"
+    tabindex="-1"
+    aria-label={item.title}
+  >
+    <button class="button" type="button" tabindex="-1" aria-label={favoriteLabel} onmousedown={keepFocus} onclick={favorite} {@attach tooltip(favoriteLabel)}>
+      {#if item.favorite}
+        <StarOff size={20} aria-hidden="true" />
+      {:else}
+        <Star size={20} aria-hidden="true" />
+      {/if}
+    </button>
+    <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.edit")} onmousedown={keepFocus} onclick={edit} {@attach tooltip(i18n.t("menu.edit"))}>
+      <Pencil size={20} aria-hidden="true" />
+    </button>
+    <span class="separator" aria-hidden="true"></span>
+    <button class="button danger" type="button" tabindex="-1" aria-label={i18n.t("menu.delete")} onmousedown={keepFocus} onclick={remove} {@attach tooltip(i18n.t("menu.delete"))}>
+      <Trash size={20} aria-hidden="true" />
+    </button>
+  </div>
 </div>
 
 <style>
-  /* Discord's message hover bar. */
-  .bar {
+  .zone {
     position: absolute;
     z-index: 2;
+  }
+
+  /* Discord's message hover bar. */
+  .bar {
     display: flex;
     align-items: center;
+    gap: 2px;
     box-sizing: border-box;
     padding: 2px;
     border: 1px solid var(--border-muted, var(--nf-border, #3f4147));
@@ -157,7 +185,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px;
+    padding: 4px;
     border: none;
     border-radius: 6px;
     background: none;
