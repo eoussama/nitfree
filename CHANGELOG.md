@@ -6,6 +6,7 @@ Notable changes to Nitfree, newest first. Versions follow [Semantic Versioning](
 
 ### Added
 
+- The panel's presentation: a bar on the hovered item to favorite, edit or delete it, styled like Discord's message bar; Discord-style tooltips; animated items play only while hovered or focused, the grid showing small stills kept in the library; an empty library invites to add files; tiles lift on hover, except with reduced motion; a library of a thousand items loads only what shows, a few at a time, and scrolls smoothly (#25).
 - Sending from the panel: a click sends an item to the channel and closes the panel, a Shift+click adds it to the message being written. Emojis go at 48 px and stickers at 160 px, animated ones resized frame by frame and still animated, with each sized copy kept for next time; GIFs and images go as they are, and files over Discord's 10 MB limit are refused with a notice (#42, #43).
 - Adding, editing and deleting library items from the panel: Add Files, drag and drop or paste open a dialog styled like Discord's modals, with a name, type, tags and description per file; right-click or the menu key on an item opens a menu to favorite, edit or delete it; deleting hides the item at once, with a few seconds to undo (#29).
 - Typed messaging between the content script, popup and background worker, binary payloads included, with library and tag requests answered by the background and changes announced to open pages (#33).
