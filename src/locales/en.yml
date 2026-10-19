@@ -4,6 +4,21 @@ extDescription: The definitive freemium Discord Nitro alternative
 popup:
   logo: Nitfree logo
   version: Version {version}
+  library: Library
+  items:
+    1: 1 item
+    n: $1 items
+  storage: "Storage used: {size}"
+  add: Quick add
+  drop: Drop or paste images here, or pick them.
+  settings: Settings
+  sizes: Sending sizes
+  sizesHint: The longest side, in pixels. Discord shows emojis at 48 and stickers at 160.
+  click: A click on an item
+  clickSend: Sends it
+  clickAdd: Adds it to the message
+  clickHint: Shift+click does the other.
+  animations: Play animated items on hover
 toggler:
   label: Open Nitfree
 panel:

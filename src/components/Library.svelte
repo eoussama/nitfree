@@ -32,6 +32,7 @@
   import { library } from "~/lib/ui/library.svelte";
   import { openMenu } from "~/lib/ui/menu.svelte";
   import { motion } from "~/lib/ui/motion.svelte";
+  import { preferences } from "~/lib/ui/preferences.svelte";
   import { buildSections, filterItems } from "~/lib/ui/sections";
   import { focusAfterRemoval } from "~/lib/ui/tiles";
   import { tooltip } from "~/lib/ui/tooltip.svelte";
@@ -576,7 +577,7 @@
   {/if}
 
   <div class="inspector">
-    <Inspector item={shown} animate={shown !== null && (shown.id === hovered?.id || shown.id === focusedId)} />
+    <Inspector item={shown} animate={preferences.playAnimations && shown !== null && (shown.id === hovered?.id || shown.id === focusedId)} />
   </div>
 </div>
 

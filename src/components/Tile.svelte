@@ -3,7 +3,7 @@
 <!--
   One library item in the panel's grid, a square cell like Discord's emoji picker: no caption; the
   name shows in the inspector bar when the cell is hovered or focused. It shows a small still once it
-  scrolls into view; an animated item plays only while hovered or focused. The image lifts a little
+  scrolls into view; an animated item plays only while hovered or focused, unless the popup turned that off. The image lifts a little
   on hover, unless Discord asks for reduced motion.
 -->
 <script lang="ts">
@@ -12,6 +12,7 @@
   import { untrack } from "svelte";
 
   import { motion } from "~/lib/ui/motion.svelte";
+  import { preferences } from "~/lib/ui/preferences.svelte";
   import { still, thumbnail, whenVisible } from "~/lib/ui/thumbnails";
 
 
@@ -33,7 +34,7 @@
 
   // The library reloads as new objects on every change; only a new file should refetch the images.
   const hash = $derived(item.hash);
-  const playing = $derived(item.animated && (hovered || focused));
+  const playing = $derived(preferences.playAnimations && item.animated && (hovered || focused));
   const url = $derived(playing && playingUrl ? playingUrl : stillUrl);
 
   // Reading the hash here re-runs the attachment, and so fetches the still again, when the file changes.

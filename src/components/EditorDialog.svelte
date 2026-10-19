@@ -482,4 +482,17 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
+
+  /* Narrow windows, such as the popup, stack each file's preview above its fields. */
+  @media (max-width: 480px) {
+    .draft {
+      flex-direction: column;
+    }
+
+    .modal-header,
+    .modal-content,
+    .modal-footer {
+      padding-inline: 16px;
+    }
+  }
 </style>

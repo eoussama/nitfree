@@ -6,6 +6,7 @@ import { toError, tryCatch } from "@eoussama/core";
 
 import { chatButtonGroupOf, composerOf, findEmojiButton, findExpandedPickerButton } from "~/lib/discord";
 import { sendMessage } from "~/lib/messaging";
+import { picksSend } from "~/lib/settings";
 
 import { resetEditor } from "./editor.svelte";
 import { mountOverlay, mountPopover, mountToggler, watchChatButtonGroups } from "./inject";
@@ -14,6 +15,7 @@ import { closeMenu } from "./menu.svelte";
 import { clearNotice, showNotice } from "./notice.svelte";
 import { closePanel, openPanel, panel, setToggleHandler, togglePopover, wasOpenFor } from "./panel.svelte";
 import { createPickerTab } from "./picker";
+import { followPreferences, preferences } from "./preferences.svelte";
 import { attachFile, prepareFile, SendError } from "./send";
 import { flushTrash } from "./trash.svelte";
 
@@ -58,6 +60,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
   const picking = new Set<string>();
 
   const stopLibrary = followLibrary();
+  const stopPreferences = followPreferences();
   const removePopover = mountPopover(pick);
   const removeOverlay = mountOverlay();
 
@@ -134,15 +137,17 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
   }
 
   /**
-   * Picks a library item for the composer the panel was opened from. A click sends it and closes the
-   * panel, like Discord's sticker and GIF pickers; a Shift+click adds it to the message and keeps the
-   * panel open for more. Picks go one after another, so each file joins the message it was meant
-   * for, and picking an item that is still on its way does nothing. Failures are said in a notice.
+   * Picks a library item for the composer the panel was opened from. By default a click sends it and
+   * closes the panel, like Discord's sticker and GIF pickers, and a Shift+click adds it to the message
+   * and keeps the panel open for more; the popup can swap the two. Picks go one after another, so each
+   * file joins the message it was meant for, and picking an item that is still on its way does
+   * nothing. Failures are said in a notice.
    *
    * @param item - The picked item.
-   * @param send - True for a click, false for a Shift+click.
+   * @param primary - True for a click, false for a Shift+click.
    */
-  function pick(item: TItem, send: boolean): void {
+  function pick(item: TItem, primary: boolean): void {
+    const send = picksSend(primary, preferences.clickAction);
     const composer = panel.anchor ? composerOf(panel.anchor) : null;
 
     if (!composer) {
@@ -262,6 +267,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     clearNotice();
     removeOverlay();
     removePopover();
+    stopPreferences();
     stopLibrary();
   };
 }

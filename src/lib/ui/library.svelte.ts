@@ -22,6 +22,12 @@ type TLibraryState = {
 const RETRY_DELAYS = [500, 1000, 2000, 4000, 8000];
 
 /**
+ * How long to wait after a change is announced for more to come, so a burst, such as many files
+ * added at once, makes one reload rather than one each.
+ */
+const SETTLE_DELAY = 50;
+
+/**
  * The library as the Discord tab sees it, kept in step with the background worker.
  * `error` is only set while nothing has ever loaded; a failed reload keeps showing the last library.
  */
@@ -34,20 +40,40 @@ export const library: TLibraryState = $state({ items: [], tags: [], loaded: fals
  * @returns A function that stops following and frees the thumbnails.
  */
 export function followLibrary(): () => void {
-  let latest = 0;
   let attempt = 0;
   let retry: ReturnType<typeof setTimeout> | undefined;
+  let settle: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
+  // One load at a time: changes announced meanwhile, such as a burst of adds, make one more load after it.
+  let loading = false;
+  let again = false;
 
   async function load(): Promise<void> {
     clearTimeout(retry);
 
-    const request = ++latest;
+    if (loading) {
+      again = true;
+
+      return;
+    }
+
+    loading = true;
+
     const [error, result] = await tryCatch(Promise.all([sendMessage("library:list"), sendMessage("tags:list")]));
 
-    // Overlapping reloads: only the newest one counts.
-    if (stopped || request !== latest) {
+    loading = false;
+
+    if (stopped) {
       return;
+    }
+
+    if (again) {
+      again = false;
+      void load();
+
+      if (error) {
+        return;
+      }
     }
 
     if (error) {
@@ -75,13 +101,19 @@ export function followLibrary(): () => void {
     pruneTrash(items);
   }
 
+  function reload(): void {
+    clearTimeout(settle);
+    settle = setTimeout(() => void load(), SETTLE_DELAY);
+  }
+
   void load();
 
-  const stops = [onEvent("library:changed", () => void load()), onEvent("tags:changed", () => void load())];
+  const stops = [onEvent("library:changed", reload), onEvent("tags:changed", reload)];
 
   return () => {
     stopped = true;
     clearTimeout(retry);
+    clearTimeout(settle);
     stops.forEach(stop => stop());
     forgetThumbnails([]);
   };
