@@ -29,7 +29,7 @@ pnpm dev:firefox    # Firefox with hot reload
 | Script                                                         | Description                               |
 | -------------------------------------------------------------- | ----------------------------------------- |
 | `pnpm build`, `build:firefox`, `build:edge`, `build:safari`    | Production build in `.output/`            |
-| `pnpm zip`, `zip:firefox`, `zip:edge`                          | Store-ready zip                           |
+| `pnpm zip`, `zip:firefox`, `zip:edge`                          | Zip per browser                           |
 | `pnpm lint`, `pnpm lint:fix`                                   | Lint with `@eoussama/dx`                  |
 | `pnpm typecheck`                                               | Type check TypeScript and Svelte files    |
 | `pnpm test`                                                    | Unit tests with Vitest                    |
@@ -38,11 +38,3 @@ pnpm dev:firefox    # Firefox with hot reload
 The Safari build is converted into an Xcode project with `xcrun safari-web-extension-converter .output/safari-mv3` on macOS.
 
 The previous Vue implementation lives on the `legacy` branch.
-
-## Releasing
-
-1. Move the `Unreleased` notes in [CHANGELOG.md](./CHANGELOG.md) under a new version heading, e.g. `## [0.3.0]`.
-2. Set the same version in `package.json` and commit.
-3. Tag and push: `git tag v0.3.0 && git push origin v0.3.0`.
-
-The [release workflow](./.github/workflows/release.yml) checks the tag against `package.json`, builds the Chrome, Edge and Firefox zips (plus Firefox's sources zip) and the Safari Xcode project, and publishes them as a GitHub release with the changelog notes. Store submissions use those files and the copy in [docs/store.md](./docs/store.md).
