@@ -14,6 +14,8 @@ const TEXT = { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("h
 
 const panel = (page: Page) => page.getByRole("dialog", { name: "Nitfree library" });
 const tile = (page: Page, title: string) => panel(page).getByRole("region", { name: "All files" }).locator(`[data-tile][aria-label="${title}"]`);
+// The header's button; an empty library also offers one in its middle.
+const addFiles = (page: Page) => panel(page).getByRole("banner").getByRole("button", { name: "Add Files" });
 const addDialog = (page: Page) => page.getByRole("dialog", { name: "Add to Nitfree" });
 const editDialog = (page: Page) => page.getByRole("dialog", { name: "Edit item" });
 const menu = (page: Page) => page.getByRole("menu");
@@ -73,7 +75,7 @@ test.describe("adding, editing and deleting", () => {
 
     const chooser = page.waitForEvent("filechooser");
 
-    await panel(page).getByRole("button", { name: "Add Files" }).click();
+    await addFiles(page).click();
     await (await chooser).setFiles([IMAGE, TEXT]);
 
     const dialog = addDialog(page);
@@ -105,7 +107,7 @@ test.describe("adding, editing and deleting", () => {
 
     const chooser = page.waitForEvent("filechooser");
 
-    await panel(page).getByRole("button", { name: "Add Files" }).click();
+    await addFiles(page).click();
     await (await chooser).setFiles([IMAGE]);
     await expect(addDialog(page)).toBeVisible();
     await page.keyboard.press("Escape");
@@ -114,7 +116,7 @@ test.describe("adding, editing and deleting", () => {
 
     const again = page.waitForEvent("filechooser");
 
-    await panel(page).getByRole("button", { name: "Add Files" }).click();
+    await addFiles(page).click();
     await (await again).setFiles([IMAGE]);
     await addDialog(page).getByRole("button", { name: "Cancel" }).last().click();
     await expect(addDialog(page)).toHaveCount(0);
@@ -262,7 +264,7 @@ test.describe("adding, editing and deleting", () => {
 
     const chooser = page.waitForEvent("filechooser");
 
-    await panel(page).getByRole("button", { name: "Add Files" }).click();
+    await addFiles(page).click();
     await (await chooser).setFiles([IMAGE]);
 
     const tags = addDialog(page).getByRole("combobox", { name: "Tags" });
@@ -276,7 +278,7 @@ test.describe("adding, editing and deleting", () => {
     await expect(addDialog(page)).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(addDialog(page)).toHaveCount(0);
-    await expect(panel(page).getByRole("button", { name: "Add Files" })).toBeFocused();
+    await expect(addFiles(page)).toBeFocused();
   });
 
   test("deleting the last item leaves focus in the panel and shows the empty state", async ({ page }) => {
@@ -329,7 +331,7 @@ test.describe("adding, editing and deleting", () => {
 
     const chooser = page.waitForEvent("filechooser");
 
-    await panel(page).getByRole("button", { name: "Add Files" }).click();
+    await addFiles(page).click();
     await (await chooser).setFiles([IMAGE]);
 
     const tags = addDialog(page).getByRole("combobox", { name: "Tags" });
@@ -362,7 +364,7 @@ test.describe("adding, editing and deleting", () => {
 
     const chooser = page.waitForEvent("filechooser");
 
-    await panel(page).getByRole("button", { name: "Add Files" }).click();
+    await addFiles(page).click();
     await (await chooser).setFiles([IMAGE]);
     await addDialog(page).getByRole("textbox", { name: "Name" }).pressSequentially("abc");
 
