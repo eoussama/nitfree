@@ -70,11 +70,11 @@ describe("archive", () => {
     });
     expect(progress).toEqual([[1, 1]]);
 
-    await expect(pack([item], [], new Map())).rejects.toThrow(/missing/);
+    await expect(pack([item], [], new Map())).rejects.toMatchObject({ reason: "notInLibrary", params: { title: "a" } });
   });
 
   it("rejects files that are not archives", async () => {
-    await expect(readArchive(strToU8("not a zip"))).rejects.toMatchObject({ code: "corrupt" });
+    await expect(readArchive(strToU8("not a zip"))).rejects.toMatchObject({ code: "corrupt", reason: "notZip" });
   });
 
   it("rejects a newer format and malformed JSON", async () => {
@@ -83,7 +83,7 @@ describe("archive", () => {
       "library.json": strToU8(JSON.stringify({ items: [], tags: [] })),
     });
 
-    await expect(readArchive(newer)).rejects.toMatchObject({ code: "unsupported" });
+    await expect(readArchive(newer)).rejects.toMatchObject({ code: "unsupported", reason: "newer", params: { version: "99" } });
 
     const broken = zipSync({ "manifest.json": strToU8("{"), "library.json": strToU8("{}") });
 
@@ -94,7 +94,7 @@ describe("archive", () => {
       "library.json": strToU8("{}"),
     });
 
-    await expect(readArchive(invalid)).rejects.toMatchObject({ code: "invalid" });
+    await expect(readArchive(invalid)).rejects.toMatchObject({ code: "invalid", reason: "invalid", params: { name: "manifest.json" } });
   });
 
   it("rejects a file that was altered after export", async () => {
@@ -116,7 +116,7 @@ describe("archive", () => {
     const path = Object.keys(files).find(name => name.startsWith("files/"))!;
     const tampered = zipSync({ ...files, [path]: altered });
 
-    await expect(readArchive(tampered)).rejects.toMatchObject({ code: "corrupt" });
+    await expect(readArchive(tampered)).rejects.toMatchObject({ code: "corrupt", reason: "mismatch", params: { title: "a" } });
   });
 
   it("reads a plain zip of images, with folders as tags and file names as titles", async () => {
@@ -138,6 +138,6 @@ describe("archive", () => {
   });
 
   it("rejects a zip with no usable images", async () => {
-    await expect(readArchive(zipSync({ "a.txt": strToU8("x") }))).rejects.toMatchObject({ code: "empty" });
+    await expect(readArchive(zipSync({ "a.txt": strToU8("x") }))).rejects.toMatchObject({ code: "empty", reason: "empty" });
   });
 });

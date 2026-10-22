@@ -63,3 +63,16 @@ export function clampSendSize(kind: keyof TSendSizes, value: number): number | n
 
   return Math.min(Math.max(Math.round(value), min), max);
 }
+
+/**
+ * Brings both sending sizes within range, such as sizes read from an imported backup.
+ *
+ * @param sizes - The sizes to check.
+ * @returns The sizes to keep; one that is not a number falls back to the default.
+ */
+export function fitSendSizes(sizes: TSendSizes): TSendSizes {
+  return {
+    emoji: clampSendSize("emoji", sizes.emoji) ?? DEFAULT_SEND_SIZES.emoji,
+    sticker: clampSendSize("sticker", sizes.sticker) ?? DEFAULT_SEND_SIZES.sticker,
+  };
+}

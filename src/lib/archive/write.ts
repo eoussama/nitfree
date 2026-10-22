@@ -4,6 +4,7 @@ import type { TItem, TTag } from "~/lib/db";
 
 import { strToU8, zipSync } from "fflate";
 
+import { ArchiveError } from "./errors";
 import { ARCHIVE_VERSION } from "./schema";
 
 
@@ -72,7 +73,7 @@ export async function writeArchive(source: TArchiveSource): Promise<Uint8Array> 
     const bytes = await readFile(item);
 
     if (!bytes) {
-      throw new Error(`The file of "${item.title}" is missing from the library`);
+      throw new ArchiveError("notInLibrary", `The file of "${item.title}" is missing from the library`, { title: item.title });
     }
 
     const file = archivePath(item);

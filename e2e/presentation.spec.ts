@@ -86,12 +86,13 @@ test.describe("presentation", () => {
     await expect(tooltip(page)).toHaveCount(0);
   });
 
-  test("a hovered item gets Discord's hover bar to favorite, edit or delete it", async ({ page }) => {
+  test("a hovered item gets Discord's hover bar to favorite, edit, download or delete it", async ({ page }) => {
     await request(popup, "library:add", { file: png(64, 64), type: "emoji", title: "wave" });
     await openPanel(page);
 
     await tile(page, "wave").hover();
-    await expect(toolbar(page).getByRole("button")).toHaveCount(3);
+    await expect(toolbar(page).getByRole("button")).toHaveCount(4);
+    expect(await toolbar(page).getByRole("button").evaluateAll(buttons => buttons.map(button => button.getAttribute("aria-label")))).toEqual(["Add to Favorites", "Edit", "Download", "Delete"]);
 
     // The bar floats a little above the tile, its buttons apart.
     const cell = (await tile(page, "wave").boundingBox())!;

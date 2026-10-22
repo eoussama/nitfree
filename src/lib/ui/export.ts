@@ -10,6 +10,7 @@ import { clickAction, playAnimations, sendSizes } from "~/lib/settings";
 import { download, exportName, safeFileName } from "./download";
 import { library } from "./library.svelte";
 import { showNotice } from "./notice.svelte";
+import { archiveProblem } from "./problems";
 
 
 
@@ -103,7 +104,7 @@ export async function saveItems(items: readonly TItem[]): Promise<void> {
   }));
 
   if (error) {
-    showNotice(i18n.t("export.failed", { error: toError(error).message }));
+    showNotice(i18n.t("export.failed", { error: archiveProblem(error) }));
 
     return;
   }

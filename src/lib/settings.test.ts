@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clampSendSize, picksSend, SEND_SIZE_LIMITS } from "./settings";
+import { clampSendSize, DEFAULT_SEND_SIZES, fitSendSizes, picksSend, SEND_SIZE_LIMITS } from "./settings";
 
 
 
@@ -35,5 +35,13 @@ describe("picksSend", () => {
   it("swaps the two when a click is set to add", () => {
     expect(picksSend(true, "add")).toBe(false);
     expect(picksSend(false, "add")).toBe(true);
+  });
+});
+
+describe("fitSendSizes", () => {
+  it("brings both sizes within range, and falls back on ones that are not numbers", () => {
+    expect(fitSendSizes({ emoji: 64, sticker: 200 })).toEqual({ emoji: 64, sticker: 200 });
+    expect(fitSendSizes({ emoji: 99_999, sticker: 1 })).toEqual({ emoji: SEND_SIZE_LIMITS.emoji.max, sticker: SEND_SIZE_LIMITS.sticker.min });
+    expect(fitSendSizes({ emoji: Number.NaN, sticker: Number.POSITIVE_INFINITY })).toEqual(DEFAULT_SEND_SIZES);
   });
 });

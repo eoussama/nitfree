@@ -1,15 +1,16 @@
 import type { TImportMode, TParsedArchive } from "~/lib/archive";
 import type { TItem } from "~/lib/db";
 
-import { toError, tryCatch } from "@eoussama/core";
+import { tryCatch } from "@eoussama/core";
 
 import { applyArchive, ARCHIVE_EXTENSION, ArchiveError, readArchive, readImages } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
-import { clickAction, playAnimations, sendSizes } from "~/lib/settings";
+import { clickAction, fitSendSizes, playAnimations, sendSizes } from "~/lib/settings";
 
 import { download, exportName } from "./download";
 import { buildExport } from "./export";
 import { library } from "./library.svelte";
+import { archiveProblem } from "./problems";
 
 
 
@@ -45,7 +46,7 @@ function start(busy: NonNullable<TTransferState["busy"]>, total = 0): void {
 }
 
 function fail(error: unknown): void {
-  transfer.error = toError(error).message;
+  transfer.error = archiveProblem(error);
   transfer.busy = null;
 }
 
@@ -102,7 +103,7 @@ export async function pickImport(file: File): Promise<void> {
   const [error, archive] = await tryCatch(async () => readArchive(new Uint8Array(await file.arrayBuffer())));
 
   if (error) {
-    fail(error instanceof ArchiveError ? error : new Error("This file could not be read"));
+    fail(error instanceof ArchiveError ? error : new Error(i18n.t("archive.unreadableFile")));
 
     return;
   }
@@ -133,7 +134,7 @@ export async function pickFolder(files: readonly File[]): Promise<void> {
   });
 
   if (error) {
-    fail(error instanceof ArchiveError ? error : new Error("This folder could not be read"));
+    fail(error instanceof ArchiveError ? error : new Error(i18n.t("archive.unreadableFolder")));
 
     return;
   }
@@ -180,7 +181,8 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
 
     if (withSettings && archive.settings) {
       await Promise.all([
-        sendSizes.setValue(archive.settings.sendSizes),
+        // Brought within range, as the popup does with a typed size: the file may come from anywhere.
+        sendSizes.setValue(fitSendSizes(archive.settings.sendSizes)),
         clickAction.setValue(archive.settings.clickAction),
         playAnimations.setValue(archive.settings.playAnimations),
       ]);

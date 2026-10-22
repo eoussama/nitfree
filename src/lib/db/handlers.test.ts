@@ -73,6 +73,39 @@ describe("library handlers", () => {
     expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "updated", ids: [item.id] });
   });
 
+  it("announce imports, and only the tags an import creates", async () => {
+    const tag = await handlers["tags:ensure"]!({ name: "Cats" }, sender);
+
+    expect(notify).toHaveBeenLastCalledWith("tags:changed", { change: "added", ids: [tag.id] });
+    expect(await handlers["tags:ensure"]!({ name: "cats" }, sender)).toEqual(tag);
+    expect(notify).toHaveBeenCalledTimes(1);
+
+    const item = await handlers["library:import"]!({ item: { id: "kept", file: new Blob([png(2, 2)]), type: "emoji", title: "a", tags: [tag.id] }, skipDuplicates: true }, sender);
+
+    expect(item?.id).toBe("kept");
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "added", ids: ["kept"] });
+
+    // A duplicate is skipped, silently.
+    expect(await handlers["library:import"]!({ item: { file: new Blob([png(2, 2)]), type: "emoji", title: "b" }, skipDuplicates: true }, sender)).toBeNull();
+    expect(notify).toHaveBeenCalledTimes(2);
+  });
+
+  it("clear the library and its tags, announcing both, or nothing when already empty", async () => {
+    await handlers["library:clear"]!(undefined, sender);
+    expect(notify).not.toHaveBeenCalled();
+
+    const tag = await handlers["tags:add"]!({ name: "a" }, sender);
+    const item = await handlers["library:add"]!({ file: new Blob([png(2, 2)]), type: "emoji", title: "a", tags: [tag.id] }, sender);
+
+    notify.mockClear();
+    await handlers["library:clear"]!(undefined, sender);
+
+    expect(notify).toHaveBeenCalledWith("library:changed", { change: "removed", ids: [item.id] });
+    expect(notify).toHaveBeenCalledWith("tags:changed", { change: "removed", ids: [tag.id] });
+    expect(await handlers["library:list"]!(undefined, sender)).toEqual([]);
+    expect(await handlers["tags:list"]!(undefined, sender)).toEqual([]);
+  });
+
   it("still answers when an announcement fails", async () => {
     notify.mockRejectedValue(new Error("no receivers"));
 

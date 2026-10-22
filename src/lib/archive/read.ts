@@ -8,30 +8,10 @@ import * as v from "valibot";
 import { hashBytes } from "~/lib/db/library";
 import { inspectImage } from "~/lib/media";
 
+import { ArchiveError } from "./errors";
 import { ARCHIVE_VERSION, ArchiveSettingsSchema, LibrarySchema, ManifestSchema } from "./schema";
 
 
-
-export type TArchiveErrorCode = "corrupt" | "unsupported" | "invalid" | "empty";
-
-/**
- * Why a file could not be imported, in words that can be shown as they are.
- */
-export class ArchiveError extends Error {
-  readonly code: TArchiveErrorCode;
-
-  /**
-   * Creates the error.
-   *
-   * @param code - What kind of problem it is, for code that reacts to it.
-   * @param message - What to tell the user.
-   */
-  constructor(code: TArchiveErrorCode, message: string) {
-    super(message);
-    this.name = "ArchiveError";
-    this.code = code;
-  }
-}
 
 /**
  * An item read from an archive, ready to be imported. Tags are named rather than identified,
@@ -86,13 +66,15 @@ function parseJson<T extends v.GenericSchema>(schema: T, bytes: Uint8Array, name
     data = JSON.parse(strFromU8(bytes));
   }
   catch {
-    throw new ArchiveError("corrupt", `${name} is not readable`);
+    throw new ArchiveError("unreadable", `${name} is not readable`, { name });
   }
 
   const result = v.safeParse(schema, data);
 
   if (!result.success) {
-    throw new ArchiveError("invalid", `${name} is not valid (${describe(new v.ValiError(result.issues))})`);
+    const problem = describe(new v.ValiError(result.issues));
+
+    throw new ArchiveError("invalid", `${name} is not valid (${problem})`, { name, problem });
   }
 
   return result.output;
@@ -106,13 +88,13 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
   const manifest = parseJson(ManifestSchema, files["manifest.json"]!, "manifest.json");
 
   if (manifest.version > ARCHIVE_VERSION) {
-    throw new ArchiveError("unsupported", `This archive was made by a newer version of Nitfree (format ${manifest.version})`);
+    throw new ArchiveError("newer", `This archive was made by a newer version of Nitfree (format ${manifest.version})`, { version: String(manifest.version) });
   }
 
   const library = files["library.json"] ? parseJson(LibrarySchema, files["library.json"], "library.json") : null;
 
   if (!library) {
-    throw new ArchiveError("corrupt", "library.json is missing");
+    throw new ArchiveError("noLibrary", "library.json is missing");
   }
 
   const settings = files["settings.json"] ? parseJson(ArchiveSettingsSchema, files["settings.json"], "settings.json") : null;
@@ -123,7 +105,7 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
 
   for (const item of library.items) {
     if (ids.has(item.id)) {
-      throw new ArchiveError("invalid", `library.json lists "${item.title}" twice`);
+      throw new ArchiveError("duplicate", `library.json lists "${item.title}" twice`, { title: item.title });
     }
 
     ids.add(item.id);
@@ -131,18 +113,18 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
     const bytes = files[item.file];
 
     if (!bytes) {
-      throw new ArchiveError("corrupt", `The file of "${item.title}" is missing from the archive`);
+      throw new ArchiveError("missingFile", `The file of "${item.title}" is missing from the archive`, { title: item.title });
     }
 
     if (bytes.length !== item.size || await hashBytes(toOwned(bytes)) !== item.hash) {
-      throw new ArchiveError("corrupt", `The file of "${item.title}" does not match what was exported`);
+      throw new ArchiveError("mismatch", `The file of "${item.title}" does not match what was exported`, { title: item.title });
     }
 
     const names = item.tags.map((id) => {
       const name = tagNames.get(id);
 
       if (name === undefined) {
-        throw new ArchiveError("invalid", `"${item.title}" has a tag that the archive does not list`);
+        throw new ArchiveError("unknownTag", `"${item.title}" has a tag that the archive does not list`, { title: item.title });
       }
 
       return name;
@@ -249,7 +231,7 @@ export async function readArchive(bytes: Uint8Array): Promise<TParsedArchive> {
     files = unzipSync(bytes);
   }
   catch {
-    throw new ArchiveError("corrupt", "This is not a zip file, or it is damaged");
+    throw new ArchiveError("notZip", "This is not a zip file, or it is damaged");
   }
 
   return files["manifest.json"] ? readNitfree(files) : readImages(files);

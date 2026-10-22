@@ -117,6 +117,20 @@ export:
   done: "{items} exportés."
   failed: "Export impossible : {error}"
   missing: Le fichier de « {title} » est introuvable.
+archive:
+  notZip: Ce n'est pas un fichier zip, ou il est endommagé.
+  unreadable: "{name} est illisible dans ce fichier."
+  invalid: "{name} n'est pas valide dans ce fichier ({problem})."
+  newer: Cette sauvegarde vient d'une version plus récente de Nitfree. Mettez Nitfree à jour pour l'importer.
+  noLibrary: Ce fichier n'est pas une sauvegarde Nitfree complète.
+  duplicate: "Cette sauvegarde contient « {title} » deux fois."
+  missingFile: "Le fichier de « {title} » manque dans cette sauvegarde."
+  mismatch: "Le fichier de « {title} » a été modifié ou endommagé après l'export."
+  unknownTag: "« {title} » a une étiquette que cette sauvegarde ne contient pas."
+  empty: Aucune image prise en charge par Nitfree (PNG, APNG, GIF, WebP et JPEG).
+  notInLibrary: "Le fichier de « {title} » manque dans votre bibliothèque."
+  unreadableFile: Ce fichier n'a pas pu être lu.
+  unreadableFolder: Ce dossier n'a pas pu être lu.
 send:
   noComposer: Nitfree ne trouve pas la zone de message où envoyer.
   missing: Le fichier de « {title} » est introuvable.
