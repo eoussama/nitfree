@@ -1,17 +1,19 @@
 <svelte:options css="injected" />
 
 <!--
-  The right-click menu on a library item, styled like Discord's context menus: Favorite, Edit, Download, then
+  The right-click menu on a library item, styled like Discord's context menus: Favorite, Details, Edit, Download, then
   Delete in red. Arrow keys move, Enter picks, Escape closes.
 -->
 <script lang="ts">
   import Download from "@lucide/svelte/icons/download";
+  import Eye from "@lucide/svelte/icons/eye";
   import Pencil from "@lucide/svelte/icons/pencil";
   import Star from "@lucide/svelte/icons/star";
   import StarOff from "@lucide/svelte/icons/star-off";
   import Trash from "@lucide/svelte/icons/trash";
 
   import { sendMessage } from "~/lib/messaging";
+  import { openDetails } from "~/lib/ui/details.svelte";
   import { startEdit } from "~/lib/ui/editor.svelte";
   import { saveItem } from "~/lib/ui/export";
   import { closeMenu, menu } from "~/lib/ui/menu.svelte";
@@ -74,6 +76,16 @@
     }
   }
 
+  function view(): void {
+    const { item, restoreFocus } = menu;
+
+    closeMenu();
+
+    if (item) {
+      openDetails(item, restoreFocus);
+    }
+  }
+
   function edit(): void {
     const { item, restoreFocus } = menu;
 
@@ -129,6 +141,10 @@
     <button class="item" type="button" role="menuitem" onclick={toggleFavorite}>
       {menu.item.favorite ? i18n.t("menu.unfavorite") : i18n.t("menu.favorite")}
       {#if menu.item.favorite}<StarOff size={18} aria-hidden="true" />{:else}<Star size={18} aria-hidden="true" />{/if}
+    </button>
+    <button class="item" type="button" role="menuitem" onclick={view}>
+      {i18n.t("menu.details")}
+      <Eye size={18} aria-hidden="true" />
     </button>
     <button class="item" type="button" role="menuitem" onclick={edit}>
       {i18n.t("menu.edit")}

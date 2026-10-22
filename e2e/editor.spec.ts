@@ -192,6 +192,8 @@ test.describe("adding, editing and deleting", () => {
     await page.keyboard.press("Shift+F10");
     await expect(menu(page).getByRole("menuitem", { name: "Remove from Favorites" })).toBeFocused();
     await page.keyboard.press("ArrowDown");
+    await expect(menu(page).getByRole("menuitem", { name: "Details" })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
     await expect(menu(page).getByRole("menuitem", { name: "Edit" })).toBeFocused();
     await page.keyboard.press("Enter");
 

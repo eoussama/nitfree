@@ -160,9 +160,27 @@ editor:
 menu:
   favorite: Ajouter aux favoris
   unfavorite: Retirer des favoris
+  details: Détails
   edit: Modifier
   download: Télécharger
   delete: Supprimer
+details:
+  close: Fermer
+  enlarge: Agrandir
+  noTags: Aucun tag
+  noDescription: Aucune description
+  file: Fichier
+  fileInfo: "{format} · {width} × {height} · {size}"
+  added: Ajouté
+  sent: Envoyé
+  sentCount:
+    0: Jamais envoyé
+    1: Une fois
+    n: $1 fois
+  lastSent: "dernière fois le {date}"
+  zoomIn: Zoom avant
+  zoomOut: Zoom arrière
+  fit: Ajuster à la fenêtre
 export:
   exportResults: Exporter les éléments affichés
   progress: "Export de {done} sur {total}"

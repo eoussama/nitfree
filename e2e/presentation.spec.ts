@@ -91,8 +91,8 @@ test.describe("presentation", () => {
     await openPanel(page);
 
     await tile(page, "wave").hover();
-    await expect(toolbar(page).getByRole("button")).toHaveCount(4);
-    expect(await toolbar(page).getByRole("button").evaluateAll(buttons => buttons.map(button => button.getAttribute("aria-label")))).toEqual(["Add to Favorites", "Edit", "Download", "Delete"]);
+    await expect(toolbar(page).getByRole("button")).toHaveCount(5);
+    expect(await toolbar(page).getByRole("button").evaluateAll(buttons => buttons.map(button => button.getAttribute("aria-label")))).toEqual(["Add to Favorites", "Details", "Edit", "Download", "Delete"]);
 
     // The bar floats a little above the tile, its buttons apart.
     const cell = (await tile(page, "wave").boundingBox())!;
