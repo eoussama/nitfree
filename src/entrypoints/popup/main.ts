@@ -5,6 +5,8 @@ import { mountOverlay } from "~/lib/ui/inject";
 
 import App from "./App.svelte";
 
+import "./popup.css";
+
 
 
 const target = document.getElementById("app");

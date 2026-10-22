@@ -24,6 +24,11 @@ type TTransferState = {
    * What is running, or null when nothing is.
    */
   busy: "export" | "read" | "import" | null;
+
+  /**
+   * Which side the last run was on, so its progress and outcome show there.
+   */
+  task: "export" | "import" | null;
   done: number;
   total: number;
 
@@ -35,10 +40,11 @@ type TTransferState = {
   error: string | null;
 };
 
-export const transfer: TTransferState = $state({ busy: null, done: 0, total: 0, pending: null, result: null, error: null });
+export const transfer: TTransferState = $state({ busy: null, task: null, done: 0, total: 0, pending: null, result: null, error: null });
 
 function start(busy: NonNullable<TTransferState["busy"]>, total = 0): void {
   transfer.busy = busy;
+  transfer.task = busy === "export" ? "export" : "import";
   transfer.done = 0;
   transfer.total = total;
   transfer.result = null;

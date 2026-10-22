@@ -4,6 +4,8 @@ extDescription: The definitive freemium Discord Nitro alternative
 popup:
   logo: Nitfree logo
   version: Version {version}
+  back: Back
+  pages: More
   github: View Nitfree on GitHub
   library: Library
   items:
@@ -11,21 +13,27 @@ popup:
     n: $1 items
   storage:
     heading: Storage
-    usedOf: "{used} used of {quota} available"
-    used: "{used} used"
+    usage: Space used
+    usedOf: "{used} used of {quota} available."
+    used: "{used} used."
     cached: Cached copies
     cachedHint: Smaller copies made for the grid and for sending. Clearing them keeps your files, and they are made again when needed.
     clearCache: Clear cache
     cleared: "Freed {size}."
     largest: Largest items
+    largestHint: Select the items you no longer need to delete them.
     delete:
       1: Delete 1 item
       n: Delete $1 items
-    confirm: "Delete {items} for good? This cannot be undone."
+    confirmTitle:
+      1: Delete 1 item
+      n: Delete $1 items
+    confirm: Their files are deleted from your library for good. This cannot be undone.
     confirmDelete: Delete
     cancel: Cancel
     deleted: "Deleted {items}."
     failed: "Could not do that: {error}"
+    persistTitle: Persistent storage
     persist: Keep my library safe
     persistHint: Without this, the browser may clear your library when the disk runs low on space.
     persistDenied: The browser did not allow it. It decides by how you use it, so try again later.
@@ -42,6 +50,8 @@ popup:
   animations: Play animated items on hover
   transfer:
     heading: Backup
+    exportTitle: Export
+    importTitle: Import
     export: Export library
     exportSettings: Include settings
     exportHint: Saves every item, tag and favorite as one .nitfree file.

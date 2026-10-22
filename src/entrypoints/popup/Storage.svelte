@@ -1,10 +1,10 @@
 <!--
-  The popup's storage section: how much space the library takes, by type and in cached copies,
-  against what the browser allows; the largest items, to pick some and delete them; and asking
-  the browser to keep the library when the disk runs low.
+  The popup's storage page: how much space the library takes, by type and in cached copies, against
+  what the browser allows; the largest items, to pick some and delete them; and asking the browser
+  to keep the library when the disk runs low.
 -->
 <script lang="ts">
-  import type { TCacheUsage, TItem } from "~/lib/db";
+  import type { TCacheUsage } from "~/lib/db";
 
   import { toError, tryCatch } from "@eoussama/core";
 
@@ -14,9 +14,12 @@
   import { library } from "~/lib/ui/library.svelte";
   import { thumbnail } from "~/lib/ui/thumbnails";
 
+  import Confirm from "./Confirm.svelte";
 
 
-  type TMessage = { text: string; error: boolean };
+
+  type TSection = "cache" | "largest" | "persist";
+  type TMessage = { section: TSection; text: string; error: boolean };
 
   /**
    * How many of the largest items are listed.
@@ -27,12 +30,12 @@
   const canPersist = typeof navigator.storage?.persist === "function";
 
   let estimate = $state<StorageEstimate | null>(null);
-  let cache: TCacheUsage | null = $state(null);
-  let persisted: boolean | null = $state(null);
+  let cache = $state<TCacheUsage | null>(null);
+  let persisted = $state<boolean | null>(null);
   let selected: string[] = $state([]);
   let confirming = $state(false);
   let busy = $state(false);
-  let message: TMessage | null = $state(null);
+  let message = $state<TMessage | null>(null);
   // Bumped to measure again after a change the library does not announce, such as clearing the cache.
   let measured = $state(0);
 
@@ -45,8 +48,8 @@
   // Items deleted elsewhere drop out of the selection.
   const chosen = $derived(selected.filter(id => largest.some(item => item.id === id)));
 
-  const used = $derived(estimate?.usage === undefined ? null : formatBytes(estimate.usage, locale));
-  const quota = $derived(estimate?.quota === undefined ? null : formatBytes(estimate.quota, locale));
+  const used = $derived(estimate?.usage === undefined ? null : size(estimate.usage));
+  const quota = $derived(estimate?.quota === undefined ? null : size(estimate.quota));
 
   // What the extension's storage holds, read again on each change.
   $effect(() => {
@@ -80,7 +83,7 @@
     return formatBytes(bytes, locale);
   }
 
-  async function run(task: () => Promise<string>): Promise<void> {
+  async function run(section: TSection, task: () => Promise<string>): Promise<void> {
     busy = true;
     message = null;
 
@@ -88,11 +91,13 @@
 
     busy = false;
     measured++;
-    message = error ? { text: i18n.t("popup.storage.failed", { error: toError(error).message }), error: true } : { text, error: false };
+    message = error
+      ? { section, text: i18n.t("popup.storage.failed", { error: toError(error).message }), error: true }
+      : { section, text, error: false };
   }
 
   function clearCache(): Promise<void> {
-    return run(async () => {
+    return run("cache", async () => {
       const freed = await sendMessage("library:clearCache");
 
       return i18n.t("popup.storage.cleared", { size: size(freed.size) });
@@ -104,7 +109,7 @@
 
     confirming = false;
 
-    return run(async () => {
+    return run("largest", async () => {
       const removed = await sendMessage("library:removeMany", { ids });
 
       selected = selected.filter(id => !removed.includes(id));
@@ -121,25 +126,23 @@
     persisted = granted ?? false;
 
     if (!persisted) {
-      message = { text: i18n.t("popup.storage.persistDenied"), error: true };
+      message = { section: "persist", text: i18n.t("popup.storage.persistDenied"), error: true };
     }
-  }
-
-  function typeOf(item: TItem): string {
-    return i18n.t(`panel.types.${item.type}`);
   }
 </script>
 
-<section class="popup-section" aria-labelledby="nf-storage">
-  <h2 id="nf-storage" class="popup-heading">{i18n.t("popup.storage.heading")}</h2>
-
-  {#if used}
-    <p class="total">
-      {quota ? i18n.t("popup.storage.usedOf", { used, quota }) : i18n.t("popup.storage.used", { used })}
-    </p>
+{#snippet feedback(section: TSection)}
+  {#if message?.section === section}
+    <p class="feedback" class:critical={message.error} class:positive={!message.error} role={message.error ? "alert" : "status"}>{message.text}</p>
   {/if}
+{/snippet}
 
-  <dl class="breakdown">
+<div class="form-section">
+  <h2 class="form-title">{i18n.t("popup.storage.usage")}</h2>
+  {#if used}
+    <p class="form-description">{quota ? i18n.t("popup.storage.usedOf", { used, quota }) : i18n.t("popup.storage.used", { used })}</p>
+  {/if}
+  <dl class="rows">
     {#each sizes as { type, size: bytes } (type)}
       <div class="row">
         <dt>{i18n.t(`panel.types.${type}`)}</dt>
@@ -151,21 +154,28 @@
       <dd data-type="cache">{cache ? size(cache.size) : ""}</dd>
     </div>
   </dl>
+</div>
 
+<div class="form-section">
+  <h2 class="form-title">{i18n.t("popup.storage.cached")}</h2>
+  <p class="form-description">{i18n.t("popup.storage.cachedHint")}</p>
   <div class="actions">
     <button class="button secondary" type="button" disabled={busy || !cache?.count} onclick={() => void clearCache()}>
       {i18n.t("popup.storage.clearCache")}
     </button>
   </div>
-  <p class="hint">{i18n.t("popup.storage.cachedHint")}</p>
+  {@render feedback("cache")}
+</div>
 
-  {#if largest.length}
-    <h3 id="nf-largest" class="subheading">{i18n.t("popup.storage.largest")}</h3>
+{#if largest.length}
+  <div class="form-section">
+    <h2 id="nf-largest" class="form-title">{i18n.t("popup.storage.largest")}</h2>
+    <p class="form-description">{i18n.t("popup.storage.largestHint")}</p>
     <ul class="largest" aria-labelledby="nf-largest">
       {#each largest as item (item.id)}
         <li>
           <label class="item">
-            <input type="checkbox" value={item.id} bind:group={selected} disabled={busy} />
+            <input class="checkbox" type="checkbox" value={item.id} bind:group={selected} disabled={busy} />
             <span class="preview" aria-hidden="true">
               {#await thumbnail(item) then url}
                 {#if url}<img src={url} alt="" />{/if}
@@ -173,87 +183,76 @@
             </span>
             <span class="name">
               <span class="title">{item.title}</span>
-              <span class="hint">{typeOf(item)}</span>
+              <span class="type">{i18n.t(`panel.types.${item.type}`)}</span>
             </span>
             <span class="size">{size(item.size)}</span>
           </label>
         </li>
       {/each}
     </ul>
+    <div class="actions">
+      <button class="button critical" type="button" disabled={busy || !chosen.length} onclick={() => (confirming = true)}>
+        {i18n.t("popup.storage.delete", chosen.length)}
+      </button>
+    </div>
+    {@render feedback("largest")}
+  </div>
+{/if}
 
-    {#if confirming && chosen.length}
-      <div class="confirm" role="group" aria-labelledby="nf-confirm">
-        <p id="nf-confirm" class="confirm-text">{i18n.t("popup.storage.confirm", { items: i18n.t("popup.items", chosen.length) })}</p>
-        <div class="actions">
-          <button class="button danger" type="button" disabled={busy} onclick={() => void deleteChosen()}>{i18n.t("popup.storage.confirmDelete")}</button>
-          <button class="button secondary" type="button" onclick={() => (confirming = false)}>{i18n.t("popup.storage.cancel")}</button>
-        </div>
-      </div>
+{#if canPersist && persisted !== null}
+  <div class="form-section">
+    <h2 class="form-title">{i18n.t("popup.storage.persistTitle")}</h2>
+    {#if persisted}
+      <p class="form-description">{i18n.t("popup.storage.persisted")}</p>
     {:else}
+      <p class="form-description">{i18n.t("popup.storage.persistHint")}</p>
       <div class="actions">
-        <button class="button danger" type="button" disabled={busy || !chosen.length} onclick={() => (confirming = true)}>
-          {i18n.t("popup.storage.delete", chosen.length)}
-        </button>
+        <button class="button primary" type="button" onclick={() => void protect()}>{i18n.t("popup.storage.persist")}</button>
       </div>
     {/if}
-  {/if}
+    {@render feedback("persist")}
+  </div>
+{/if}
 
-  {#if persisted}
-    <p class="hint">{i18n.t("popup.storage.persisted")}</p>
-  {:else if canPersist && persisted === false}
-    <div class="actions">
-      <button class="button secondary" type="button" onclick={() => void protect()}>{i18n.t("popup.storage.persist")}</button>
-    </div>
-    <p class="hint">{i18n.t("popup.storage.persistHint")}</p>
-  {/if}
-
-  {#if message}
-    <p class="message" class:error={message.error} role={message.error ? "alert" : "status"}>{message.text}</p>
-  {/if}
-</section>
+<Confirm
+  open={confirming && chosen.length > 0}
+  title={i18n.t("popup.storage.confirmTitle", chosen.length)}
+  body={i18n.t("popup.storage.confirm")}
+  action={i18n.t("popup.storage.confirmDelete")}
+  onconfirm={() => void deleteChosen()}
+  oncancel={() => (confirming = false)}
+/>
 
 <style>
-  .total {
-    margin: 0 0 8px;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 18px;
-  }
-
-  .breakdown {
-    margin: 0 0 12px;
-    padding: 4px 12px;
-    border-radius: var(--nf-radius, 8px);
-    background-color: var(--nf-bg-elevated);
+  /* Discord's list rows: a label and its value, a line between each. */
+  .rows {
+    margin: 0;
   }
 
   .row {
     display: flex;
     justify-content: space-between;
     gap: 8px;
-    padding: 4px 0;
+    padding: 10px 0;
     font-size: 14px;
     line-height: 18px;
   }
 
+  .row + .row {
+    border-top: 1px solid var(--border-subtle, var(--nf-border));
+  }
+
   .row dt {
-    color: var(--nf-muted);
+    color: var(--text-default, var(--nf-text));
   }
 
   .row dd {
     margin: 0;
-    font-weight: 500;
-  }
-
-  .subheading {
-    margin: 16px 0 8px;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 18px;
+    color: var(--text-muted, var(--nf-muted));
   }
 
   .largest {
-    margin: 0 0 12px;
+    margin: 0;
     padding: 0;
     list-style: none;
   }
@@ -261,22 +260,14 @@
   .item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px;
-    border-radius: 4px;
+    gap: 12px;
+    padding: 8px;
+    border-radius: var(--radius-sm, 8px);
     cursor: pointer;
   }
 
   .item:hover {
-    background-color: rgb(151 151 159 / 8%);
-  }
-
-  .item input {
-    flex: none;
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    accent-color: var(--nf-accent);
+    background-color: var(--background-mod-subtle, var(--nf-mod-subtle));
   }
 
   .preview {
@@ -287,8 +278,8 @@
     width: 32px;
     height: 32px;
     overflow: hidden;
-    border-radius: 4px;
-    background-color: var(--nf-bg-elevated);
+    border-radius: var(--radius-xs, 4px);
+    background-color: var(--background-base-lower, rgb(0 0 0 / 16%));
   }
 
   .preview img {
@@ -306,97 +297,22 @@
 
   .title {
     overflow: hidden;
+    color: var(--text-default, var(--nf-text));
     font-size: 14px;
+    font-weight: 500;
     line-height: 18px;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
+  .type,
+  .size {
+    color: var(--text-muted, var(--nf-muted));
+    font-size: 12px;
+    line-height: 16px;
+  }
+
   .size {
     flex: none;
-    color: var(--nf-muted);
-    font-size: 12px;
-    line-height: 16px;
-  }
-
-  .confirm {
-    margin-bottom: 12px;
-    padding: 12px;
-    border-radius: var(--nf-radius, 8px);
-    background-color: var(--nf-bg-elevated);
-  }
-
-  .confirm .actions {
-    margin-bottom: 0;
-  }
-
-  .confirm-text {
-    margin: 0 0 8px;
-    font-size: 14px;
-    line-height: 18px;
-  }
-
-  .actions {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  /* Discord's secondary and danger buttons. */
-  .button {
-    height: 32px;
-    padding: 0 16px;
-    border: none;
-    border-radius: 8px;
-    font: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .button.secondary {
-    background-color: rgb(151 151 159 / 16%);
-    color: var(--nf-text);
-  }
-
-  .button.danger {
-    background-color: var(--nf-danger, #f23f42);
-    color: #fff;
-  }
-
-  .button:hover:not(:disabled) {
-    filter: brightness(0.9);
-  }
-
-  .button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .button:focus-visible,
-  .item input:focus-visible {
-    outline: 2px solid var(--nf-accent);
-    outline-offset: 2px;
-  }
-
-  .hint {
-    margin: 0 0 4px;
-    color: var(--nf-muted);
-    font-size: 12px;
-    line-height: 16px;
-  }
-
-  .name .hint {
-    margin: 0;
-  }
-
-  .message {
-    margin: 12px 0 0;
-    font-size: 13px;
-    line-height: 18px;
-  }
-
-  .message.error {
-    color: var(--nf-danger, #f23f42);
   }
 </style>

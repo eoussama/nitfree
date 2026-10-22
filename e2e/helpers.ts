@@ -42,6 +42,18 @@ export async function openPopup(page: Page, extensionId: string): Promise<void> 
 }
 
 /**
+ * Opens one of the popup's pages from its home.
+ *
+ * @param page - The popup page.
+ * @param name - The page's title, e.g. "Settings".
+ * @returns Resolves once the page shows.
+ */
+export async function openPopupPage(page: Page, name: string): Promise<void> {
+  await page.getByRole("navigation").getByRole("button", { name }).click();
+  await expect(page.getByRole("region", { name })).toBeVisible();
+}
+
+/**
  * Discord's composer as captured from discord.com, with text, images and styles stripped.
  */
 export const COMPOSER = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/composer.html"), "utf8");

@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import { Buffer } from "node:buffer";
 
 import { expect, test } from "./fixtures";
-import { openDiscord, openPopup, PNG, request } from "./helpers";
+import { openDiscord, openPopup, openPopupPage, PNG, request } from "./helpers";
 import { gif, png } from "./images";
 
 
@@ -130,6 +130,8 @@ test.describe("popup", () => {
   });
 
   test("sending sizes are saved within range, and kept on reopening", async ({ extensionId }) => {
+    await openPopupPage(popup, "Settings");
+
     const emoji = settings(popup).getByRole("spinbutton", { name: "Emoji" });
     const sticker = settings(popup).getByRole("spinbutton", { name: "Sticker" });
 
@@ -152,12 +154,14 @@ test.describe("popup", () => {
     await expect(emoji).toHaveValue("64");
 
     await openPopup(popup, extensionId);
+    await openPopupPage(popup, "Settings");
     await expect(settings(popup).getByRole("spinbutton", { name: "Emoji" })).toHaveValue("64");
     await expect(settings(popup).getByRole("spinbutton", { name: "Sticker" })).toHaveValue("320");
   });
 
   test("the size set in the popup is the size an emoji is sent at", async ({ context }) => {
     await request(popup, "library:add", { file: png(256, 256), type: "emoji", title: "wave" });
+    await openPopupPage(popup, "Settings");
 
     const emoji = settings(popup).getByRole("spinbutton", { name: "Emoji" });
 
@@ -183,6 +187,7 @@ test.describe("popup", () => {
     await request(popup, "library:add", { file: png(64, 64), type: "emoji", title: "wave" });
     await request(popup, "library:add", { file: png(64, 64), type: "emoji", title: "cat" });
 
+    await openPopupPage(popup, "Settings");
     await settings(popup).getByRole("radio", { name: "Adds it to the message" }).check();
     await expect.poll(() => stored(popup, "clickAction")).toBe("add");
 
@@ -209,6 +214,7 @@ test.describe("popup", () => {
 
   test("animated items can be kept still in the panel", async ({ context }) => {
     await request(popup, "library:add", { file: gif(128, 128, [[255, 0, 0, 255], [0, 0, 255, 255]], 100), type: "emoji", title: "party" });
+    await openPopupPage(popup, "Settings");
 
     const toggle = settings(popup).getByRole("switch", { name: "Play animated items on hover" });
 
@@ -235,7 +241,24 @@ test.describe("popup", () => {
     await expect(tile(page, "party").locator("img")).not.toHaveAttribute("src", still!);
   });
 
+  test("backup, storage and settings each open as their own page, and Back returns home", async () => {
+    for (const name of ["Backup", "Storage", "Settings"]) {
+      await openPopupPage(popup, name);
+
+      await expect(library(popup)).toHaveCount(0);
+      await expect(popup.getByRole("heading", { level: 1 })).toHaveText(name);
+      await expect(popup.getByRole("button", { name: "Back" })).toBeFocused();
+
+      await popup.getByRole("button", { name: "Back" }).click();
+      await expect(library(popup)).toBeVisible();
+      await expect(popup.getByRole("region", { name })).toHaveCount(0);
+      await expect(popup.getByRole("navigation").getByRole("button", { name })).toBeFocused();
+    }
+  });
+
   test("the header stays at the top while the popup scrolls", async () => {
+    await popup.setViewportSize({ width: 360, height: 300 });
+
     const header = popup.locator("header");
 
     // At rest, no line under the header.

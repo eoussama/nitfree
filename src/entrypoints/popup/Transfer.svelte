@@ -1,6 +1,7 @@
 <!--
-  The popup's backup section: export the library as one .nitfree file, or import a backup or a zip
-  of images. An imported file is checked first, then summarized so the user chooses how to bring it in.
+  The popup's backup page: export the library as one .nitfree file, or import a backup or a zip or
+  folder of images. An imported file is checked first, then summarized so the user chooses how to
+  bring it in.
 -->
 <script lang="ts">
   import type { TImportMode } from "~/lib/archive";
@@ -59,8 +60,45 @@
   }
 </script>
 
-<section class="popup-section" aria-labelledby="nf-transfer">
-  <h2 id="nf-transfer" class="popup-heading">{i18n.t("popup.transfer.heading")}</h2>
+{#snippet status(task: "export" | "import")}
+  {#if transfer.task === task}
+    {#if busy}
+      <div class="status">
+        <div class="progress" role="progressbar" aria-label={progress} aria-valuemin={0} aria-valuemax={transfer.total || undefined} aria-valuenow={transfer.busy === "read" ? undefined : transfer.done}>
+          <div class="progress-fill" class:unknown={transfer.busy === "read"} style:width={transfer.busy === "read" ? null : `${(transfer.done / (transfer.total || 1)) * 100}%`}></div>
+        </div>
+        <p class="form-description" role="status">{progress}</p>
+      </div>
+    {:else if transfer.error}
+      <p class="feedback critical" role="alert">{transfer.error}</p>
+    {:else if result?.kind === "export"}
+      <p class="feedback positive" role="status">{i18n.t("popup.transfer.exported", { items: i18n.t("popup.items", result.count) })}</p>
+    {:else if result?.kind === "import"}
+      <p class="feedback positive" role="status">
+        {i18n.t("popup.transfer.imported", { added: String(result.added), skipped: String(result.skipped) })}
+        {#if result.failed}{i18n.t("popup.transfer.failed", { failed: String(result.failed) })}{/if}
+      </p>
+    {/if}
+  {/if}
+{/snippet}
+
+<div class="form-section">
+  <h2 class="form-title">{i18n.t("popup.transfer.exportTitle")}</h2>
+  <p class="form-description">{i18n.t("popup.transfer.exportHint")}</p>
+  <label class="check">
+    <input class="checkbox" type="checkbox" bind:checked={withSettings} disabled={busy} />
+    <span>{i18n.t("popup.transfer.exportSettings")}</span>
+  </label>
+  <div class="actions">
+    <button class="button primary" type="button" disabled={busy || !library.items.length} onclick={() => void exportItems(library.items, withSettings)}>
+      {i18n.t("popup.transfer.export")}
+    </button>
+  </div>
+  {@render status("export")}
+</div>
+
+<div class="form-section">
+  <h2 class="form-title">{i18n.t("popup.transfer.importTitle")}</h2>
 
   {#if pending}
     <div class="summary">
@@ -71,163 +109,72 @@
           size: formatBytes(pending.archive.totalSize, locale),
         })}
       </p>
-      <p class="hint name">{pending.name}</p>
+      <p class="note name">{pending.name}</p>
       {#if pending.archive.kind === "images"}
-        <p class="hint">{i18n.t("popup.transfer.images")}</p>
+        <p class="note">{i18n.t("popup.transfer.images")}</p>
       {/if}
       {#if pending.archive.ignored}
-        <p class="hint">{i18n.t("popup.transfer.ignored", pending.archive.ignored)}</p>
+        <p class="note">{i18n.t("popup.transfer.ignored", pending.archive.ignored)}</p>
       {/if}
     </div>
 
-    <fieldset class="group" disabled={busy}>
-      <legend class="legend">{i18n.t("popup.transfer.mode")}</legend>
+    <fieldset class="options" disabled={busy}>
+      <legend class="form-label">{i18n.t("popup.transfer.mode")}</legend>
       {#each MODES as value (value)}
-        <label class="choice">
-          <input type="radio" name="nf-import-mode" {value} bind:group={mode} />
-          <span>
+        <label class="option">
+          <input class="radio" type="radio" name="nf-import-mode" {value} bind:group={mode} />
+          <span class="option-text">
             {i18n.t(`popup.transfer.${value}`)}
-            <span class="hint block" class:warning={value === "replace"}>{i18n.t(`popup.transfer.${value}Hint`)}</span>
+            <span class="option-hint" class:warning={value === "replace"}>{i18n.t(`popup.transfer.${value}Hint`)}</span>
           </span>
         </label>
       {/each}
     </fieldset>
 
     {#if pending.archive.settings}
-      <label class="check">
-        <input type="checkbox" bind:checked={importSettings} disabled={busy} />
+      <label class="check settings">
+        <input class="checkbox" type="checkbox" bind:checked={importSettings} disabled={busy} />
         <span>{i18n.t("popup.transfer.withSettings")}</span>
       </label>
     {/if}
 
     <div class="actions">
-      <button class="button" type="button" disabled={busy} onclick={() => void importPending(mode, importSettings)}>{i18n.t("popup.transfer.start")}</button>
       <button class="button secondary" type="button" disabled={busy} onclick={cancelImport}>{i18n.t("popup.transfer.cancel")}</button>
+      <button class="button" class:primary={mode === "merge"} class:critical={mode === "replace"} type="button" disabled={busy} onclick={() => void importPending(mode, importSettings)}>
+        {i18n.t("popup.transfer.start")}
+      </button>
     </div>
   {:else}
+    <p class="form-description">{i18n.t("popup.transfer.importHint")}</p>
     <div class="actions">
-      <button class="button" type="button" disabled={busy || !library.items.length} onclick={() => void exportItems(library.items, withSettings)}>
-        {i18n.t("popup.transfer.export")}
-      </button>
-      <button class="button secondary" type="button" disabled={busy} onclick={() => fileInput?.click()}>{i18n.t("popup.transfer.import")}</button>
       <button class="button secondary" type="button" disabled={busy} onclick={() => folderInput?.click()}>{i18n.t("popup.transfer.importFolder")}</button>
+      <button class="button primary" type="button" disabled={busy} onclick={() => fileInput?.click()}>{i18n.t("popup.transfer.import")}</button>
       <input bind:this={folderInput} class="file-input" type="file" webkitdirectory tabindex="-1" aria-hidden="true" onchange={onFolderPicked} />
       <input bind:this={fileInput} class="file-input" type="file" accept=".nitfree,.zip,application/zip" tabindex="-1" aria-hidden="true" onchange={onPicked} />
     </div>
-    <label class="check">
-      <input type="checkbox" bind:checked={withSettings} disabled={busy} />
-      <span>{i18n.t("popup.transfer.exportSettings")}</span>
-    </label>
-    <p class="hint">{i18n.t("popup.transfer.exportHint")}</p>
-    <p class="hint">{i18n.t("popup.transfer.importHint")}</p>
   {/if}
-
-  {#if busy}
-    <div class="status">
-      <progress class="bar" max={transfer.total || undefined} value={transfer.busy === "read" ? undefined : transfer.done} aria-label={progress}></progress>
-      <p class="hint" role="status">{progress}</p>
-    </div>
-  {:else if transfer.error}
-    <p class="message error" role="alert">{transfer.error}</p>
-  {:else if result?.kind === "export"}
-    <p class="message" role="status">{i18n.t("popup.transfer.exported", { items: i18n.t("popup.items", result.count) })}</p>
-  {:else if result?.kind === "import"}
-    <p class="message" role="status">
-      {i18n.t("popup.transfer.imported", { added: String(result.added), skipped: String(result.skipped) })}
-      {#if result.failed}{i18n.t("popup.transfer.failed", { failed: String(result.failed) })}{/if}
-    </p>
-  {/if}
-</section>
+  {@render status("import")}
+</div>
 
 <style>
-  .actions {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  /* Discord's primary and secondary buttons. */
-  .button {
-    height: 32px;
-    padding: 0 16px;
-    border: none;
-    border-radius: 8px;
-    background-color: var(--nf-accent);
-    color: #fff;
-    font: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .button.secondary {
-    background-color: rgb(151 151 159 / 16%);
-    color: var(--nf-text);
-  }
-
-  .button:hover:not(:disabled) {
-    filter: brightness(0.9);
-  }
-
-  .button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .button:focus-visible,
-  .check input:focus-visible,
-  .choice input:focus-visible {
-    outline: 2px solid var(--nf-accent);
-    outline-offset: 2px;
-  }
-
-  .hint {
-    margin: 0 0 4px;
-    color: var(--nf-muted);
-    font-size: 12px;
-    line-height: 16px;
-  }
-
-  .hint.block {
-    display: block;
-    margin: 0;
-  }
-
-  .hint.warning {
-    color: var(--nf-danger, #f23f42);
-  }
-
-  .check,
-  .choice {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    line-height: 18px;
-    cursor: pointer;
-  }
-
-  .check input,
-  .choice input {
-    flex: none;
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    accent-color: var(--nf-accent);
-  }
-
   .summary {
-    margin-bottom: 12px;
-    padding: 12px;
-    border-radius: var(--nf-radius, 8px);
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm, 8px);
     background-color: var(--nf-bg-elevated);
   }
 
   .figures {
     margin: 0 0 4px;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
+    line-height: 20px;
+  }
+
+  .note {
+    margin: 0;
+    color: var(--nf-muted);
+    font-size: 14px;
     line-height: 18px;
   }
 
@@ -235,40 +182,20 @@
     overflow-wrap: anywhere;
   }
 
-  .group {
-    min-width: 0;
-    margin: 0 0 12px;
-    padding: 0;
-    border: none;
+  .option-hint.warning {
+    color: var(--text-feedback-critical, var(--nf-critical-text));
   }
 
-  .legend {
-    margin-bottom: 8px;
-    padding: 0;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 18px;
+  .settings {
+    margin-top: 12px;
   }
 
   .status {
     margin-top: 12px;
   }
 
-  .bar {
-    width: 100%;
-    height: 6px;
-    margin-bottom: 4px;
-    accent-color: var(--nf-accent);
-  }
-
-  .message {
-    margin: 12px 0 0;
-    font-size: 13px;
-    line-height: 18px;
-  }
-
-  .message.error {
-    color: var(--nf-danger, #f23f42);
+  .status .progress {
+    margin-bottom: 8px;
   }
 
   .file-input {

@@ -4,6 +4,8 @@ extDescription: L'alternative gratuite ultime à Discord Nitro
 popup:
   logo: Logo de Nitfree
   version: Version {version}
+  back: Retour
+  pages: Plus
   github: Voir Nitfree sur GitHub
   library: Bibliothèque
   items:
@@ -11,21 +13,27 @@ popup:
     n: $1 éléments
   storage:
     heading: Stockage
-    usedOf: "{used} utilisés sur {quota} disponibles"
-    used: "{used} utilisés"
+    usage: Espace utilisé
+    usedOf: "{used} utilisés sur {quota} disponibles."
+    used: "{used} utilisés."
     cached: Copies en cache
     cachedHint: Des copies réduites pour la grille et l'envoi. Les effacer garde vos fichiers, et elles sont refaites au besoin.
     clearCache: Vider le cache
     cleared: "{size} libérés."
     largest: Éléments les plus lourds
+    largestHint: Sélectionnez les éléments dont vous n'avez plus besoin pour les supprimer.
     delete:
       1: Supprimer 1 élément
       n: Supprimer $1 éléments
-    confirm: "Supprimer {items} définitivement ? Cette action est irréversible."
+    confirmTitle:
+      1: Supprimer 1 élément
+      n: Supprimer $1 éléments
+    confirm: Leurs fichiers sont définitivement supprimés de votre bibliothèque. Cette action est irréversible.
     confirmDelete: Supprimer
     cancel: Annuler
     deleted: "{items} supprimés."
     failed: "Impossible : {error}"
+    persistTitle: Stockage persistant
     persist: Protéger ma bibliothèque
     persistHint: Sans cela, le navigateur peut effacer votre bibliothèque quand le disque manque d'espace.
     persistDenied: Le navigateur a refusé. Il décide selon votre usage, réessayez plus tard.
@@ -42,6 +50,8 @@ popup:
   animations: Animer les éléments au survol
   transfer:
     heading: Sauvegarde
+    exportTitle: Exporter
+    importTitle: Importer
     export: Exporter la bibliothèque
     exportSettings: Inclure les paramètres
     exportHint: Enregistre tous les éléments, étiquettes et favoris dans un fichier .nitfree.

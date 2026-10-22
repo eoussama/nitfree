@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
-import { openPopup, request } from "./helpers";
+import { openPopup, openPopupPage, request } from "./helpers";
 import { gif, png } from "./images";
 
 
@@ -32,8 +32,9 @@ test.describe("storage", () => {
     await request(popup, "library:storeVariant", { id: sticker.id, key: "sticker-160", file: png(160, 160) });
     await request(popup, "library:storeVariant", { id: emoji.id, key: "emoji-48", file: png(48, 48) });
     await popup.reload();
+    await openPopupPage(popup, "Storage");
 
-    await expect(storage(popup).getByText(/used of .* available$/)).toBeVisible();
+    await expect(storage(popup).getByText(/used of .* available\.$/)).toBeVisible();
     await expect(storage(popup).locator("dd[data-type=\"sticker\"]")).toHaveText(SIZE);
     await expect(storage(popup).locator("dd[data-type=\"emoji\"]")).toHaveText(SIZE);
     await expect(storage(popup).locator("dd[data-type=\"image\"]")).toHaveText(/^0\s?bytes?$/);
@@ -59,6 +60,7 @@ test.describe("storage", () => {
     await request(popup, "library:add", { file: png(16, 16), type: "emoji", title: "small" });
     await request(popup, "library:add", { file: png(512, 512), type: "image", title: "big" });
     await request(popup, "library:add", { file: png(128, 128), type: "sticker", title: "medium" });
+    await openPopupPage(popup, "Storage");
 
     await expect(largest(popup).getByRole("checkbox")).toHaveCount(3);
     await expect(largest(popup).locator(".title")).toHaveText(["big", "medium", "small"]);
@@ -71,13 +73,22 @@ test.describe("storage", () => {
     await expect(remove).toHaveText("Delete 2 items");
 
     // Cancelling keeps everything.
-    await remove.click();
-    await expect(storage(popup).getByText("Delete 2 items for good? This cannot be undone.")).toBeVisible();
-    await storage(popup).getByRole("button", { name: "Cancel" }).click();
-    expect(await items(popup)).toHaveLength(3);
+    const confirm = popup.getByRole("dialog", { name: "Delete 2 items" });
 
     await remove.click();
-    await storage(popup).getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(confirm).toHaveAccessibleDescription("Their files are deleted from your library for good. This cannot be undone.");
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(confirm).toBeHidden();
+    expect(await items(popup)).toHaveLength(3);
+
+    // Escape cancels too.
+    await remove.click();
+    await popup.keyboard.press("Escape");
+    await expect(confirm).toBeHidden();
+
+    await remove.click();
+    await confirm.getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(confirm).toBeHidden();
 
     await expect(storage(popup).getByRole("status")).toHaveText("Deleted 2 items.");
     await expect(largest(popup).locator(".title")).toHaveText(["small"]);
@@ -86,6 +97,8 @@ test.describe("storage", () => {
   });
 
   test("asks the browser to keep the library, and says whether it will", async () => {
+    await openPopupPage(popup, "Storage");
+
     const kept = storage(popup).getByText("The browser will keep your library, even when the disk runs low on space.");
     const button = storage(popup).getByRole("button", { name: "Keep my library safe" });
 

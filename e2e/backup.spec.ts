@@ -7,7 +7,7 @@ import path from "node:path";
 import { unzipSync } from "fflate";
 
 import { expect, test } from "./fixtures";
-import { openDiscord, openPopup, request } from "./helpers";
+import { openDiscord, openPopup, openPopupPage, request } from "./helpers";
 import { png } from "./images";
 
 
@@ -29,6 +29,7 @@ async function seed(page: Page): Promise<void> {
   await request(page, "library:add", { file: png(32, 32), type: "emoji", title: "wave", tags: [tag.id], favorite: true });
   await request(page, "library:add", { file: png(48, 48), type: "sticker", title: "loaf" });
   await expect(library(page).getByText("2 items")).toBeVisible();
+  await openPopupPage(page, "Backup");
 }
 
 /**
@@ -84,7 +85,7 @@ test.describe("backup", () => {
 
     // As in a fresh profile.
     await request(popup, "library:clear");
-    await expect(library(popup).getByText("0 items")).toBeVisible();
+    expect(await items(popup)).toEqual([]);
 
     await pickFile(popup, "Import file", file);
     await expect(backup(popup).getByText("2 items, 1 tag,")).toBeVisible();
@@ -114,7 +115,7 @@ test.describe("backup", () => {
     expect(unzipSync(fs.readFileSync(file))["settings.json"]).toBeDefined();
 
     await request(popup, "library:add", { file: png(64, 64), type: "image", title: "extra" });
-    await expect(library(popup).getByText("3 items")).toBeVisible();
+    expect(await items(popup)).toHaveLength(3);
 
     await pickFile(popup, "Import file", file);
     await expect(backup(popup).getByRole("checkbox", { name: "Also apply the settings in this file" })).toBeChecked();
@@ -125,6 +126,7 @@ test.describe("backup", () => {
   });
 
   test("a damaged file is refused with a clear message, and nothing is written", async () => {
+    await openPopupPage(popup, "Backup");
     await pickFile(popup, "Import file", { name: "broken.nitfree", mimeType: "application/zip", buffer: Buffer.from("not a zip") });
 
     await expect(backup(popup).getByRole("alert")).toHaveText("This is not a zip file, or it is damaged.");
@@ -141,6 +143,7 @@ test.describe("backup", () => {
     fs.writeFileSync(path.join(memes, "happy_cat.png"), bytes(png(16, 16)));
     fs.writeFileSync(path.join(root, "dog.png"), bytes(png(20, 20)));
     fs.writeFileSync(path.join(root, "notes.txt"), "hello");
+    await openPopupPage(popup, "Backup");
 
     await pickFile(popup, "Import folder", root);
     await expect(backup(popup).getByText("2 items, 1 tag,")).toBeVisible();
@@ -156,10 +159,13 @@ test.describe("backup", () => {
     expect(imported.find(item => item.title === "dog")?.tags).toEqual([]);
   });
 
-  test("a backup dropped on the popup is imported rather than added", async () => {
+  test("a backup dropped on the popup's home is imported, on the backup page, rather than added", async () => {
     await seed(popup);
 
     const { file } = await downloaded(popup, () => backup(popup).getByRole("button", { name: "Export library" }).click());
+
+    await popup.getByRole("button", { name: "Back" }).click();
+    await expect(library(popup)).toBeVisible();
 
     await popup.locator("main").evaluate((main, data) => {
       const bytes = Uint8Array.from(atob(data), char => char.charCodeAt(0));

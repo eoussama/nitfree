@@ -24,6 +24,8 @@ export function followStoredTheme(root: HTMLElement): () => void {
 
     applyPalette(root, snapshot?.palette ?? FALLBACK_PALETTES[scheme], reducedMotion);
     root.style.colorScheme = scheme;
+    // For colors the palette does not carry, such as Discord's red and green text, which differ by scheme.
+    root.dataset.nfScheme = scheme;
   };
 
   const update = (value: TThemeSnapshot | null) => {
