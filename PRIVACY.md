@@ -1,0 +1,73 @@
+# Privacy Policy
+
+_Last updated: October 22, 2026. Applies to Nitfree 0.2.0 and later._
+
+Nitfree is a browser extension for Chrome, Edge and Firefox that keeps your own emojis, stickers, GIFs and images in a library and lets you send them on Discord. This policy explains what Nitfree stores, where it stores it, and what it sends.
+
+**In short: Nitfree has no servers. It does not collect, sell or share your data, and it has no analytics, tracking or ads. Everything it keeps stays in your browser, on your device.**
+
+## What Nitfree stores
+
+All of this is kept in your browser's storage for the extension, on your device only. Nitfree does not use sync storage, so nothing is copied to your browser account or to other devices.
+
+**Your library** (in the extension's own IndexedDB database):
+
+- The image files you add (PNG, GIF, WebP or JPEG), and smaller copies made for sending at emoji and sticker sizes.
+- What you enter for each item: its name, type (emoji, sticker, GIF or image), tags, optional description, and whether it is a favorite.
+- Details read from each file so the library works: size, format, width and height, whether it is animated, and a hash used to spot duplicates.
+- When each item was added, last edited and last sent, and how many times it was sent, which is used for the Recent section.
+- Your tags, with their names and colors.
+
+**Your settings and extension state** (in the extension's local storage):
+
+- Your settings: emoji and sticker sending sizes, what a click on an item does, and whether animated items play on hover.
+- Discord's current theme colors and your reduced-motion preference, so the popup can match Discord's look.
+- The date Nitfree was installed.
+
+If you used an earlier version of Nitfree, its library is moved into the new database once and the old database is then deleted.
+
+## What Nitfree reads on Discord
+
+Nitfree runs only on `discord.com`. There it:
+
+- Reads the page's theme (colors and the reduced-motion setting) to match Discord's look.
+- Finds the chat bar and the expression picker so it can add its button and its tab.
+- Reads the current page address only to check that you are still in the same channel when an item finishes preparing, so it is never sent to the wrong channel. The address is not stored.
+
+Nitfree does not read, store or send your messages, contacts, servers, account details or any other content of your Discord account.
+
+## What Nitfree sends
+
+Nitfree itself sends nothing over the network. It makes no requests to any server, including its own, and it loads no remote code.
+
+When you pick an item to send, Nitfree puts the file in Discord's message box, the same way as attaching a file yourself. Discord then uploads it as part of your message. From that point the file is handled by Discord under [Discord's Privacy Policy](https://discord.com/privacy), like any other file you send.
+
+The GitHub link in the popup opens Nitfree's repository in a new tab only when you click it.
+
+## Permissions
+
+| Permission | Why Nitfree needs it |
+| --- | --- |
+| `storage` | To keep your settings and extension state on your device. |
+| Access to `discord.com` | To add the Nitfree button and panel to Discord's chat bar, and to place the items you pick in the message box. |
+
+Nitfree asks for no other permissions. In Firefox, it declares that it collects no data.
+
+## Your control over your data
+
+- Edit or delete any item or tag from the Nitfree panel on Discord.
+- See how much space your library uses in the popup.
+- Uninstalling Nitfree removes its library and settings from your browser.
+- Clearing Discord's site data does not touch your library, because it is kept in the extension's own storage, not in Discord's.
+
+## Children
+
+Nitfree does not knowingly collect any information from anyone, including children.
+
+## Changes to this policy
+
+If Nitfree ever changes what it stores or sends, this policy will be updated in the repository before that version is released, and the date at the top will change.
+
+## Contact
+
+Questions about this policy can be asked on the [Issues](https://github.com/eoussama/nitfree/issues) tab of Nitfree's repository.

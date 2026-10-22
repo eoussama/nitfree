@@ -36,6 +36,29 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
       return item;
     },
 
+    "library:import": async ({ item, skipDuplicates }) => {
+      const imported = await library.import(item, skipDuplicates);
+
+      if (imported) {
+        announce("library:changed", { change: "added", ids: [imported.id] });
+      }
+
+      return imported;
+    },
+
+    "library:clear": async () => {
+      const ids = await library.clear();
+      const tagIds = await tags.clear();
+
+      if (ids.length) {
+        announce("library:changed", { change: "removed", ids });
+      }
+
+      if (tagIds.length) {
+        announce("tags:changed", { change: "removed", ids: tagIds });
+      }
+    },
+
     "library:update": async ({ id, patch }) => {
       const item = await library.update(id, patch);
 
@@ -68,6 +91,16 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
       const tag = await tags.add(input);
 
       announce("tags:changed", { change: "added", ids: [tag.id] });
+
+      return tag;
+    },
+
+    "tags:ensure": async (input) => {
+      const { tag, created } = await tags.ensure(input);
+
+      if (created) {
+        announce("tags:changed", { change: "added", ids: [tag.id] });
+      }
 
       return tag;
     },

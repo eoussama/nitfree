@@ -172,3 +172,39 @@ describe("remove, use and variants", () => {
     await expect(library.storeVariant("missing", "emoji-48", file(png(1, 1)))).rejects.toThrow(/No item/);
   });
 });
+
+describe("import and clear", () => {
+  it("keeps the id, dates and usage of an imported item", async () => {
+    const item = await library.import({
+      id: "kept",
+      file: file(png(2, 2)),
+      type: "gif",
+      title: "a",
+      createdAt: 5,
+      updatedAt: 6,
+      usedAt: 7,
+      usageCount: 3,
+    }, false);
+
+    expect(item).toMatchObject({ id: "kept", createdAt: 5, updatedAt: 6, usedAt: 7, usageCount: 3 });
+    expect((await library.file("kept"))?.size).toBe(png(2, 2).length);
+  });
+
+  it("gives an item a new id when its own is taken, and skips duplicates only when asked", async () => {
+    const first = await library.add({ file: file(png(2, 2)), type: "image", title: "a" });
+    const other = await library.import({ id: first.id, file: file(png(3, 3)), type: "image", title: "b" }, true);
+
+    expect(other?.id).not.toBe(first.id);
+    expect(await library.import({ file: file(png(2, 2)), type: "image", title: "again" }, true)).toBeNull();
+    expect(await library.import({ file: file(png(2, 2)), type: "image", title: "again" }, false)).not.toBeNull();
+    expect(await library.list()).toHaveLength(3);
+  });
+
+  it("clears every item and file", async () => {
+    const item = await library.add({ file: file(png(2, 2)), type: "image", title: "a" });
+
+    expect(await library.clear()).toEqual([item.id]);
+    expect(await library.list()).toEqual([]);
+    expect(await library.file(item.id)).toBeNull();
+  });
+});

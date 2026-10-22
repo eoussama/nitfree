@@ -2,7 +2,7 @@
   "name": "nitfree",
   "displayName": "Nitfree",
   "type": "module",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "packageManager": "pnpm@12.14.0",
   "description": "The definitive freemium Discord Nitro alternative",
@@ -29,7 +29,9 @@
     "@lucide/svelte": "^1.50.0",
     "@wxt-dev/i18n": "^0.2.8",
     "dexie": "^4.4.6",
-    "gifenc": "^1.0.3"
+    "fflate": "^0.8.3",
+    "gifenc": "^1.0.3",
+    "valibot": "^1.5.0"
   },
   "devDependencies": {
     "@eoussama/dx": "^0.1.3",

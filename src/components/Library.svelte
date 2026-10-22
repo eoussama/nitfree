@@ -14,6 +14,7 @@
   import type { TGridKey } from "~/lib/ui/grid";
   import type { TSectionId } from "~/lib/ui/sections";
 
+  import Archive from "@lucide/svelte/icons/archive";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import Clock from "@lucide/svelte/icons/clock";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
@@ -27,6 +28,7 @@
 
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
   import { startAdd } from "~/lib/ui/editor.svelte";
+  import { saveItems } from "~/lib/ui/export";
   import { applyFilters, filterCount, noFilters, tagOptions, toggled, typeOptions, withoutMissingTags } from "~/lib/ui/filters";
   import { GRID_KEYS, nextTile } from "~/lib/ui/grid";
   import { library } from "~/lib/ui/library.svelte";
@@ -139,6 +141,8 @@
 
     return () => window.removeEventListener("pointerdown", onPointerDown, true);
   });
+  // Every item the search and filters show, once each, whichever sections they appear in.
+  const results = $derived([...new Map(sections.flatMap(section => section.items).map(item => [item.id, item])).values()]);
   const highlighted = $derived(sections.some(section => section.id === activeSection) ? activeSection : (sections[0]?.id ?? null));
 
   function tiles(): HTMLElement[] {
@@ -426,6 +430,16 @@
           />
         {/if}
       </div>
+      <button
+        class="icon-button"
+        type="button"
+        disabled={!results.length}
+        aria-label={i18n.t("export.exportResults")}
+        onclick={() => void saveItems(results)}
+        {@attach tooltip(i18n.t("export.exportResults"))}
+      >
+        <Archive size={20} aria-hidden="true" />
+      </button>
       <button class="text-button" type="button" onclick={() => fileInput?.click()}>{i18n.t("panel.add")}</button>
       <input bind:this={fileInput} class="file-input" type="file" accept={ACCEPTED_FILES} multiple tabindex="-1" aria-hidden="true" onchange={onPicked} />
     </div>
@@ -783,7 +797,12 @@
   }
 
 
-  .icon-button:hover,
+  .icon-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .icon-button:hover:not(:disabled),
   .icon-button.on {
     background-color: var(--control-icon-only-background-hover, var(--nf-bg-hover, rgb(255 255 255 / 6%)));
   }

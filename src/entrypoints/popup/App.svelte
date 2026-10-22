@@ -14,6 +14,7 @@
   import { tooltip } from "~/lib/ui/tooltip.svelte";
 
   import Settings from "./Settings.svelte";
+  import Transfer from "./Transfer.svelte";
 
 
 
@@ -148,6 +149,8 @@
       <input bind:this={fileInput} class="file-input" type="file" accept={ACCEPTED_FILES} multiple tabindex="-1" aria-hidden="true" onchange={onPicked} />
     </div>
   </section>
+
+  <Transfer />
 
   <Settings />
 </main>

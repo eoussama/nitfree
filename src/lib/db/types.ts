@@ -45,6 +45,17 @@ export type TNewItem = {
   favorite?: boolean;
 };
 
+/**
+ * An item brought in from an archive: like a new item, but it may keep the id, dates and usage it had.
+ */
+export type TImportItem = TNewItem & {
+  id?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  usedAt?: number | null;
+  usageCount?: number;
+};
+
 export type TItemPatch = Partial<Pick<TItem, "type" | "title" | "description" | "tags" | "favorite">> & {
   file?: Blob;
 };

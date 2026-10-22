@@ -1,0 +1,67 @@
+import * as v from "valibot";
+
+import { ITEM_TYPES } from "~/lib/db/types";
+
+
+
+/**
+ * The archive format version. Bump it when a change would make older readers misread an archive.
+ */
+export const ARCHIVE_VERSION = 1;
+
+export const ARCHIVE_EXTENSION = ".nitfree";
+
+const Count = v.pipe(v.number(), v.integer(), v.minValue(0));
+const Timestamp = v.pipe(v.number(), v.integer(), v.minValue(0));
+
+export const ManifestSchema = v.object({
+  format: v.literal("nitfree"),
+  version: v.pipe(v.number(), v.integer(), v.minValue(1)),
+  appVersion: v.string(),
+  exportedAt: Timestamp,
+});
+
+export const ArchiveTagSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+  name: v.pipe(v.string(), v.trim(), v.minLength(1)),
+  color: v.nullable(v.string()),
+  createdAt: Timestamp,
+});
+
+export const ArchiveItemSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+  type: v.picklist(ITEM_TYPES),
+  title: v.pipe(v.string(), v.trim(), v.minLength(1)),
+  description: v.string(),
+  tags: v.array(v.string()),
+  favorite: v.boolean(),
+  hash: v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/)),
+  size: Count,
+  format: v.picklist(["png", "gif", "webp", "jpeg"]),
+  mime: v.string(),
+  width: Count,
+  height: Count,
+  animated: v.boolean(),
+  createdAt: Timestamp,
+  updatedAt: Timestamp,
+  usedAt: v.nullable(Timestamp),
+  usageCount: Count,
+  file: v.pipe(v.string(), v.regex(/^files\/[^/\\]+$/)),
+});
+
+export const LibrarySchema = v.object({
+  items: v.array(ArchiveItemSchema),
+  tags: v.array(ArchiveTagSchema),
+});
+
+export const ArchiveSettingsSchema = v.object({
+  sendSizes: v.object({ emoji: v.number(), sticker: v.number() }),
+  clickAction: v.picklist(["send", "add"]),
+  playAnimations: v.boolean(),
+});
+
+export type TManifest = v.InferOutput<typeof ManifestSchema>;
+export type TArchiveTag = v.InferOutput<typeof ArchiveTagSchema>;
+export type TArchiveItem = v.InferOutput<typeof ArchiveItemSchema>;
+export type TArchiveLibrary = v.InferOutput<typeof LibrarySchema>;
+export type TArchiveSettings = v.InferOutput<typeof ArchiveSettingsSchema>;

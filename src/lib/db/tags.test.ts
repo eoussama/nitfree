@@ -62,3 +62,21 @@ describe("tags", () => {
     expect(await db.items.where("tags").equals(cats.id).count()).toBe(0);
   });
 });
+
+describe("ensure and clear", () => {
+  it("finds a tag whatever its case, or creates it", async () => {
+    const created = await tags.ensure({ name: "Cats", color: "#fff" });
+    const found = await tags.ensure({ name: " cats ", color: "#000" });
+
+    expect(created.created).toBe(true);
+    expect(found).toEqual({ tag: created.tag, created: false });
+    expect(await tags.list()).toHaveLength(1);
+  });
+
+  it("clears every tag", async () => {
+    const { tag } = await tags.ensure({ name: "a" });
+
+    expect(await tags.clear()).toEqual([tag.id]);
+    expect(await tags.list()).toEqual([]);
+  });
+});

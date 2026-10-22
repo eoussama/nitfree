@@ -1,10 +1,11 @@
 <svelte:options css="injected" />
 
 <!--
-  The right-click menu on a library item, styled like Discord's context menus: Favorite, Edit, then
+  The right-click menu on a library item, styled like Discord's context menus: Favorite, Edit, Download, then
   Delete in red. Arrow keys move, Enter picks, Escape closes.
 -->
 <script lang="ts">
+  import Download from "@lucide/svelte/icons/download";
   import Pencil from "@lucide/svelte/icons/pencil";
   import Star from "@lucide/svelte/icons/star";
   import StarOff from "@lucide/svelte/icons/star-off";
@@ -12,6 +13,7 @@
 
   import { sendMessage } from "~/lib/messaging";
   import { startEdit } from "~/lib/ui/editor.svelte";
+  import { saveItem } from "~/lib/ui/export";
   import { closeMenu, menu } from "~/lib/ui/menu.svelte";
   import { focusAfterRemoval, tileAfterUnfavorite } from "~/lib/ui/tiles";
   import { deleteWithUndo } from "~/lib/ui/trash.svelte";
@@ -82,6 +84,17 @@
     }
   }
 
+  function save(): void {
+    const { item, restoreFocus } = menu;
+
+    closeMenu();
+    restoreFocus?.focus();
+
+    if (item) {
+      void saveItem(item);
+    }
+  }
+
   function remove(): void {
     const { item, restoreFocus } = menu;
 
@@ -120,6 +133,10 @@
     <button class="item" type="button" role="menuitem" onclick={edit}>
       {i18n.t("menu.edit")}
       <Pencil size={18} aria-hidden="true" />
+    </button>
+    <button class="item" type="button" role="menuitem" onclick={save}>
+      {i18n.t("menu.download")}
+      <Download size={18} aria-hidden="true" />
     </button>
     <div class="separator" role="separator"></div>
     <button class="item danger" type="button" role="menuitem" onclick={remove}>

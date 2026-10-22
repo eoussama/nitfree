@@ -1,6 +1,6 @@
 import type { NitfreeDatabase } from "./schema";
 
-import type { TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
+import type { TImportItem, TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
 import type { TImageInfo } from "~/lib/media";
 
 import { inspectImage } from "~/lib/media";
@@ -182,6 +182,71 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
         await db.blobs.add({ itemId: row.id, original: inspected.file, variants: {} });
 
         return toItem(row);
+      });
+    },
+
+    /**
+     * Adds an item from an archive, keeping the id, dates and usage it had when it can.
+     *
+     * @param input - The file and its details.
+     * @param skipDuplicates - Leave out a file whose content is already in the library.
+     * @returns The new item, or null when it was skipped as a duplicate.
+     */
+    async import(input: TImportItem, skipDuplicates: boolean): Promise<TItem | null> {
+      checkType(input.type);
+
+      const title = checkTitle(input.title);
+      const inspected = await inspectFile(input.file);
+      const timestamp = now();
+
+      return db.transaction("rw", db.items, db.blobs, db.tags, async () => {
+        if (skipDuplicates && await db.items.where("hash").equals(inspected.hash).count()) {
+          return null;
+        }
+
+        // An id that is already taken belongs to a different item, so this one gets a fresh id.
+        const id = input.id && !await db.items.get(input.id) ? input.id : crypto.randomUUID();
+        const createdAt = input.createdAt ?? timestamp;
+        const row: TItemRow = {
+          id,
+          type: input.type,
+          title,
+          description: input.description?.trim() ?? "",
+          tags: await checkTags(input.tags ?? []),
+          favorite: input.favorite ? 1 : 0,
+          hash: inspected.hash,
+          size: inspected.size,
+          format: inspected.format,
+          mime: inspected.mime,
+          width: inspected.width,
+          height: inspected.height,
+          animated: inspected.animated,
+          createdAt,
+          updatedAt: input.updatedAt ?? createdAt,
+          usedAt: input.usedAt ?? null,
+          usageCount: input.usageCount ?? 0,
+        };
+
+        await db.items.add(row);
+        await db.blobs.add({ itemId: id, original: inspected.file, variants: {} });
+
+        return toItem(row);
+      });
+    },
+
+    /**
+     * Deletes every item and file.
+     *
+     * @returns The ids of the items that were deleted.
+     */
+    async clear(): Promise<string[]> {
+      return db.transaction("rw", db.items, db.blobs, async () => {
+        const ids = await db.items.toCollection().primaryKeys();
+
+        await db.items.clear();
+        await db.blobs.clear();
+
+        return ids;
       });
     },
 

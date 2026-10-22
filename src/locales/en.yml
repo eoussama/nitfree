@@ -20,6 +20,35 @@ popup:
   clickAdd: Adds it to the message
   clickHint: Shift+click does the other.
   animations: Play animated items on hover
+  transfer:
+    heading: Backup
+    export: Export library
+    exportSettings: Include settings
+    exportHint: Saves every item, tag and favorite as one .nitfree file.
+    import: Import
+    importHint: A .nitfree backup, or a zip of images where folders become tags.
+    reading: Reading the file…
+    exporting: "Exporting {done} of {total}"
+    importing: "Importing {done} of {total}"
+    tags:
+      1: 1 tag
+      n: $1 tags
+    summary: "{items}, {tags}, {size}"
+    images: Plain images. Folder names become tags and file names become titles.
+    ignored:
+      1: 1 file that is not a supported image is left out.
+      n: $1 files that are not supported images are left out.
+    mode: How to import
+    merge: Add to my library
+    mergeHint: Files that are already in it are skipped.
+    replace: Replace my library
+    replaceHint: Everything in it is deleted first.
+    withSettings: Also apply the settings in this file
+    start: Import
+    cancel: Cancel
+    exported: "Exported {items}."
+    imported: "Added {added}, skipped {skipped} already in your library."
+    failed: "{failed} could not be added."
 toggler:
   label: Open Nitfree
 panel:
@@ -79,7 +108,14 @@ menu:
   favorite: Add to Favorites
   unfavorite: Remove from Favorites
   edit: Edit
+  download: Download
   delete: Delete
+export:
+  exportResults: Export shown items
+  progress: "Exporting {done} of {total}"
+  done: "Exported {items}."
+  failed: "Could not export: {error}"
+  missing: The file of “{title}” is missing.
 send:
   noComposer: Nitfree could not find the message box to send to.
   missing: The file of “{title}” is missing.

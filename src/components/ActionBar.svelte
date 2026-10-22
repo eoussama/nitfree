@@ -2,13 +2,14 @@
 
 <!--
   The quick actions above the hovered item, styled like the bar Discord shows on a hovered message:
-  Favorite, Edit and, apart, Delete. It floats a little above the tile, or below it when there is no
+  Favorite, Edit, Download and, apart, Delete. It floats a little above the tile, or below it when there is no
   room above, and goes once the pointer leaves both. The gap between them still counts as the bar, so
   moving up to it never passes over the tile above.
 -->
 <script lang="ts">
   import type { TItem } from "~/lib/db";
 
+  import Download from "@lucide/svelte/icons/download";
   import Pencil from "@lucide/svelte/icons/pencil";
   import Star from "@lucide/svelte/icons/star";
   import StarOff from "@lucide/svelte/icons/star-off";
@@ -16,6 +17,7 @@
 
   import { sendMessage } from "~/lib/messaging";
   import { startEdit } from "~/lib/ui/editor.svelte";
+  import { saveItem } from "~/lib/ui/export";
   import { motion } from "~/lib/ui/motion.svelte";
   import { focusAfterRemoval } from "~/lib/ui/tiles";
   import { tooltip } from "~/lib/ui/tooltip.svelte";
@@ -148,6 +150,9 @@
     </button>
     <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.edit")} onmousedown={keepFocus} onclick={edit} {@attach tooltip(i18n.t("menu.edit"))}>
       <Pencil size={20} aria-hidden="true" />
+    </button>
+    <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.download")} onmousedown={keepFocus} onclick={() => void saveItem(item)} {@attach tooltip(i18n.t("menu.download"))}>
+      <Download size={20} aria-hidden="true" />
     </button>
     <span class="separator" aria-hidden="true"></span>
     <button class="button danger" type="button" tabindex="-1" aria-label={i18n.t("menu.delete")} onmousedown={keepFocus} onclick={remove} {@attach tooltip(i18n.t("menu.delete"))}>

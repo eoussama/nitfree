@@ -79,6 +79,46 @@ export function createTags(db: NitfreeDatabase, now: () => number = Date.now) {
     },
 
     /**
+     * Finds the tag with this name, whatever its case, or creates it.
+     *
+     * @param input - The tag's name and color; the color only applies to a new tag.
+     * @returns The tag, and whether it was just created.
+     */
+    async ensure(input: TNewTag): Promise<{ tag: TTag; created: boolean }> {
+      const name = checkName(input.name);
+      const key = tagKey(name);
+
+      return db.transaction("rw", db.tags, async () => {
+        const existing = await db.tags.where("key").equals(key).first();
+
+        if (existing) {
+          return { tag: toTag(existing), created: false };
+        }
+
+        const row: TTagRow = { id: crypto.randomUUID(), name, key, color: input.color ?? null, createdAt: now() };
+
+        await db.tags.add(row);
+
+        return { tag: toTag(row), created: true };
+      });
+    },
+
+    /**
+     * Deletes every tag. Items are not touched, so clear them first.
+     *
+     * @returns The ids of the tags that were deleted.
+     */
+    async clear(): Promise<string[]> {
+      return db.transaction("rw", db.tags, async () => {
+        const ids = await db.tags.toCollection().primaryKeys();
+
+        await db.tags.clear();
+
+        return ids;
+      });
+    },
+
+    /**
      * Renames or recolors a tag.
      *
      * @param id - The tag's id.

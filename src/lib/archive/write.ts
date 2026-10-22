@@ -1,0 +1,99 @@
+import type { TArchiveItem, TArchiveLibrary, TArchiveSettings, TManifest } from "./schema";
+
+import type { TItem, TTag } from "~/lib/db";
+
+import { strToU8, zipSync } from "fflate";
+
+import { ARCHIVE_VERSION } from "./schema";
+
+
+
+export type TArchiveSource = {
+  items: readonly TItem[];
+  tags: readonly TTag[];
+  settings?: TArchiveSettings;
+  appVersion: string;
+
+  /**
+   * Reads an item's original file.
+   */
+  readFile: (item: TItem) => Promise<Uint8Array | null>;
+
+  /**
+   * Called after each file is read, so large libraries can show progress.
+   */
+  onProgress?: (done: number, total: number) => void;
+  now?: () => number;
+};
+
+const EXTENSIONS: Record<TItem["format"], string> = { png: "png", gif: "gif", webp: "webp", jpeg: "jpg" };
+
+/**
+ * Where an item's original file sits inside an archive.
+ *
+ * @param item - The item.
+ * @returns The path, e.g. "files/3f2a.png".
+ */
+export function archivePath(item: Pick<TItem, "id" | "format">): string {
+  return `files/${item.id}.${EXTENSIONS[item.format]}`;
+}
+
+/**
+ * Keeps the tags that at least one of the items carries.
+ *
+ * @param items - The items.
+ * @param tags - Every tag.
+ * @returns The tags in use.
+ */
+export function tagsOf(items: readonly TItem[], tags: readonly TTag[]): TTag[] {
+  const used = new Set(items.flatMap(item => item.tags));
+
+  return tags.filter(tag => used.has(tag.id));
+}
+
+function json(value: unknown): Uint8Array {
+  return strToU8(JSON.stringify(value, null, 2));
+}
+
+/**
+ * Packs items, their tags and their original files into a `.nitfree` archive: a zip holding
+ * `manifest.json`, `library.json`, the files under `files/`, and optionally `settings.json`.
+ *
+ * @param source - What to pack and how to read the files.
+ * @returns The archive's bytes.
+ */
+export async function writeArchive(source: TArchiveSource): Promise<Uint8Array> {
+  const { items, tags, settings, appVersion, readFile, onProgress, now = Date.now } = source;
+  // Images are already compressed, so the files are stored as they are and only the JSON is deflated.
+  const entries: Record<string, [Uint8Array, { level: 0 | 6 }]> = {};
+  const archived: TArchiveItem[] = [];
+
+  for (const [index, item] of items.entries()) {
+    const bytes = await readFile(item);
+
+    if (!bytes) {
+      throw new Error(`The file of "${item.title}" is missing from the library`);
+    }
+
+    const file = archivePath(item);
+
+    entries[file] = [bytes, { level: 0 }];
+    archived.push({ ...item, file });
+    onProgress?.(index + 1, items.length);
+  }
+
+  const manifest: TManifest = { format: "nitfree", version: ARCHIVE_VERSION, appVersion, exportedAt: now() };
+  const library: TArchiveLibrary = {
+    items: archived,
+    tags: tags.map(({ id, name, color, createdAt }) => ({ id, name, color, createdAt })),
+  };
+
+  entries["manifest.json"] = [json(manifest), { level: 6 }];
+  entries["library.json"] = [json(library), { level: 6 }];
+
+  if (settings) {
+    entries["settings.json"] = [json(settings), { level: 6 }];
+  }
+
+  return zipSync(entries);
+}

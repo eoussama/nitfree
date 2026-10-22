@@ -20,6 +20,35 @@ popup:
   clickAdd: L'ajoute au message
   clickHint: Maj+clic fait l'autre.
   animations: Animer les éléments au survol
+  transfer:
+    heading: Sauvegarde
+    export: Exporter la bibliothèque
+    exportSettings: Inclure les paramètres
+    exportHint: Enregistre tous les éléments, étiquettes et favoris dans un fichier .nitfree.
+    import: Importer
+    importHint: Une sauvegarde .nitfree, ou un zip d'images dont les dossiers deviennent des étiquettes.
+    reading: Lecture du fichier…
+    exporting: "Export de {done} sur {total}"
+    importing: "Import de {done} sur {total}"
+    tags:
+      1: 1 étiquette
+      n: $1 étiquettes
+    summary: "{items}, {tags}, {size}"
+    images: Des images simples. Les noms de dossiers deviennent des étiquettes et les noms de fichiers des titres.
+    ignored:
+      1: 1 fichier qui n'est pas une image prise en charge est ignoré.
+      n: $1 fichiers qui ne sont pas des images prises en charge sont ignorés.
+    mode: Façon d'importer
+    merge: Ajouter à ma bibliothèque
+    mergeHint: Les fichiers déjà présents sont ignorés.
+    replace: Remplacer ma bibliothèque
+    replaceHint: Tout son contenu est d'abord supprimé.
+    withSettings: Appliquer aussi les paramètres de ce fichier
+    start: Importer
+    cancel: Annuler
+    exported: "{items} exportés."
+    imported: "{added} ajoutés, {skipped} déjà dans votre bibliothèque ignorés."
+    failed: "{failed} n'ont pas pu être ajoutés."
 toggler:
   label: Ouvrir Nitfree
 panel:
@@ -79,7 +108,14 @@ menu:
   favorite: Ajouter aux favoris
   unfavorite: Retirer des favoris
   edit: Modifier
+  download: Télécharger
   delete: Supprimer
+export:
+  exportResults: Exporter les éléments affichés
+  progress: "Export de {done} sur {total}"
+  done: "{items} exportés."
+  failed: "Export impossible : {error}"
+  missing: Le fichier de « {title} » est introuvable.
 send:
   noComposer: Nitfree ne trouve pas la zone de message où envoyer.
   missing: Le fichier de « {title} » est introuvable.
