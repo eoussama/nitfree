@@ -1,15 +1,22 @@
 import type { NitfreeDatabase } from "./schema";
 
-import type { TCacheUsage, TImportItem, TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
+import type { TCacheUsage, TDuplicateGroup, TImportItem, TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
 import type { TImageInfo } from "~/lib/media";
 
 import { inspectImage } from "~/lib/media";
+import { imageFingerprint } from "~/lib/media/fingerprint";
 
+import { groupDuplicates } from "./duplicates";
 import { ITEM_TYPES } from "./types";
 
 
 
 type TInspectedFile = TImageInfo & { file: Blob; hash: string; size: number };
+
+/**
+ * Fingerprints a file for finding near-identical images; null when it cannot.
+ */
+export type TFingerprinter = (file: Blob) => Promise<string | null>;
 
 export type TLibrary = ReturnType<typeof createLibrary>;
 
@@ -22,7 +29,7 @@ export type TLibrary = ReturnType<typeof createLibrary>;
  * @returns The item.
  */
 export function toItem(row: TItemRow): TItem {
-  const { favorite, ...rest } = row;
+  const { favorite, fingerprint, ...rest } = row;
 
   return { ...rest, favorite: favorite === 1 };
 }
@@ -83,9 +90,14 @@ function checkTitle(title: string): string {
  *
  * @param db - The library database.
  * @param now - Clock, replaceable in tests.
+ * @param fingerprint - Fingerprints files, replaceable in tests, where images cannot be decoded.
  * @returns The service.
  */
-export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now) {
+export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now, fingerprint: TFingerprinter = imageFingerprint) {
+  async function fingerprintOf(file: Blob): Promise<string | null> {
+    return fingerprint(file).catch(() => null);
+  }
+
   async function checkTags(ids: readonly string[]): Promise<string[]> {
     const unique = [...new Set(ids)];
     const found = await db.tags.bulkGet(unique);
@@ -155,6 +167,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
 
       const title = checkTitle(input.title);
       const inspected = await inspectFile(input.file);
+      const print = await fingerprintOf(inspected.file);
       const timestamp = now();
 
       return db.transaction("rw", db.items, db.blobs, db.tags, async () => {
@@ -176,6 +189,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
           updatedAt: timestamp,
           usedAt: null,
           usageCount: 0,
+          fingerprint: print,
         };
 
         await db.items.add(row);
@@ -197,6 +211,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
 
       const title = checkTitle(input.title);
       const inspected = await inspectFile(input.file);
+      const print = await fingerprintOf(inspected.file);
       const timestamp = now();
 
       return db.transaction("rw", db.items, db.blobs, db.tags, async () => {
@@ -225,6 +240,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
           updatedAt: input.updatedAt ?? createdAt,
           usedAt: input.usedAt ?? null,
           usageCount: input.usageCount ?? 0,
+          fingerprint: print,
         };
 
         await db.items.add(row);
@@ -264,6 +280,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
 
       const title = patch.title === undefined ? undefined : checkTitle(patch.title);
       const inspected = patch.file ? await inspectFile(patch.file) : null;
+      const print = inspected ? await fingerprintOf(inspected.file) : null;
 
       return db.transaction("rw", db.items, db.blobs, db.tags, async () => {
         const current = await getRow(id);
@@ -282,6 +299,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
             width: inspected.width,
             height: inspected.height,
             animated: inspected.animated,
+            fingerprint: print,
           }),
           updatedAt: now(),
         };
@@ -330,6 +348,64 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
         await db.blobs.bulkDelete(existing);
 
         return existing;
+      });
+    },
+
+    /**
+     * Finds items that show the same picture: the same file, or a near-identical one. Items that have
+     * no fingerprint yet, such as those added by an earlier version, get one first, once.
+     *
+     * @returns The groups of duplicates, the item suggested to keep first in each.
+     */
+    async duplicates(): Promise<TDuplicateGroup[]> {
+      const missing = await db.items.filter(row => row.fingerprint === undefined).toArray();
+
+      for (const row of missing) {
+        const blob = await db.blobs.get(row.id);
+        const print = blob ? await fingerprintOf(blob.original) : null;
+
+        // The file may have been replaced meanwhile, and the fingerprint would then be of the old one.
+        await db.items.where("id").equals(row.id).modify((current) => {
+          if (current.hash === row.hash) {
+            current.fingerprint = print;
+          }
+        });
+      }
+
+      return groupDuplicates(await db.items.toArray());
+    },
+
+    /**
+     * Keeps one of several duplicates: it takes the others' tags, favorite and sends, then the others
+     * are deleted.
+     *
+     * @param keep - The item to keep.
+     * @param remove - The duplicates to delete.
+     * @returns The kept item, and the ids of the items deleted.
+     */
+    async merge(keep: string, remove: readonly string[]): Promise<{ item: TItem; removed: string[] }> {
+      const others = [...new Set(remove)].filter(id => id !== keep);
+
+      return db.transaction("rw", db.items, db.blobs, async () => {
+        const kept = await getRow(keep);
+        const rows = (await db.items.bulkGet(others)).filter(row => row !== undefined);
+        const used = [kept, ...rows].flatMap(row => row.usedAt ?? []);
+        const row: TItemRow = {
+          ...kept,
+          description: kept.description || (rows.find(other => other.description)?.description ?? ""),
+          tags: [...new Set([kept, ...rows].flatMap(other => other.tags))],
+          favorite: [kept, ...rows].some(other => other.favorite) ? 1 : 0,
+          usedAt: used.length ? Math.max(...used) : null,
+          usageCount: [kept, ...rows].reduce((sum, other) => sum + other.usageCount, 0),
+          updatedAt: now(),
+        };
+        const removed = rows.map(other => other.id);
+
+        await db.items.put(row);
+        await db.items.bulkDelete(removed);
+        await db.blobs.bulkDelete(removed);
+
+        return { item: toItem(row), removed };
       });
     },
 

@@ -41,7 +41,7 @@ export function fitWithin(size: TSize, max: number): TSize {
  * @param to - The size to draw it at.
  * @returns A canvas holding the result.
  */
-function drawScaled(source: CanvasImageSource, from: TSize, to: TSize): OffscreenCanvas {
+export function drawScaled(source: CanvasImageSource, from: TSize, to: TSize): OffscreenCanvas {
   let current: CanvasImageSource = source;
   let size = from;
 

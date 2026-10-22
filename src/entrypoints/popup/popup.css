@@ -39,11 +39,13 @@
   --nf-critical-hover: #a12828;
   --nf-critical-text: #f57976;
   --nf-positive-text: #4fd189;
+  --nf-warning-text: #fbb848;
 }
 
 [data-nf-scheme="light"] {
   --nf-critical-text: #c4313b;
   --nf-positive-text: #0d7d44;
+  --nf-warning-text: #9a5a00;
 }
 
 /* Discord's small buttons. */

@@ -14,7 +14,7 @@
   // Not from "~/lib/db": that would bundle Dexie into the content script, and Chrome refuses its "\uffff" key bound as invalid UTF-8.
   import { ITEM_TYPES } from "~/lib/db/types";
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
-  import { closeEditor, editor, isUsable, removeDraft, replaceFile, saveEditor } from "~/lib/ui/editor.svelte";
+  import { closeEditor, duplicateWarning, editor, isUsable, removeDraft, replaceFile, saveEditor } from "~/lib/ui/editor.svelte";
   import { library } from "~/lib/ui/library.svelte";
 
   import TagInput from "./TagInput.svelte";
@@ -94,6 +94,7 @@
 
       <div class="modal-content">
         {#each editor.drafts as draft (draft.key)}
+          {@const warning = duplicateWarning(draft)}
           <fieldset class="draft" class:unusable={!isUsable(draft)} disabled={editor.saving}>
             <legend class="sr-only">{draft.file?.name ?? draft.title}</legend>
 
@@ -106,6 +107,10 @@
             <div class="fields">
               {#if draft.error}
                 <p class="draft-error" role="alert">{draft.error}</p>
+              {/if}
+
+              {#if warning}
+                <p class="draft-warning">{warning}</p>
               {/if}
 
               {#if draft.info}
@@ -377,11 +382,16 @@
   }
 
   .draft-error,
+  .draft-warning,
   .footer-error {
     margin: 0;
     font-size: 14px;
     line-height: 18px;
     color: var(--text-feedback-critical, #f57976);
+  }
+
+  .draft-warning {
+    color: var(--text-feedback-warning, var(--nf-warning-text, #fbb848));
   }
 
   .footer-error {

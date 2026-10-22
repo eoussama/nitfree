@@ -1,6 +1,6 @@
 import type { NitfreeDatabase } from "./schema";
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { gif, png, webpExtended } from "~/lib/media/fixtures";
 
@@ -206,6 +206,57 @@ describe("cache", () => {
     expect((await library.file(b.id))?.size).toBe(png(64, 64).length);
     expect(await library.list()).toHaveLength(2);
     expect(await library.clearCache()).toEqual({ size: 0, count: 0 });
+  });
+});
+
+describe("duplicates", () => {
+  const RED = "0123456789abcdefff0000";
+
+  it("groups the same files and near-identical images, fingerprinting older items once", async () => {
+    const fingerprint = vi.fn(async () => RED);
+    const finder = createLibrary(db, steppingClock(), fingerprint);
+    const a = await finder.add({ file: file(png(64, 64)), type: "emoji", title: "a" });
+    const big = await finder.add({ file: file(png(128, 128)), type: "sticker", title: "big" });
+    const copy = await finder.add({ file: file(png(64, 64)), type: "emoji", title: "copy" });
+    const wide = await finder.add({ file: file(png(64, 32)), type: "emoji", title: "wide" });
+
+    expect(await finder.duplicates()).toEqual([{ ids: [big.id, a.id, copy.id], exact: false }]);
+    expect(fingerprint).toHaveBeenCalledTimes(4);
+
+    // An item from before fingerprints gets one when duplicates are looked for, and only then.
+    await db.items.update(wide.id, { fingerprint: undefined });
+    await finder.duplicates();
+    await finder.duplicates();
+    expect(fingerprint).toHaveBeenCalledTimes(5);
+    expect((await db.items.get(wide.id))?.fingerprint).toBe(RED);
+  });
+
+  it("finds only the same files when images cannot be fingerprinted", async () => {
+    const a = await library.add({ file: file(png(64, 64)), type: "emoji", title: "a" });
+    const copy = await library.add({ file: file(png(64, 64)), type: "emoji", title: "copy" });
+
+    await library.add({ file: file(png(128, 128)), type: "emoji", title: "big" });
+    expect(await library.duplicates()).toEqual([{ ids: [a.id, copy.id], exact: true }]);
+  });
+
+  it("keeps one, with the others' tags, favorite, description and sends, and deletes the others", async () => {
+    const cats = await tags.add({ name: "Cats" });
+    const dogs = await tags.add({ name: "Dogs" });
+    const kept = await library.add({ file: file(png(64, 64)), type: "emoji", title: "kept", tags: [cats.id] });
+    const other = await library.add({ file: file(png(64, 64)), type: "emoji", title: "other", tags: [dogs.id, cats.id], favorite: true, description: "a cat" });
+
+    await library.use(other.id);
+    await library.use(other.id);
+
+    const { item, removed } = await library.merge(kept.id, [other.id, kept.id, "missing"]);
+
+    expect(removed).toEqual([other.id]);
+    expect(item).toMatchObject({ id: kept.id, title: "kept", tags: [cats.id, dogs.id], favorite: true, description: "a cat", usageCount: 2 });
+    expect(item.usedAt).not.toBeNull();
+    expect(await library.get(kept.id)).toEqual(item);
+    expect(await library.get(other.id)).toBeNull();
+    expect(await library.file(other.id)).toBeNull();
+    await expect(library.merge("missing", [kept.id])).rejects.toThrow(/No item/);
   });
 });
 

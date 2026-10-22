@@ -241,8 +241,8 @@ test.describe("popup", () => {
     await expect(tile(page, "party").locator("img")).not.toHaveAttribute("src", still!);
   });
 
-  test("backup, storage and settings each open as their own page, and Back returns home", async () => {
-    for (const name of ["Backup", "Storage", "Settings"]) {
+  test("backup, storage, duplicates and settings each open as their own page, and Back returns home", async () => {
+    for (const name of ["Backup", "Storage", "Duplicates", "Settings"]) {
       await openPopupPage(popup, name);
 
       await expect(library(popup)).toHaveCount(0);

@@ -3,6 +3,7 @@ import type { TImageInfo } from "~/lib/media";
 
 import { toError, tryCatch } from "@eoussama/core";
 
+import { hashBytes } from "~/lib/db/library";
 import { inspectImage } from "~/lib/media";
 import { sendMessage } from "~/lib/messaging";
 
@@ -21,6 +22,8 @@ export type TDraft = {
   url: string | null;
   ownsUrl: boolean;
   info: TImageInfo | null;
+  // The file's content hash, to warn when it is already in the library; null for the item being edited.
+  hash: string | null;
   error: string | null;
   title: string;
   type: TItemType;
@@ -51,22 +54,23 @@ let ticket = 0;
 // What had focus before the dialog opened, focused again when it closes.
 let returnFocus: HTMLElement | null = null;
 
-async function readFile(file: File): Promise<Pick<TDraft, "info" | "error" | "url" | "ownsUrl">> {
+async function readFile(file: File): Promise<Pick<TDraft, "info" | "hash" | "error" | "url" | "ownsUrl">> {
   if (!isAcceptedFile(file) && !file.type.startsWith("image/")) {
-    return { info: null, error: i18n.t("editor.unsupported"), url: null, ownsUrl: false };
+    return { info: null, hash: null, error: i18n.t("editor.unsupported"), url: null, ownsUrl: false };
   }
 
   // A file moved or changed since it was picked cannot be read any more.
   const [error, bytes] = await tryCatch(file.arrayBuffer());
 
   if (error) {
-    return { info: null, error: i18n.t("editor.unreadable"), url: null, ownsUrl: false };
+    return { info: null, hash: null, error: i18n.t("editor.unreadable"), url: null, ownsUrl: false };
   }
 
   const info = inspectImage(new Uint8Array(bytes));
 
   return {
     info,
+    hash: info ? await hashBytes(new Uint8Array(bytes)) : null,
     error: info ? null : i18n.t("editor.unsupported"),
     url: info ? URL.createObjectURL(file) : null,
     ownsUrl: info !== null,
@@ -129,6 +133,29 @@ function clear(): void {
  */
 export function isUsable(draft: TDraft): boolean {
   return draft.info !== null;
+}
+
+/**
+ * Warns when a draft's file is already in the library, or listed earlier in the dialog, so saving it
+ * would keep a second copy.
+ *
+ * @param draft - A draft in the dialog.
+ * @returns The warning, or null.
+ */
+export function duplicateWarning(draft: TDraft): string | null {
+  if (!draft.hash) {
+    return null;
+  }
+
+  const item = library.items.find(found => found.hash === draft.hash && found.id !== editor.item?.id);
+
+  if (item) {
+    return i18n.t("editor.duplicate", { title: item.title });
+  }
+
+  const index = editor.drafts.findIndex(found => found.key === draft.key);
+
+  return editor.drafts.slice(0, index).some(found => found.hash === draft.hash) ? i18n.t("editor.duplicateDraft") : null;
 }
 
 async function readDrafts(files: readonly File[]): Promise<TDraft[]> {
@@ -213,6 +240,7 @@ export function startEdit(item: TItem, focus: HTMLElement | null = focusedElemen
     url: null,
     ownsUrl: false,
     info: { format: item.format, mime: item.mime, width: item.width, height: item.height, animated: item.animated },
+    hash: null,
     error: null,
     title: item.title,
     type: item.type,

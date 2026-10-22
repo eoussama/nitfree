@@ -124,6 +124,20 @@ describe("library handlers", () => {
     expect(notify).toHaveBeenCalledTimes(1);
   });
 
+  it("find duplicates silently, and announce a merge as the kept item updated and the others removed", async () => {
+    const kept = await handlers["library:add"]!({ file: new Blob([png(2, 2)]), type: "emoji", title: "a" }, sender);
+    const copy = await handlers["library:add"]!({ file: new Blob([png(2, 2)]), type: "emoji", title: "b" }, sender);
+
+    notify.mockClear();
+    expect(await handlers["library:duplicates"]!(undefined, sender)).toEqual([{ ids: [kept.id, copy.id], exact: true }]);
+    expect(notify).not.toHaveBeenCalled();
+
+    expect((await handlers["library:merge"]!({ keep: kept.id, remove: [copy.id] }, sender)).id).toBe(kept.id);
+    expect(notify).toHaveBeenCalledWith("library:changed", { change: "updated", ids: [kept.id] });
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "removed", ids: [copy.id] });
+    expect(await handlers["library:list"]!(undefined, sender)).toHaveLength(1);
+  });
+
   it("still answers when an announcement fails", async () => {
     notify.mockRejectedValue(new Error("no receivers"));
 

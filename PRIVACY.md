@@ -14,7 +14,7 @@ All of this is kept in your browser's storage for the extension, on your device 
 
 - The image files you add (PNG, GIF, WebP or JPEG), and smaller copies made for sending at emoji and sticker sizes.
 - What you enter for each item: its name, type (emoji, sticker, GIF or image), tags, optional description, and whether it is a favorite.
-- Details read from each file so the library works: size, format, width and height, whether it is animated, and a hash used to spot duplicates.
+- Details read from each file so the library works: size, format, width and height, whether it is animated, a hash used to spot identical files, and a small fingerprint of how each image looks, used to spot near-identical ones.
 - When each item was added, last edited and last sent, and how many times it was sent, which is used for the Recent section.
 - Your tags, with their names and colors.
 
@@ -60,7 +60,7 @@ Nitfree asks for no other permissions. In Firefox, it declares that it collects 
 ## Your control over your data
 
 - Edit or delete any item or tag from the Nitfree panel on Discord.
-- See how much space your library uses in the popup.
+- See how much space your library uses in the popup, and find and remove duplicates there.
 - Uninstalling Nitfree removes its library and settings from your browser.
 - Clearing Discord's site data does not touch your library, because it is kept in the extension's own storage, not in Discord's.
 

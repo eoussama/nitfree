@@ -77,9 +77,20 @@ export type TCacheUsage = {
 };
 
 /**
- * How items are stored: IndexedDB cannot index booleans, so `favorite` is kept as 0 or 1.
+ * Items that show the same picture: `exact` when their files are the same, byte for byte. The first is
+ * the one suggested to keep: the largest, then the most sent, then the oldest.
  */
-export type TItemRow = Omit<TItem, "favorite"> & { favorite: 0 | 1 };
+export type TDuplicateGroup = {
+  ids: string[];
+  exact: boolean;
+};
+
+/**
+ * How items are stored: IndexedDB cannot index booleans, so `favorite` is kept as 0 or 1. The
+ * fingerprint, for finding near-identical images, is missing until made, and null when the file could
+ * not be decoded; it stays in the database.
+ */
+export type TItemRow = Omit<TItem, "favorite"> & { favorite: 0 | 1; fingerprint?: string | null };
 
 /**
  * An item's original file and its sized copies, keyed by a name the media pipeline chooses, e.g. "emoji-48".

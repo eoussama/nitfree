@@ -38,6 +38,26 @@ popup:
     persistHint: Without this, the browser may clear your library when the disk runs low on space.
     persistDenied: The browser did not allow it. It decides by how you use it, so try again later.
     persisted: The browser will keep your library, even when the disk runs low on space.
+  duplicates:
+    heading: Duplicates
+    hint: Items that show the same picture, as the same file or a resized or converted copy. Keep one of each, and it takes the others' tags, favorite and sends before they are deleted.
+    searching: Looking for duplicates…
+    none: No duplicates in your library.
+    exact:
+      1: 1 identical file
+      n: $1 identical files
+    similar:
+      1: 1 similar image
+      n: $1 similar images
+    details: "{width} × {height}, {size}"
+    keep: Keep selected
+    confirmTitle: "Keep “{title}”"
+    confirm:
+      1: The other item is deleted from your library for good, once its tags, favorite and sends are moved over. This cannot be undone.
+      n: The $1 other items are deleted from your library for good, once their tags, favorite and sends are moved over. This cannot be undone.
+    confirmMerge: Keep and delete others
+    merged: "Kept “{title}” and deleted {items}."
+    failed: "Could not do that: {error}"
   add: Quick add
   drop: Drop or paste images here, or pick them.
   settings: Settings
@@ -132,6 +152,8 @@ editor:
   unsupported: This file is not a supported image.
   unreadable: This file could not be read. It may have been moved or changed.
   titleRequired: Every item needs a name.
+  duplicate: "This file is already in your library as “{title}”. Saving it keeps a second copy."
+  duplicateDraft: This file is also listed above. Adding both keeps two copies.
   saveFailed: "Could not save: {error}"
   removeTag: Remove {tag}
   drop: Drop to add to Nitfree

@@ -90,6 +90,21 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
       return removed;
     },
 
+    // Fingerprints made while looking change nothing anyone sees.
+    "library:duplicates": () => library.duplicates(),
+
+    "library:merge": async ({ keep, remove }) => {
+      const { item, removed } = await library.merge(keep, remove);
+
+      announce("library:changed", { change: "updated", ids: [keep] });
+
+      if (removed.length) {
+        announce("library:changed", { change: "removed", ids: removed });
+      }
+
+      return item;
+    },
+
     "library:use": async ({ id }) => {
       const item = await library.use(id);
 

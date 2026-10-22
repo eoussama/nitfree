@@ -38,6 +38,26 @@ popup:
     persistHint: Sans cela, le navigateur peut effacer votre bibliothèque quand le disque manque d'espace.
     persistDenied: Le navigateur a refusé. Il décide selon votre usage, réessayez plus tard.
     persisted: Le navigateur gardera votre bibliothèque, même quand le disque manque d'espace.
+  duplicates:
+    heading: Doublons
+    hint: Des éléments qui montrent la même image, en fichier identique ou en copie redimensionnée ou convertie. Gardez-en un de chaque, il reprend les tags, le favori et les envois des autres avant leur suppression.
+    searching: Recherche des doublons…
+    none: Aucun doublon dans votre bibliothèque.
+    exact:
+      1: 1 fichier identique
+      n: $1 fichiers identiques
+    similar:
+      1: 1 image similaire
+      n: $1 images similaires
+    details: "{width} × {height}, {size}"
+    keep: Garder la sélection
+    confirmTitle: "Garder « {title} »"
+    confirm:
+      1: L'autre élément est définitivement supprimé de votre bibliothèque, une fois ses tags, son favori et ses envois repris. Cette action est irréversible.
+      n: Les $1 autres éléments sont définitivement supprimés de votre bibliothèque, une fois leurs tags, favoris et envois repris. Cette action est irréversible.
+    confirmMerge: Garder et supprimer les autres
+    merged: "« {title} » gardé, {items} supprimés."
+    failed: "Impossible : {error}"
   add: Ajout rapide
   drop: Déposez ou collez des images ici, ou choisissez-les.
   settings: Paramètres
@@ -132,6 +152,8 @@ editor:
   unsupported: Ce fichier n'est pas une image prise en charge.
   unreadable: Impossible de lire ce fichier. Il a peut-être été déplacé ou modifié.
   titleRequired: Chaque élément doit avoir un nom.
+  duplicate: "Ce fichier est déjà dans votre bibliothèque sous le nom « {title} ». L'enregistrer en garde une deuxième copie."
+  duplicateDraft: Ce fichier figure aussi plus haut. Ajouter les deux en garde deux copies.
   saveFailed: "Échec de l'enregistrement : {error}"
   removeTag: Retirer {tag}
   drop: Déposez pour ajouter à Nitfree
