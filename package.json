@@ -22,7 +22,8 @@
     "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "check": "pnpm audit && pnpm lint && pnpm typecheck && pnpm build:all && pnpm test && pnpm test:e2e"
   },
   "dependencies": {
     "@eoussama/core": "^0.1.2",

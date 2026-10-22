@@ -6,7 +6,6 @@
 <script lang="ts">
   import Logo from "~/components/Logo.svelte";
   import { ITEM_TYPES } from "~/lib/db/types";
-  import { formatBytes } from "~/lib/format";
   import { followStoredTheme } from "~/lib/theme";
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
   import { editor, startAdd } from "~/lib/ui/editor.svelte";
@@ -15,6 +14,7 @@
   import { isArchiveFile, pickImport } from "~/lib/ui/transfer.svelte";
 
   import Settings from "./Settings.svelte";
+  import Storage from "./Storage.svelte";
   import Transfer from "./Transfer.svelte";
 
 
@@ -25,7 +25,6 @@
 
   let fileInput: HTMLInputElement | undefined = $state();
   let dragging = $state(false);
-  let usage: number | null = $state(null);
   let scrolled = $state(false);
 
   const counts = $derived(ITEM_TYPES.map(type => ({ type, count: library.items.filter(item => item.type === type).length })));
@@ -34,23 +33,6 @@
 
   $effect(() => followStoredTheme(document.documentElement));
   $effect(() => followLibrary());
-
-  // What the extension's storage holds, the library's files and their sized copies, read again on each change.
-  $effect(() => {
-    void library.items;
-
-    let active = true;
-
-    void navigator.storage?.estimate().then(({ usage: used }) => {
-      if (active) {
-        usage = used ?? null;
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  });
 
   function hasFiles(event: DragEvent): boolean {
     return event.dataTransfer?.types.includes("Files") ?? false;
@@ -143,9 +125,6 @@
           </div>
         {/each}
       </dl>
-      {#if usage !== null}
-        <p class="hint">{i18n.t("popup.storage", { size: formatBytes(usage, locale) })}</p>
-      {/if}
     {/if}
   </section>
 
@@ -159,6 +138,8 @@
   </section>
 
   <Transfer />
+
+  <Storage />
 
   <Settings />
 </main>

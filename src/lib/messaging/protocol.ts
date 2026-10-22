@@ -1,4 +1,4 @@
-import type { TImportItem, TItem, TItemPatch, TNewItem, TNewTag, TTag, TTagPatch } from "~/lib/db";
+import type { TCacheUsage, TImportItem, TItem, TItemPatch, TNewItem, TNewTag, TTag, TTagPatch } from "~/lib/db";
 
 
 
@@ -14,12 +14,15 @@ export interface TProtocol {
   "library:add": { request: TNewItem; response: TItem };
   "library:update": { request: { id: string; patch: TItemPatch }; response: TItem };
   "library:remove": { request: { id: string }; response: boolean };
+  "library:removeMany": { request: { ids: string[] }; response: string[] };
   "library:use": { request: { id: string }; response: TItem };
   "library:file": { request: { id: string }; response: Blob | null };
   "library:import": { request: { item: TImportItem; skipDuplicates: boolean }; response: TItem | null };
   "library:clear": { request: void; response: void };
   "library:variant": { request: { id: string; key: string }; response: Blob | null };
   "library:storeVariant": { request: { id: string; key: string; file: Blob }; response: void };
+  "library:cacheUsage": { request: void; response: TCacheUsage };
+  "library:clearCache": { request: void; response: TCacheUsage };
 
   "tags:list": { request: void; response: TTag[] };
   "tags:add": { request: TNewTag; response: TTag };

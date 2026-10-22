@@ -58,7 +58,6 @@ test.describe("popup", () => {
     await expect(count(popup, "sticker")).toHaveText("0");
     await expect(count(popup, "gif")).toHaveText("1");
     await expect(count(popup, "image")).toHaveText("0");
-    await expect(library(popup).getByText(/^Storage used: [\d.,]+\s?(bytes|kB|MB|GB)$/)).toBeVisible();
 
     // A change from another page, as from a Discord tab, shows at once.
     const other = await context.newPage();

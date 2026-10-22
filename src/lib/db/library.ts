@@ -1,6 +1,6 @@
 import type { NitfreeDatabase } from "./schema";
 
-import type { TImportItem, TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
+import type { TCacheUsage, TImportItem, TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
 import type { TImageInfo } from "~/lib/media";
 
 import { inspectImage } from "~/lib/media";
@@ -314,6 +314,26 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
     },
 
     /**
+     * Deletes several items and their files at once.
+     *
+     * @param ids - The items' ids.
+     * @returns The ids of the items that existed.
+     */
+    async removeMany(ids: readonly string[]): Promise<string[]> {
+      const unique = [...new Set(ids)];
+
+      return db.transaction("rw", db.items, db.blobs, async () => {
+        const found = await db.items.bulkGet(unique);
+        const existing = unique.filter((_, i) => found[i]);
+
+        await db.items.bulkDelete(existing);
+        await db.blobs.bulkDelete(existing);
+
+        return existing;
+      });
+    },
+
+    /**
      * Records that an item was sent, for the Recent section.
      *
      * @param id - The item's id.
@@ -371,6 +391,45 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now)
       if (!updated) {
         throw new Error(`No item "${id}"`);
       }
+    },
+
+    /**
+     * Measures the cached sized copies of every item.
+     *
+     * @returns Their total size and count.
+     */
+    async cacheUsage(): Promise<TCacheUsage> {
+      const usage: TCacheUsage = { size: 0, count: 0 };
+
+      await db.blobs.each((row) => {
+        for (const file of Object.values(row.variants)) {
+          usage.size += file.size;
+          usage.count++;
+        }
+      });
+
+      return usage;
+    },
+
+    /**
+     * Drops every cached sized copy, keeping the original files. Copies are made again when needed.
+     *
+     * @returns What was freed.
+     */
+    async clearCache(): Promise<TCacheUsage> {
+      const freed: TCacheUsage = { size: 0, count: 0 };
+
+      await db.blobs.toCollection().modify((row) => {
+        const files = Object.values(row.variants);
+
+        if (files.length) {
+          freed.size += files.reduce((sum, file) => sum + file.size, 0);
+          freed.count += files.length;
+          row.variants = {};
+        }
+      });
+
+      return freed;
     },
   };
 }

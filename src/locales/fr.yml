@@ -9,7 +9,27 @@ popup:
   items:
     1: 1 élément
     n: $1 éléments
-  storage: "Espace utilisé : {size}"
+  storage:
+    heading: Stockage
+    usedOf: "{used} utilisés sur {quota} disponibles"
+    used: "{used} utilisés"
+    cached: Copies en cache
+    cachedHint: Des copies réduites pour la grille et l'envoi. Les effacer garde vos fichiers, et elles sont refaites au besoin.
+    clearCache: Vider le cache
+    cleared: "{size} libérés."
+    largest: Éléments les plus lourds
+    delete:
+      1: Supprimer 1 élément
+      n: Supprimer $1 éléments
+    confirm: "Supprimer {items} définitivement ? Cette action est irréversible."
+    confirmDelete: Supprimer
+    cancel: Annuler
+    deleted: "{items} supprimés."
+    failed: "Impossible : {error}"
+    persist: Protéger ma bibliothèque
+    persistHint: Sans cela, le navigateur peut effacer votre bibliothèque quand le disque manque d'espace.
+    persistDenied: Le navigateur a refusé. Il décide selon votre usage, réessayez plus tard.
+    persisted: Le navigateur gardera votre bibliothèque, même quand le disque manque d'espace.
   add: Ajout rapide
   drop: Déposez ou collez des images ici, ou choisissez-les.
   settings: Paramètres

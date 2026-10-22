@@ -68,6 +68,15 @@ export type TNewTag = {
 export type TTagPatch = Partial<TNewTag>;
 
 /**
+ * What the sized copies take up: the bytes of every copy and how many there are.
+ * Originals are not counted here, as each item carries its own file's size.
+ */
+export type TCacheUsage = {
+  size: number;
+  count: number;
+};
+
+/**
  * How items are stored: IndexedDB cannot index booleans, so `favorite` is kept as 0 or 1.
  */
 export type TItemRow = Omit<TItem, "favorite"> & { favorite: 0 | 1 };

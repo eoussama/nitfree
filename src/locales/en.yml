@@ -9,7 +9,27 @@ popup:
   items:
     1: 1 item
     n: $1 items
-  storage: "Storage used: {size}"
+  storage:
+    heading: Storage
+    usedOf: "{used} used of {quota} available"
+    used: "{used} used"
+    cached: Cached copies
+    cachedHint: Smaller copies made for the grid and for sending. Clearing them keeps your files, and they are made again when needed.
+    clearCache: Clear cache
+    cleared: "Freed {size}."
+    largest: Largest items
+    delete:
+      1: Delete 1 item
+      n: Delete $1 items
+    confirm: "Delete {items} for good? This cannot be undone."
+    confirmDelete: Delete
+    cancel: Cancel
+    deleted: "Deleted {items}."
+    failed: "Could not do that: {error}"
+    persist: Keep my library safe
+    persistHint: Without this, the browser may clear your library when the disk runs low on space.
+    persistDenied: The browser did not allow it. It decides by how you use it, so try again later.
+    persisted: The browser will keep your library, even when the disk runs low on space.
   add: Quick add
   drop: Drop or paste images here, or pick them.
   settings: Settings

@@ -106,6 +106,24 @@ describe("library handlers", () => {
     expect(await handlers["tags:list"]!(undefined, sender)).toEqual([]);
   });
 
+  it("announce items removed together once, and clear the cache silently", async () => {
+    const a = await handlers["library:add"]!({ file: new Blob([png(2, 2)]), type: "emoji", title: "a" }, sender);
+    const b = await handlers["library:add"]!({ file: new Blob([png(3, 3)]), type: "emoji", title: "b" }, sender);
+
+    await handlers["library:storeVariant"]!({ id: a.id, key: "emoji-48", file: new Blob([png(1, 1)]) }, sender);
+    expect(await handlers["library:cacheUsage"]!(undefined, sender)).toEqual({ size: png(1, 1).length, count: 1 });
+
+    notify.mockClear();
+    expect(await handlers["library:clearCache"]!(undefined, sender)).toEqual({ size: png(1, 1).length, count: 1 });
+    expect(notify).not.toHaveBeenCalled();
+
+    expect(await handlers["library:removeMany"]!({ ids: [a.id, b.id, "missing"] }, sender)).toEqual([a.id, b.id]);
+    expect(notify).toHaveBeenCalledExactlyOnceWith("library:changed", { change: "removed", ids: [a.id, b.id] });
+
+    expect(await handlers["library:removeMany"]!({ ids: ["missing"] }, sender)).toEqual([]);
+    expect(notify).toHaveBeenCalledTimes(1);
+  });
+
   it("still answers when an announcement fails", async () => {
     notify.mockRejectedValue(new Error("no receivers"));
 

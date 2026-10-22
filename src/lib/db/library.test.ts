@@ -171,6 +171,42 @@ describe("remove, use and variants", () => {
     expect(await library.variant(item.id, "other")).toBeNull();
     await expect(library.storeVariant("missing", "emoji-48", file(png(1, 1)))).rejects.toThrow(/No item/);
   });
+
+  it("removes several items at once, telling which existed", async () => {
+    const a = await library.add({ file: file(png(1, 1)), type: "image", title: "a" });
+    const b = await library.add({ file: file(png(2, 2)), type: "image", title: "b" });
+    const c = await library.add({ file: file(png(3, 3)), type: "image", title: "c" });
+
+    expect(await library.removeMany([a.id, "missing", b.id, a.id])).toEqual([a.id, b.id]);
+    expect((await library.list()).map(item => item.id)).toEqual([c.id]);
+    expect(await library.file(a.id)).toBeNull();
+    expect(await library.removeMany([])).toEqual([]);
+  });
+});
+
+describe("cache", () => {
+  it("measures the sized copies, and clearing them keeps every original", async () => {
+    const a = await library.add({ file: file(png(512, 512)), type: "sticker", title: "a" });
+    const b = await library.add({ file: file(png(64, 64)), type: "emoji", title: "b" });
+    const copies = png(48, 48).length + png(160, 160).length + png(32, 32).length;
+
+    expect(await library.cacheUsage()).toEqual({ size: 0, count: 0 });
+
+    await library.storeVariant(a.id, "emoji-48", file(png(48, 48)));
+    await library.storeVariant(a.id, "sticker-160", file(png(160, 160)));
+    await library.storeVariant(b.id, "emoji-32", file(png(32, 32)));
+
+    expect(await library.cacheUsage()).toEqual({ size: copies, count: 3 });
+    expect(await library.clearCache()).toEqual({ size: copies, count: 3 });
+    expect(await library.cacheUsage()).toEqual({ size: 0, count: 0 });
+    expect(await library.variant(a.id, "emoji-48")).toBeNull();
+
+    // The originals and items are untouched.
+    expect((await library.file(a.id))?.size).toBe(png(512, 512).length);
+    expect((await library.file(b.id))?.size).toBe(png(64, 64).length);
+    expect(await library.list()).toHaveLength(2);
+    expect(await library.clearCache()).toEqual({ size: 0, count: 0 });
+  });
 });
 
 describe("import and clear", () => {

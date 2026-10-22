@@ -27,6 +27,9 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
     // Sized copies change nothing anyone sees, so storing one is not announced.
     "library:variant": ({ id, key }) => library.variant(id, key),
     "library:storeVariant": ({ id, key, file }) => library.storeVariant(id, key, file),
+    "library:cacheUsage": () => library.cacheUsage(),
+    // Panels keep the copies they already show, and make any others again, so clearing is not announced either.
+    "library:clearCache": () => library.clearCache(),
 
     "library:add": async (input) => {
       const item = await library.add(input);
@@ -75,6 +78,16 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
       }
 
       return existed;
+    },
+
+    "library:removeMany": async ({ ids }) => {
+      const removed = await library.removeMany(ids);
+
+      if (removed.length) {
+        announce("library:changed", { change: "removed", ids: removed });
+      }
+
+      return removed;
     },
 
     "library:use": async ({ id }) => {
