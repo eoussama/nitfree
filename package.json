@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@eoussama/core": "^0.1.2",
+    "@fontsource/noto-sans": "^5.3.0",
     "@lucide/svelte": "^1.50.0",
     "@wxt-dev/i18n": "^0.2.8",
     "dexie": "^4.4.6",

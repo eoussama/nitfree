@@ -169,6 +169,9 @@ importers:
       '@eoussama/core':
         specifier: ^0.1.2
         version: 0.1.2
+      '@fontsource/noto-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@lucide/svelte':
         specifier: ^1.50.0
         version: 1.50.0(svelte@5.57.2(@typescript-eslint/types@8.71.2))
@@ -513,6 +516,9 @@ packages:
   '@fluent/syntax@0.19.0':
     resolution: {integrity: sha512-5D2qVpZrgpjtqU4eNOcWGp1gnUCgjfM+vKGE2y03kKN6z5EBhtx0qdRFbg8QuNNj8wXNoX93KJoYb+NqoxswmQ==}
     engines: {node: '>=14.0.0', npm: '>=7.0.0'}
+
+  '@fontsource/noto-sans@5.3.0':
+    resolution: {integrity: sha512-fBCog2PY7DiVVTEEqtI/Qdinx/knobHYfoGpjFXdfBX5RoJaBp1Prw2G75p0OIsdlMZg3cLo0c+YbIUYOxnQJw==}
 
   '@fregante/relaxed-json@2.0.0':
     resolution: {integrity: sha512-PyUXQWB42s4jBli435TDiYuVsadwRHnMc27YaLouINktvTWsL3FcKrRMGawTayFk46X+n5bE23RjUTWQwrukWw==}
@@ -3839,6 +3845,8 @@ snapshots:
       levn: 0.4.1
 
   '@fluent/syntax@0.19.0': {}
+
+  '@fontsource/noto-sans@5.3.0': {}
 
   '@fregante/relaxed-json@2.0.0': {}
 

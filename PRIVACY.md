@@ -22,6 +22,7 @@ All of this is kept in your browser's storage for the extension, on your device 
 
 - Your settings: emoji and sticker sending sizes, what a click on an item does, and whether animated items play on hover.
 - Discord's current theme colors and your reduced-motion preference, so the popup can match Discord's look.
+- A copy of Discord's font files (gg sans), so the popup can use Discord's typeface.
 - The date Nitfree was installed.
 
 If you used an earlier version of Nitfree, its library is moved into the new database once and the old database is then deleted.
@@ -31,6 +32,7 @@ If you used an earlier version of Nitfree, its library is moved into the new dat
 Nitfree runs only on `discord.com`. There it:
 
 - Reads the page's theme (colors and the reduced-motion setting) to match Discord's look.
+- Reads which font files Discord's stylesheets use for its gg sans typeface.
 - Finds the chat bar and the expression picker so it can add its button and its tab.
 - Reads the current page address only to check that you are still in the same channel when an item finishes preparing, so it is never sent to the wrong channel. The address is not stored.
 
@@ -38,7 +40,9 @@ Nitfree does not read, store or send your messages, contacts, servers, account d
 
 ## What Nitfree sends
 
-Nitfree itself sends nothing over the network. It makes no requests to any server, including its own, and it loads no remote code.
+Nitfree has no server of its own, sends nothing about you anywhere, and loads no remote code.
+
+The only request Nitfree makes is for Discord's own font files, from `discord.com`, while you are on Discord. Discord has usually loaded them already for its own page, so the browser normally answers from its cache. They are fetched again only when Discord changes them. Nothing about you is sent with this request beyond what the browser sends for any file Discord's page loads. The popup itself makes no requests.
 
 When you pick an item to send, Nitfree puts the file in Discord's message box, the same way as attaching a file yourself. Discord then uploads it as part of your message. From that point the file is handled by Discord under [Discord's Privacy Policy](https://discord.com/privacy), like any other file you send.
 

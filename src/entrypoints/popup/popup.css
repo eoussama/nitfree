@@ -3,6 +3,35 @@
   Discord's own variable first, as the panel does, then the palette the popup copies from Discord.
 */
 
+/* Noto Sans, bundled, stands in for Discord's gg sans until a Discord tab has shared it. */
+@font-face {
+  font-family: "Noto Sans";
+  font-weight: 400;
+  font-display: swap;
+  src: url("@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Noto Sans";
+  font-weight: 500;
+  font-display: swap;
+  src: url("@fontsource/noto-sans/files/noto-sans-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Noto Sans";
+  font-weight: 600;
+  font-display: swap;
+  src: url("@fontsource/noto-sans/files/noto-sans-latin-600-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Noto Sans";
+  font-weight: 700;
+  font-display: swap;
+  src: url("@fontsource/noto-sans/files/noto-sans-latin-700-normal.woff2") format("woff2");
+}
+
 :root {
   --nf-mod-subtle: rgb(151 151 159 / 12%);
   --nf-mod-normal: rgb(151 151 159 / 20%);
