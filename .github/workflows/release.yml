@@ -46,8 +46,6 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Release notes from the changelog
-        run: awk -v heading="## [${GITHUB_REF_NAME#v}]" 'index($0, "## [") == 1 { found = ($0 == heading); next } found' CHANGELOG.md > notes.md
-      - run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "$GITHUB_REF_NAME" --notes-file notes.md
+      - run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "$GITHUB_REF_NAME" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
