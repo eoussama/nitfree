@@ -34,35 +34,9 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
-  safari:
-    name: Xcode project for Safari
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6.1.0
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build:safari
-      - run: >
-          xcrun safari-web-extension-converter .output/safari-mv3
-          --project-location .output/xcode
-          --app-name Nitfree
-          --bundle-identifier es.ouss.nitfree
-          --copy-resources --no-open --no-prompt --force
-      - run: cd .output/xcode && zip -qr "../nitfree-${GITHUB_REF_NAME#v}-safari-xcode.zip" .
-      - uses: actions/upload-artifact@v7
-        with:
-          name: safari
-          path: .output/*-safari-xcode.zip
-          if-no-files-found: error
-          include-hidden-files: true
-
   release:
     name: GitHub release
-    needs: [zip, safari]
+    needs: [zip]
     runs-on: ubuntu-latest
     permissions:
       contents: write

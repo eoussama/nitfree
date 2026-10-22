@@ -29,7 +29,7 @@ export function gifRepeat(count: number): number {
 }
 
 /**
- * Whether the browser can decode every frame of an image itself (Chrome, Edge, Firefox; not yet Safari).
+ * Whether the browser can decode every frame of an image itself.
  *
  * @param mime - The image's MIME type.
  * @returns Whether to use ImageDecoder.

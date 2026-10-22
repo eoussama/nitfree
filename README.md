@@ -28,13 +28,11 @@ pnpm dev:firefox    # Firefox with hot reload
 
 | Script                                                         | Description                               |
 | -------------------------------------------------------------- | ----------------------------------------- |
-| `pnpm build`, `build:firefox`, `build:edge`, `build:safari`    | Production build in `.output/`            |
+| `pnpm build`, `build:firefox`, `build:edge`                    | Production build in `.output/`            |
 | `pnpm zip`, `zip:firefox`, `zip:edge`                          | Zip per browser                           |
 | `pnpm lint`, `pnpm lint:fix`                                   | Lint with `@eoussama/dx`                  |
 | `pnpm typecheck`                                               | Type check TypeScript and Svelte files    |
 | `pnpm test`                                                    | Unit tests with Vitest                    |
 | `pnpm test:e2e`                                                | Load the Chrome build in Chromium with Playwright (run `pnpm build` and `pnpm exec playwright install chromium` first) |
-
-The Safari build is converted into an Xcode project with `xcrun safari-web-extension-converter .output/safari-mv3` on macOS.
 
 The previous Vue implementation lives on the `legacy` branch.

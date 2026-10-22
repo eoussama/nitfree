@@ -1,7 +1,6 @@
 /**
- * Splits animated GIFs and APNGs into one still image per frame, for browsers without ImageDecoder
- * (Safari): each still is a complete file the browser can decode itself, and the frames are then
- * composited on a canvas following each frame's position, disposal and blending.
+ * Splits animated GIFs and APNGs into one still image per frame, for browsers without ImageDecoder: each
+ * still is a complete file the browser can decode itself, and the frames are then composited on a canvas following each frame's position, disposal and blending.
  */
 
 export type TDispose = "none" | "background" | "previous";
