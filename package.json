@@ -2,7 +2,7 @@
   "name": "nitfree",
   "displayName": "Nitfree",
   "type": "module",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "packageManager": "pnpm@12.14.0",
   "description": "The definitive freemium Discord Nitro alternative",
