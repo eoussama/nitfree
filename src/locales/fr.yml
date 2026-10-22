@@ -25,8 +25,9 @@ popup:
     export: Exporter la bibliothèque
     exportSettings: Inclure les paramètres
     exportHint: Enregistre tous les éléments, étiquettes et favoris dans un fichier .nitfree.
-    import: Importer
-    importHint: Une sauvegarde .nitfree, ou un zip d'images dont les dossiers deviennent des étiquettes.
+    import: Importer un fichier
+    importFolder: Importer un dossier
+    importHint: Une sauvegarde .nitfree, ou un zip ou dossier d'images, dont les noms de dossiers deviennent des étiquettes.
     reading: Lecture du fichier…
     exporting: "Export de {done} sur {total}"
     importing: "Import de {done} sur {total}"

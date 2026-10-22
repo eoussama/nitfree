@@ -3,11 +3,11 @@
   of images. An imported file is checked first, then summarized so the user chooses how to bring it in.
 -->
 <script lang="ts">
-  import type { TImportMode } from "~/lib/ui/transfer.svelte";
+  import type { TImportMode } from "~/lib/archive";
 
   import { formatBytes } from "~/lib/format";
   import { library } from "~/lib/ui/library.svelte";
-  import { cancelImport, exportItems, importPending, pickImport, transfer } from "~/lib/ui/transfer.svelte";
+  import { cancelImport, exportItems, importPending, pickFolder, pickImport, transfer } from "~/lib/ui/transfer.svelte";
 
 
 
@@ -15,6 +15,7 @@
   const MODES: TImportMode[] = ["merge", "replace"];
 
   let fileInput: HTMLInputElement | undefined = $state();
+  let folderInput: HTMLInputElement | undefined = $state();
   let withSettings = $state(false);
   let mode: TImportMode = $state("merge");
   let importSettings = $state(true);
@@ -30,6 +31,19 @@
       ? i18n.t("popup.transfer.importing", { done: String(transfer.done), total: String(transfer.total) })
       : transfer.busy === "read" ? i18n.t("popup.transfer.reading") : "",
   );
+
+  function onFolderPicked(): void {
+    const files = [...folderInput?.files ?? []];
+
+    if (files.length) {
+      mode = "merge";
+      void pickFolder(files);
+    }
+
+    if (folderInput) {
+      folderInput.value = "";
+    }
+  }
 
   function onPicked(): void {
     const file = fileInput?.files?.[0];
@@ -96,6 +110,8 @@
         {i18n.t("popup.transfer.export")}
       </button>
       <button class="button secondary" type="button" disabled={busy} onclick={() => fileInput?.click()}>{i18n.t("popup.transfer.import")}</button>
+      <button class="button secondary" type="button" disabled={busy} onclick={() => folderInput?.click()}>{i18n.t("popup.transfer.importFolder")}</button>
+      <input bind:this={folderInput} class="file-input" type="file" webkitdirectory tabindex="-1" aria-hidden="true" onchange={onFolderPicked} />
       <input bind:this={fileInput} class="file-input" type="file" accept=".nitfree,.zip,application/zip" tabindex="-1" aria-hidden="true" onchange={onPicked} />
     </div>
     <label class="check">

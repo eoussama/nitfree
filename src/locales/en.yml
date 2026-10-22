@@ -25,8 +25,9 @@ popup:
     export: Export library
     exportSettings: Include settings
     exportHint: Saves every item, tag and favorite as one .nitfree file.
-    import: Import
-    importHint: A .nitfree backup, or a zip of images where folders become tags.
+    import: Import file
+    importFolder: Import folder
+    importHint: A .nitfree backup, or a zip or folder of images, where folder names become tags.
     reading: Reading the file…
     exporting: "Exporting {done} of {total}"
     importing: "Importing {done} of {total}"

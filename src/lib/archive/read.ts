@@ -172,7 +172,14 @@ function titleOf(file: string): string {
   return file.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-async function readImages(files: Record<string, Uint8Array>): Promise<TParsedArchive> {
+/**
+ * Reads loose images, e.g. from a folder: folder names become tags and file names become titles.
+ *
+ * @param files - The files by path, folders separated with slashes.
+ * @returns What the files hold.
+ * @throws {ArchiveError} When none of the files is an image Nitfree accepts.
+ */
+export async function readImages(files: Record<string, Uint8Array>): Promise<TParsedArchive> {
   const entries: TImportEntry[] = [];
   const tags = new Map<string, TArchiveTag>();
   let ignored = 0;

@@ -1,9 +1,9 @@
-import type { TParsedArchive } from "~/lib/archive";
+import type { TImportMode, TParsedArchive } from "~/lib/archive";
 import type { TItem } from "~/lib/db";
 
 import { toError, tryCatch } from "@eoussama/core";
 
-import { ARCHIVE_EXTENSION, ArchiveError, readArchive } from "~/lib/archive";
+import { applyArchive, ARCHIVE_EXTENSION, ArchiveError, readArchive, readImages } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
 import { clickAction, playAnimations, sendSizes } from "~/lib/settings";
 
@@ -12,8 +12,6 @@ import { buildExport } from "./export";
 import { library } from "./library.svelte";
 
 
-
-export type TImportMode = "merge" | "replace";
 
 export type TTransferResult
   = | { kind: "export"; count: number }
@@ -82,6 +80,16 @@ export async function exportItems(items: readonly TItem[] = library.items, withS
 }
 
 /**
+ * Whether a file looks like something to import rather than an image to add.
+ *
+ * @param file - A picked or dropped file.
+ * @returns True for a .nitfree backup or a zip.
+ */
+export function isArchiveFile(file: File): boolean {
+  return /\.(?:nitfree|zip)$/i.test(file.name) || file.type === "application/zip";
+}
+
+/**
  * Reads and checks a file picked for import, holding it until {@link importPending} or {@link cancelImport}.
  *
  * @param file - The picked or dropped file.
@@ -101,6 +109,37 @@ export async function pickImport(file: File): Promise<void> {
 
   transfer.busy = null;
   transfer.pending = { name: file.name, archive };
+}
+
+/**
+ * Reads and checks a folder picked for import, holding it like {@link pickImport}. Subfolders
+ * become tags on the images inside them; the picked folder itself is not a tag.
+ *
+ * @param files - The folder's files, as listed by a directory input.
+ * @returns Resolves once the folder is checked; the outcome is in the transfer state.
+ */
+export async function pickFolder(files: readonly File[]): Promise<void> {
+  start("read");
+  transfer.pending = null;
+
+  const [error, archive] = await tryCatch(async () => {
+    const entries = await Promise.all(files.map(async (file) => {
+      const [, ...path] = (file.webkitRelativePath || file.name).split("/");
+
+      return [path.join("/") || file.name, new Uint8Array(await file.arrayBuffer())] as const;
+    }));
+
+    return readImages(Object.fromEntries(entries));
+  });
+
+  if (error) {
+    fail(error instanceof ArchiveError ? error : new Error("This folder could not be read"));
+
+    return;
+  }
+
+  transfer.busy = null;
+  transfer.pending = { name: files[0]?.webkitRelativePath.split("/")[0] ?? "", archive };
 }
 
 /**
@@ -131,52 +170,13 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
   start("import", archive.entries.length);
 
   const [error, result] = await tryCatch(async () => {
-    if (mode === "replace") {
-      await sendMessage("library:clear");
-    }
-
-    const tagIds: Record<string, string> = Object.create(null) as Record<string, string>;
-
-    for (const tag of archive.tags) {
-      const { id } = await sendMessage("tags:ensure", { name: tag.name, color: tag.color });
-
-      tagIds[tag.name] = id;
-    }
-
-    let added = 0;
-    let skipped = 0;
-    let failed = 0;
-
-    for (const entry of archive.entries) {
-      const [itemError, item] = await tryCatch(sendMessage("library:import", {
-        skipDuplicates: mode === "merge",
-        item: {
-          id: entry.id ?? undefined,
-          file: new Blob([entry.bytes]),
-          type: entry.type,
-          title: entry.title,
-          description: entry.description,
-          tags: entry.tags.map(name => tagIds[name]).filter((id): id is string => id !== undefined),
-          favorite: entry.favorite,
-          createdAt: entry.createdAt ?? undefined,
-          updatedAt: entry.updatedAt ?? undefined,
-          usedAt: entry.usedAt,
-          usageCount: entry.usageCount,
-        },
-      }));
-
-      if (itemError) {
-        failed++;
-      }
-      else if (item) {
-        added++;
-      }
-      else {
-        skipped++;
-      }
-
-      transfer.done++;
-    }
+    const counts = await applyArchive(archive, mode, {
+      clear: () => sendMessage("library:clear"),
+      ensureTag: tag => sendMessage("tags:ensure", tag),
+      importItem: (item, skipDuplicates) => sendMessage("library:import", { item, skipDuplicates }),
+    }, (done) => {
+      transfer.done = done;
+    });
 
     if (withSettings && archive.settings) {
       await Promise.all([
@@ -186,7 +186,7 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
       ]);
     }
 
-    return { added, skipped, failed };
+    return counts;
   });
 
   if (error) {

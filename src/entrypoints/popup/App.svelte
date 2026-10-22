@@ -12,6 +12,7 @@
   import { editor, startAdd } from "~/lib/ui/editor.svelte";
   import { followLibrary, library } from "~/lib/ui/library.svelte";
   import { tooltip } from "~/lib/ui/tooltip.svelte";
+  import { isArchiveFile, pickImport } from "~/lib/ui/transfer.svelte";
 
   import Settings from "./Settings.svelte";
   import Transfer from "./Transfer.svelte";
@@ -73,8 +74,15 @@
 
     if (hasFiles(event) && !editor.mode) {
       event.preventDefault();
-      void startAdd(event.dataTransfer?.files ?? []);
+      void dropped([...event.dataTransfer?.files ?? []]);
     }
+  }
+
+  // A backup or zip dropped here is imported; images are added.
+  function dropped(files: File[]): Promise<void> {
+    const [first] = files;
+
+    return files.length === 1 && first && isArchiveFile(first) ? pickImport(first) : startAdd(files);
   }
 
   // Pasted images are added; text pasted into a settings field stays there.
