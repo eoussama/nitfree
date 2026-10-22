@@ -190,6 +190,11 @@ send:
   notAttached: Discord did not take “{title}”. Try again.
   moved: “{title}” was not sent, as the channel changed while it was being prepared.
   failed: "Could not send “{title}”: {error}"
+save:
+  menuItem: Save to Nitfree
+  busy: Finish with the open Nitfree dialog first.
+  saved: Saved “{title}” to Nitfree.
+  failed: "Could not save “{title}”: {error}"
 toast:
   deleted: Deleted “{title}”
   undo: Undo

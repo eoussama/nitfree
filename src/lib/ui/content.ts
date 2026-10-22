@@ -16,6 +16,7 @@ import { clearNotice, showNotice } from "./notice.svelte";
 import { closePanel, openPanel, panel, setToggleHandler, togglePopover, wasOpenFor } from "./panel.svelte";
 import { createPickerTab } from "./picker";
 import { followPreferences, preferences } from "./preferences.svelte";
+import { followSaveFromChat } from "./save";
 import { attachFile, prepareFile, SendError } from "./send";
 import { flushTrash } from "./trash.svelte";
 
@@ -47,7 +48,8 @@ function anchorOfOpenPicker(): HTMLElement | null {
 
 /**
  * Starts everything Nitfree adds to Discord's page: the chat bar buttons, the Nitfree tab in the
- * expression picker, the fallback popover and the live library they show.
+ * expression picker, the fallback popover, "Save to Nitfree" in message menus and the live library
+ * they show.
  *
  * @param ctx - The content script's context.
  * @returns A function that removes it all.
@@ -63,6 +65,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
   const stopPreferences = followPreferences();
   const removePopover = mountPopover(pick);
   const removeOverlay = mountOverlay();
+  const stopSaving = followSaveFromChat();
 
   // Deletions waiting for their undo delay are made final when the page goes away.
   window.addEventListener("pagehide", flushTrash);
@@ -262,6 +265,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     picker.stop();
     window.removeEventListener("pagehide", flushTrash);
     flushTrash();
+    stopSaving();
     resetEditor();
     closeMenu();
     clearNotice();

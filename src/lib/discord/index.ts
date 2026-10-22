@@ -14,6 +14,8 @@ export {
   type TChatButtonClasses,
   type TPickerTabClasses,
 } from "./composer";
+export { emojiMedia, findChatMedia, imageMedia, stickerMedia, type TChatMedia } from "./media";
+export { readMenuLook, type TMenuLook } from "./menu";
 export { CLASS_PATTERNS, SELECTORS } from "./selectors";
 
 /**

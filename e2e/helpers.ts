@@ -73,16 +73,42 @@ const PICKER_SCRIPT = fs.readFileSync(path.resolve(import.meta.dirname, "fixture
  */
 const COMPOSER_SCRIPT = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/discord-composer.js"), "utf8");
 
+/**
+ * Plays Discord's message context menu; see the file.
+ */
+const MENU_SCRIPT = fs.readFileSync(path.resolve(import.meta.dirname, "fixtures/discord-menu.js"), "utf8");
+
+/**
+ * A message as Discord renders it, with the attributes Nitfree reads: a custom emoji, an attached
+ * image under its invisible link to the original, a PNG sticker and a Lottie one.
+ */
+const MESSAGE = `
+<ol data-list-id="chat-messages">
+  <li class="messageListItem__5126c">
+    <div class="message__5126c" role="article">
+      <div class="messageContent_c19a55">Look <img aria-label=":blob_cat:" src="https://cdn.discordapp.com/emojis/111.webp?size=48&amp;quality=lossless&amp;name=blob_cat" alt=":blob_cat:" draggable="false" class="emoji" data-type="emoji" data-id="111"> at this</div>
+      <div class="imageWrapper_af017a" data-testid="attachment">
+        <a tabindex="-1" aria-hidden="true" class="originalLink_af017a" href="https://cdn.discordapp.com/attachments/1/2/Party%20Parrot.png?ex=a&amp;is=b&amp;hm=c&amp;" data-role="img" data-safe-src="https://media.discordapp.net/attachments/1/2/Party%20Parrot.png?ex=a&amp;is=b&amp;hm=c&amp;=&amp;format=webp&amp;width=64&amp;height=64"></a>
+        <img src="https://media.discordapp.net/attachments/1/2/Party%20Parrot.png?ex=a&amp;is=b&amp;hm=c&amp;=&amp;format=webp&amp;width=64&amp;height=64" alt="Image">
+      </div>
+      <img class="sticker_7ad1c7" src="https://media.discordapp.net/stickers/222.webp?size=160" alt="Wave" data-type="sticker" data-id="222" data-name="Wave" data-format-type="1">
+      <div class="lottieCanvas_7ad1c7" data-type="sticker" data-id="333" data-name="Hello" data-format-type="3" data-testid="lottie"><canvas width="160" height="160"></canvas></div>
+    </div>
+  </li>
+</ol>`;
+
 type TPicker = boolean | "no-tabs";
 
 /**
  * A stand-in Discord channel page.
  *
  * @param picker - Whether Discord's expression picker opens from the chat bar buttons, and whether it has its tab bar.
+ * @param messages - Whether the channel shows a message, with Discord's menu on a right click.
  * @returns The page's HTML.
  */
-function pageHtml(picker: TPicker): string {
+function pageHtml(picker: TPicker, messages: boolean): string {
   const script = picker ? `<script>const PICKER = ${JSON.stringify(PICKER)}; const NO_TABS = ${picker === "no-tabs"};\n${PICKER_SCRIPT}</script>` : "";
+  const menu = messages ? `<script>${MENU_SCRIPT}</script>` : "";
 
   return `<!doctype html>
 <html class="theme-dark">
@@ -100,14 +126,30 @@ function pageHtml(picker: TPicker): string {
       [role="tab"], [role="button"] { min-width: 24px; min-height: 24px; }
       /* Discord keeps its invisible upload input inside a small positioned box. */
       [class^="fileInput_"] { position: relative; width: 24px; height: 24px; overflow: hidden; }
+      /* The unstyled composer is tall; keep the message clear of it. */
+      [data-list-id="chat-messages"] { position: fixed; top: 0; left: 0; z-index: 1; margin: 0; padding: 8px 8px 8px 24px; background: #313338; }
+      /* Discord's own rules for the parts of a message Nitfree reads. */
+      .emoji { width: 22px; height: 22px; vertical-align: bottom; }
+      [class^="imageWrapper_"] { position: relative; width: 64px; height: 64px; }
+      [class^="imageWrapper_"] img { display: block; width: 100%; height: 100%; }
+      [class^="originalLink_"] { position: absolute; inset: 0; z-index: 1; }
+      [class^="sticker_"], [class^="lottieCanvas_"] { display: block; width: 80px; height: 80px; }
+      .menu_c1e9c4 { min-width: 188px; padding: 6px 8px; background: #111214; color: #dbdee1; }
+      .labelContainer_c1e9c4 { display: flex; align-items: center; justify-content: space-between; min-height: 32px; padding: 6px 8px; }
+      .label_c1e9c4 { flex: 1 1 auto; }
+      .iconContainerLeft_c1e9c4 { display: flex; margin-inline: 0 8px; }
+      .text-sm-medium_cf4812 { font-size: 14px; font-weight: 500; line-height: 18px; }
+      .focused_c1e9c4 { background: #4752c4; color: #fff; }
+      .separator_c1e9c4 { margin: 4px; border-bottom: 1px solid #2e2f34; }
     </style>
   </head>
   <body>
-    <main id="chat">${COMPOSER}</main>
+    <main id="chat">${messages ? MESSAGE : ""}${COMPOSER}</main>
     <aside id="thread"></aside>
     <div id="layers"></div>
     <script>${COMPOSER_SCRIPT}</script>
     ${script}
+    ${menu}
   </body>
 </html>`;
 }
@@ -120,10 +162,11 @@ function pageHtml(picker: TPicker): string {
  * @param options - The stand-in's behavior.
  * @param options.picker - Whether Discord's expression picker opens from the chat bar buttons: true for the
  * captured picker, "no-tabs" for one whose tab bar is gone.
+ * @param options.messages - Whether the channel shows a message with an emoji, an image and stickers.
  * @returns Resolves once Nitfree's content script has started.
  */
-export async function openDiscord(page: Page, { picker = false }: { picker?: TPicker } = {}): Promise<void> {
-  await page.context().route("https://discord.com/**", route => route.fulfill({ contentType: "text/html", body: pageHtml(picker) }));
+export async function openDiscord(page: Page, { picker = false, messages = false }: { picker?: TPicker; messages?: boolean } = {}): Promise<void> {
+  await page.context().route("https://discord.com/**", route => route.fulfill({ contentType: "text/html", body: pageHtml(picker, messages) }));
   await page.goto("https://discord.com/channels/@me");
   await expect(page.locator("html")).toHaveAttribute("data-nitfree");
 }

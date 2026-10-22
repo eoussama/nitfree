@@ -190,6 +190,11 @@ send:
   notAttached: Discord n'a pas pris « {title} ». Réessayez.
   moved: « {title} » n'a pas été envoyé, car le salon a changé pendant sa préparation.
   failed: "Impossible d'envoyer « {title} » : {error}"
+save:
+  menuItem: Enregistrer dans Nitfree
+  busy: Terminez d'abord avec la fenêtre Nitfree ouverte.
+  saved: « {title} » enregistré dans Nitfree.
+  failed: "Impossible d'enregistrer « {title} » : {error}"
 toast:
   deleted: « {title} » supprimé
   undo: Annuler

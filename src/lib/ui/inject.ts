@@ -6,8 +6,9 @@ import { mount, unmount } from "svelte";
 
 import Overlay from "~/components/Overlay.svelte";
 import Popover from "~/components/Popover.svelte";
+import SaveMenuItem from "~/components/SaveMenuItem.svelte";
 import Toggler from "~/components/Toggler.svelte";
-import { findChatButtonGroups, readChatButtonClasses } from "~/lib/discord";
+import { findChatButtonGroups, readChatButtonClasses, readMenuLook } from "~/lib/discord";
 
 import { isolate } from "./isolate";
 import { closePanel, panel } from "./panel.svelte";
@@ -27,6 +28,31 @@ export function mountToggler(group: Element): () => void {
     target: group,
     anchor: group.firstChild ?? undefined,
     props: { classes: readChatButtonClasses(group) },
+  });
+
+  return () => {
+    void unmount(component);
+  };
+}
+
+/**
+ * Puts "Save to Nitfree" first in one of Discord's context menus, once it shows its items.
+ *
+ * @param menu - The open menu.
+ * @param onselect - What choosing the item does.
+ * @returns A function that removes the item, or null when the menu has no items yet.
+ */
+export function mountSaveMenuItem(menu: Element, onselect: () => void): (() => void) | null {
+  const group = menu.querySelector("[role=\"group\"]");
+
+  if (!group?.parentElement) {
+    return null;
+  }
+
+  const component = mount(SaveMenuItem, {
+    target: group.parentElement,
+    anchor: group,
+    props: { look: readMenuLook(menu), onselect },
   });
 
   return () => {

@@ -29,6 +29,8 @@ export type TDraft = {
   type: TItemType;
   description: string;
   tags: string[];
+  // Told the saved name once the file is in the library, such as to confirm a save from chat.
+  onsaved?: (title: string) => void;
 };
 
 type TEditorState = {
@@ -158,7 +160,13 @@ export function duplicateWarning(draft: TDraft): string | null {
   return editor.drafts.slice(0, index).some(found => found.hash === draft.hash) ? i18n.t("editor.duplicateDraft") : null;
 }
 
-async function readDrafts(files: readonly File[]): Promise<TDraft[]> {
+/**
+ * What is already known about files being added, such as the name and type of an emoji saved from
+ * chat, and what to do once they are saved.
+ */
+export type TDraftPreset = Partial<Pick<TDraft, "title" | "type" | "onsaved">>;
+
+async function readDrafts(files: readonly File[], preset: TDraftPreset): Promise<TDraft[]> {
   return Promise.all(files.map(async (file): Promise<TDraft> => {
     const read = await readFile(file);
 
@@ -166,27 +174,38 @@ async function readDrafts(files: readonly File[]): Promise<TDraft[]> {
       key: nextKey++,
       file,
       ...read,
-      title: titleFromFileName(file.name),
-      type: guessItemType(read.info),
+      title: preset.title ?? titleFromFileName(file.name),
+      type: preset.type ?? guessItemType(read.info),
       description: "",
       tags: [],
+      onsaved: preset.onsaved,
     };
   }));
 }
 
 /**
- * Opens the dialog to add files: picked, dropped or pasted. Titles come from the file names and the
- * type is guessed from each image; files Nitfree cannot use are listed with the reason. Files added
- * while the add dialog is open join it.
+ * Whether the add dialog can take files now: not while the edit dialog is open or anything is saving.
+ *
+ * @returns Whether files would be added.
+ */
+export function canStartAdd(): boolean {
+  return !editor.saving && editor.mode !== "edit";
+}
+
+/**
+ * Opens the dialog to add files: picked, dropped, pasted or saved from chat. Titles come from the file
+ * names and the type is guessed from each image, unless the preset says them; files Nitfree cannot use
+ * are listed with the reason. Files added while the add dialog is open join it.
  *
  * @param files - The files to add.
  * @param focus - What to focus when the dialog closes; by default, what has focus now.
+ * @param preset - The title and type to give the files instead of guessing them.
  * @returns Once the dialog shows the files.
  */
-export async function startAdd(files: Iterable<File>, focus: HTMLElement | null = focusedElement()): Promise<void> {
+export async function startAdd(files: Iterable<File>, focus: HTMLElement | null = focusedElement(), preset: TDraftPreset = {}): Promise<void> {
   const list = [...files];
 
-  if (!list.length || editor.saving || editor.mode === "edit") {
+  if (!list.length || !canStartAdd()) {
     return;
   }
 
@@ -196,7 +215,7 @@ export async function startAdd(files: Iterable<File>, focus: HTMLElement | null 
 
     editor.reading++;
 
-    const drafts = await readDrafts(list);
+    const drafts = await readDrafts(list, preset);
 
     if (current !== session) {
       release(drafts);
@@ -212,7 +231,7 @@ export async function startAdd(files: Iterable<File>, focus: HTMLElement | null 
 
   // Opening the dialog: only the latest request does, and only if no dialog opened meanwhile.
   const mine = ++ticket;
-  const drafts = await readDrafts(list);
+  const drafts = await readDrafts(list, preset);
 
   if (mine !== ticket || editor.mode) {
     release(drafts);
@@ -418,6 +437,9 @@ export async function saveEditor(): Promise<boolean> {
     if (error) {
       draft.error = i18n.t("editor.saveFailed", { error: toError(error).message });
       failed.push(draft);
+    }
+    else {
+      draft.onsaved?.(draft.title.trim());
     }
 
     // Nitfree was torn down meanwhile.

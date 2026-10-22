@@ -86,6 +86,36 @@ export const SELECTORS = {
     "[data-list-id=\"attachments\"] [data-list-item-id]",
     "[data-list-item-id^=\"attachments___\"]",
   ],
+
+  /**
+   * A custom emoji in a message. Built-in emojis carry a data-name instead of an id.
+   */
+  chatEmoji: [
+    "img[data-type=\"emoji\"][data-id]",
+  ],
+
+  /**
+   * A sticker in a message, with its id, name and format.
+   */
+  chatSticker: [
+    "[data-type=\"sticker\"][data-id]",
+  ],
+
+  /**
+   * The invisible link Discord lays over an attached or embedded image, to its original file; a right
+   * click on the image lands on it.
+   */
+  chatImage: [
+    "a[data-role=\"img\"]",
+  ],
+
+  /**
+   * One of Discord's context menus, such as the one a right click on a message opens. Its id is the
+   * menu's name, "message" for messages.
+   */
+  contextMenu: [
+    "[role=\"menu\"]",
+  ],
 } as const satisfies Record<string, readonly string[]>;
 
 /**
@@ -100,6 +130,15 @@ export const CLASS_PATTERNS = {
   /** A tab in the expression picker, and the class Discord adds to the selected one. */
   pickerTab: /^nav(?:Button|Item)_/,
   pickerTabActive: /^navButtonActive_/,
+
+  /** A context menu's item, its label and icon, the highlight of the hovered one, and the line between groups. */
+  menuItem: /^(?:item|labelContainer|colorDefault)_/,
+  menuLabel: /^label_/,
+  menuIconContainer: /^iconContainer_/,
+  menuIconContainerLeft: /^iconContainerLeft_/,
+  menuIcon: /^icon_/,
+  menuFocused: /^focused_/,
+  menuSeparator: /^separator_/,
 } as const;
 
 /**
