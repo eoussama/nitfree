@@ -54,11 +54,10 @@ export type TParsedArchive = {
   totalSize: number;
 };
 
-function describe(error: v.ValiError<v.GenericSchema>): string {
-  const [issue] = error.issues;
-  const path = issue ? v.getDotPath(issue) : null;
+function describe(issue: v.BaseIssue<unknown>): string {
+  const path = v.getDotPath(issue);
 
-  return path ? `${path}: ${issue?.message}` : (issue?.message ?? "unknown problem");
+  return path ? `${path}: ${issue.message}` : issue.message;
 }
 
 function parseJson<T extends v.GenericSchema>(schema: T, bytes: Uint8Array, name: string): v.InferOutput<T> {
@@ -74,7 +73,7 @@ function parseJson<T extends v.GenericSchema>(schema: T, bytes: Uint8Array, name
   const result = v.safeParse(schema, data);
 
   if (!result.success) {
-    const problem = describe(new v.ValiError(result.issues));
+    const problem = describe(result.issues[0]);
 
     throw new ArchiveError("invalid", `${name} is not valid (${problem})`, { name, problem });
   }
@@ -188,7 +187,7 @@ export async function readImages(files: Record<string, Uint8Array>): Promise<TPa
 
   for (const [path, bytes] of Object.entries(files).sort(([a], [b]) => a.localeCompare(b))) {
     const parts = path.split("/").filter(Boolean);
-    const file = parts.pop() ?? "";
+    const file = parts.pop();
 
     // Folders, and the clutter that operating systems leave in zips.
     if (!file || path.endsWith("/") || parts.includes("__MACOSX") || file.startsWith(".") || !bytes.length) {

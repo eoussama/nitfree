@@ -85,3 +85,10 @@ describe("suggestItems", () => {
     expect(titles(suggestItems(items, [], "cat", 2))).toEqual(["cat_00", "cat_01"]);
   });
 });
+
+describe("suggestItems for an item with a tag that is gone", () => {
+  it("does not match it by that tag", () => {
+    expect(titles(suggestItems([item("cat", { tags: ["gone"] })], [], "zz"))).toEqual([]);
+    expect(titles(suggestItems([item("cat", { tags: ["gone"] })], [], "ca"))).toEqual(["cat"]);
+  });
+});

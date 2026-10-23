@@ -147,4 +147,16 @@ describe("applyArchive", () => {
     expect(tag?.name).toBe("memes");
     expect((await fresh.library.list()).every(item => item.tags.includes(tag!.id) && item.type === "image")).toBe(true);
   });
+
+  it("leaves out a pack the archive's items name but never listed", async () => {
+    const { bytes } = await exported();
+    const fresh = await profile();
+    const archive = await readArchive(bytes);
+
+    archive.entries[0]!.packs = ["Ghost"];
+    await applyArchive(archive, "merge", fresh.target);
+
+    expect((await fresh.library.list()).every(item => item.packs.length === 0)).toBe(true);
+    expect(await fresh.packs.list()).toEqual([]);
+  });
 });

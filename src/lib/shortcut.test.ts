@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_SHORTCUT, formatShortcut, isUsableShortcut, keyOf, matchesShortcut, shortcutKeys, shortcutOf } from "./shortcut";
+import { ariaShortcut, DEFAULT_SHORTCUT, formatShortcut, isMac, isUsableShortcut, keyOf, matchesShortcut, shortcutKeys, shortcutOf } from "./shortcut";
 
 
 
@@ -74,5 +74,42 @@ describe("shortcuts", () => {
     expect(formatShortcut(DEFAULT_SHORTCUT, false)).toBe("Ctrl+Alt+N");
     expect(shortcutKeys(shortcut, true)).toEqual(["⌃", "⌥", "⇧", "⌘", "E"]);
     expect(formatShortcut(DEFAULT_SHORTCUT, true)).toBe("⌃⌥N");
+  });
+});
+
+describe("keyOf for keys with no name of their own", () => {
+  it("takes none for a key that is not one yet, and names other keys as they are", () => {
+    expect(keyOf(press("Dead", "Quote"))).toBeNull();
+    expect(keyOf(press("Enter", "Enter"))).toBe("Enter");
+  });
+});
+
+describe("ariaShortcut", () => {
+  it("names the modifiers as aria-keyshortcuts does", () => {
+    expect(ariaShortcut(DEFAULT_SHORTCUT)).toBe("Control+Alt+N");
+    expect(ariaShortcut({ key: "K", ctrl: false, alt: false, shift: true, meta: true })).toBe("Shift+Meta+K");
+  });
+});
+
+describe("isMac", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reads the platform, newest source first", () => {
+    vi.stubGlobal("navigator", { platform: "Win32", userAgentData: { platform: "macOS" } });
+    expect(isMac()).toBe(true);
+
+    vi.stubGlobal("navigator", { platform: "MacIntel" });
+    expect(isMac()).toBe(true);
+
+    vi.stubGlobal("navigator", { platform: "Win32" });
+    expect(isMac()).toBe(false);
+  });
+
+  it("is where shortcuts are named when none is told", () => {
+    vi.stubGlobal("navigator", { platform: "MacIntel" });
+    expect(formatShortcut(DEFAULT_SHORTCUT)).toBe("⌃⌥N");
+    expect(shortcutKeys(DEFAULT_SHORTCUT)).toEqual(["⌃", "⌥", "N"]);
   });
 });

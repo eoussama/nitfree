@@ -44,4 +44,43 @@ describe("inspectImage", () => {
     expect(inspectImage(gif(10, 10, 1).subarray(0, 8))).toBeNull();
     expect(inspectImage(jpeg(10, 10).subarray(0, 12))).toBeNull();
   });
+
+  it("reads a GIF with no global color table", () => {
+    const head = [..."GIF89a"].map(char => char.charCodeAt(0));
+
+    expect(inspectImage(Uint8Array.from([...head, 10, 0, 10, 0, 0x00, 0, 0, 0x3B]))).toMatchObject({ format: "gif", width: 10, height: 10, animated: false });
+  });
+
+  it("rejects an image with no size", () => {
+    expect(inspectImage(png(0, 5))).toBeNull();
+    expect(inspectImage(png(5, 0))).toBeNull();
+  });
+
+  it("reads a GIF cut short in its second image, as one with a single image", () => {
+    expect(inspectImage(gif(10, 10, 2).subarray(0, 30))).toMatchObject({ format: "gif", animated: false });
+  });
+
+  it("rejects a WebP that is too short or of a kind it does not know", () => {
+    expect(inspectImage(webpLossy(8, 8).subarray(0, 24))).toBeNull();
+
+    const lossless = webpLossless(8, 8);
+    const badSignature = lossless.slice();
+    const badLossy = webpLossy(8, 8);
+    const unknown = webpLossy(8, 8);
+
+    badSignature[20] = 0;
+    badLossy[23] = 0;
+    unknown.set([...("ABCD")].map(char => char.charCodeAt(0)), 12);
+
+    expect(inspectImage(badSignature)).toBeNull();
+    expect(inspectImage(badLossy)).toBeNull();
+    expect(inspectImage(unknown)).toBeNull();
+  });
+
+  it("reads a JPEG whose segments are padded with fill bytes, and rejects one whose segments are broken", () => {
+    const frame = [0xFF, 0xC0, 0x00, 0x11, 0x08, 0x00, 0x20, 0x00, 0x30, 0x03, 0, 0, 0, 0];
+
+    expect(inspectImage(Uint8Array.from([0xFF, 0xD8, 0xFF, 0xFF, ...frame]))).toMatchObject({ format: "jpeg", width: 48, height: 32 });
+    expect(inspectImage(Uint8Array.from([0xFF, 0xD8, 0x00, 0x00, ...frame]))).toBeNull();
+  });
 });

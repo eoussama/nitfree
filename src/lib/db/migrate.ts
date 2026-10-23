@@ -1,7 +1,6 @@
 import type { NitfreeDatabase } from "./schema";
 import type { TBlobRow, TItemRow, TTagRow } from "./types";
 
-import { isObject } from "@eoussama/core";
 import Dexie from "dexie";
 
 import { inspectFile } from "./library";
@@ -85,7 +84,7 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
 
   // Inspecting and hashing is asynchronous work that cannot run inside an IndexedDB transaction.
   for (const metadata of legacyMetadata) {
-    const data = isObject(metadata) ? files.get(metadata.fileId) : undefined;
+    const data = files.get(metadata.fileId);
     const inspected = data instanceof Blob ? await inspectFile(data).catch(() => null) : null;
 
     if (!inspected || typeof metadata.id !== "string") {

@@ -1,12 +1,12 @@
 import type { NitfreeDatabase } from "./schema";
 
 import Dexie from "dexie";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { gif, png } from "~/lib/media/fixtures";
 
 import { createLibrary, hashBytes } from "./library";
-import { LEGACY_DATABASE_NAME, migrateLegacyDatabase } from "./migrate";
+import { LEGACY_DATABASE_NAME, MIGRATED_KEY, migrateLegacyDatabase } from "./migrate";
 import { createTags } from "./tags";
 import { openTestDatabase } from "./testing";
 
@@ -22,14 +22,15 @@ let db: NitfreeDatabase;
  * @param seed.Tags - Tag rows.
  * @param seed.Files - File rows.
  * @param seed.Metadata - Metadata rows.
+ * @param stores - The stores to make, all three unless told otherwise.
  * @returns Resolves once the rows are written and the database is closed.
  */
-async function createLegacyDatabase(seed: { Tags?: object[]; Files?: object[]; Metadata?: object[] }): Promise<void> {
+async function createLegacyDatabase(seed: { Tags?: object[]; Files?: object[]; Metadata?: object[] }, stores: string[] = ["Tags", "Files", "Metadata"]): Promise<void> {
   const raw = await new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(LEGACY_DATABASE_NAME, 1);
 
     request.onupgradeneeded = () => {
-      for (const name of ["Tags", "Files", "Metadata"]) {
+      for (const name of stores) {
         request.result.createObjectStore(name, { keyPath: "id" });
       }
     };
@@ -38,9 +39,9 @@ async function createLegacyDatabase(seed: { Tags?: object[]; Files?: object[]; M
   });
 
   await new Promise<void>((resolve, reject) => {
-    const transaction = raw.transaction(["Tags", "Files", "Metadata"], "readwrite");
+    const transaction = raw.transaction(stores, "readwrite");
 
-    for (const [name, rows] of Object.entries(seed)) {
+    for (const [name, rows] of Object.entries(seed).filter(([name]) => stores.includes(name))) {
       for (const row of rows) {
         transaction.objectStore(name).put(row);
       }
@@ -125,6 +126,49 @@ describe("migrateLegacyDatabase", () => {
     expect(await migrateLegacyDatabase(db)).toEqual({ items: ["m-1"], tags: [], skipped: 2 });
     expect((await db.items.get("m-1"))?.tags).toEqual([existing.id]);
     expect(await db.tags.count()).toBe(1);
+  });
+
+  it("copies what an old database has even when it lacks a store", async () => {
+    await createLegacyDatabase({ Files: [{ id: "f-1", data: new Blob([png(8, 8)]) }], Metadata: [{ id: "m-1", fileId: "f-1", title: "a" }] }, ["Files", "Metadata"]);
+
+    expect(await migrateLegacyDatabase(db)).toEqual({ items: ["m-1"], tags: [], skipped: 0 });
+  });
+
+  it("makes do with what is missing or odd in the old rows", async () => {
+    const created = new Date("2020-01-02T03:04:05Z");
+
+    await createLegacyDatabase({
+      Tags: [
+        { id: "t-1", name: "  Cats  ", createdOn: created },
+        { id: "t-2", name: "cats" },
+        { id: "t-3", name: "   " },
+        { id: "t-4" },
+      ],
+      Files: [{ id: "f-1", data: new Blob([png(8, 8)]) }, { id: "f-2", data: new Blob([png(9, 9)]) }, { id: "f-3", data: new Blob([png(7, 7)]) }, { id: "f-4", data: new Blob([png(6, 6)]) }],
+      Metadata: [
+        { id: "m-1", fileId: "f-1", tagId: "t-2", title: "  ", description: 5, favorite: true, createdOn: new Date(Number.NaN) },
+        { id: "m-2", fileId: "f-2", tagId: null, title: "named", description: " about " },
+        { id: 3, fileId: "f-3", title: "numbered" },
+        { id: "m-4", fileId: "f-4", tagId: "t-3", title: "dropped tag" },
+      ],
+    });
+
+    expect(await migrateLegacyDatabase(db, () => 1000)).toEqual({ items: ["m-1", "m-2", "m-4"], tags: ["t-1"], skipped: 1 });
+    // Blank and nameless tags are dropped, and a second spelling of a name joins the first.
+    expect(await db.tags.toArray()).toMatchObject([{ id: "t-1", name: "Cats", createdAt: created.getTime() }]);
+    expect(await db.items.get("m-1")).toMatchObject({ title: "Untitled", description: "", favorite: 1, tags: ["t-1"], createdAt: 1000, updatedAt: 1000 });
+    expect(await db.items.get("m-2")).toMatchObject({ title: "named", description: "about", favorite: 0, tags: [] });
+    // Its tag was one of those dropped.
+    expect((await db.items.get("m-4"))?.tags).toEqual([]);
+  });
+
+  it("copies nothing when another start finished the job between the look and the copy", async () => {
+    await createLegacyDatabase({ Files: [{ id: "f-1", data: new Blob([png(8, 8)]) }], Metadata: [{ id: "m-1", fileId: "f-1", title: "a" }] });
+    await db.meta.put({ key: MIGRATED_KEY, value: 1 });
+    vi.spyOn(db.meta, "get").mockImplementationOnce((async () => undefined) as never);
+
+    expect(await migrateLegacyDatabase(db)).toBeNull();
+    expect(await db.items.count()).toBe(0);
   });
 
   it("runs once", async () => {

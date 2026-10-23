@@ -9,7 +9,7 @@ import { hexToRgb, hslToRgb, luminance, rgbToHsl } from "./color";
  * A color theme: a gradient behind Discord, with its colors blended into Discord's surfaces and
  * text, as Nitro's color themes are. Each is made for Discord's light or dark themes.
  */
-export type TColorTheme = { id: TColorThemeId; scheme: TScheme; angle: number; colors: readonly string[] };
+export type TColorTheme = { id: TColorThemeId; scheme: TScheme; angle: number; colors: readonly [string, ...string[]] };
 
 export type TColorThemeId = typeof COLOR_THEMES[number]["id"];
 
@@ -36,7 +36,7 @@ export const COLOR_THEMES = [
   { id: "forest", scheme: "dark", angle: 175, colors: ["#0e1a12", "#1f3b2a", "#3d5a3c"] },
   { id: "synthwave", scheme: "dark", angle: 135, colors: ["#1b1036", "#6a1b9a", "#c2185b"] },
   { id: "graphite", scheme: "dark", angle: 155, colors: ["#161616", "#3a3226", "#6b5a2e"] },
-] as const satisfies readonly { id: string; scheme: TScheme; angle: number; colors: readonly string[] }[];
+] as const satisfies readonly { id: string; scheme: TScheme; angle: number; colors: readonly [string, ...string[]] }[];
 
 function round(value: number): number {
   return Math.round(value * 1000) / 1000;
@@ -85,16 +85,19 @@ export function blendColors(first: TRgb, last: TRgb, dark: boolean): { base: THs
  * @returns The CSS.
  */
 export function colorThemeCss(theme: TColorTheme): string {
-  const first = hexToRgb(theme.colors[0] ?? "") ?? [0, 0, 0];
-  const last = hexToRgb(theme.colors.at(-1) ?? "") ?? first;
-  const stops = theme.colors.length === 1 ? [theme.colors[0], theme.colors[0]] : theme.colors;
+  const [firstColor] = theme.colors;
+  const lastColor = theme.colors.at(-1)!;
+  // A color that cannot be read counts as black, and a lone one as a gradient of itself.
+  const first = hexToRgb(firstColor) ?? [0, 0, 0];
+  const last = hexToRgb(lastColor) ?? first;
+  const stops = theme.colors.length === 1 ? [firstColor, firstColor] : theme.colors;
   const dark = blendColors(first, last, true);
   const light = blendColors(first, last, false);
 
   const variables = {
     "--custom-theme-background": `linear-gradient(${theme.angle}deg, ${stops.join(", ")})`,
-    "--custom-theme-primary-color": theme.colors[0],
-    "--custom-theme-secondary-color": theme.colors.at(-1),
+    "--custom-theme-primary-color": firstColor,
+    "--custom-theme-secondary-color": lastColor,
     "--custom-background-gradient-opacity-multiplier": "1",
     "--custom-theme-base-color-amount": "50%",
     "--custom-theme-text-color-amount": "38%",

@@ -130,6 +130,30 @@ describe("splitGif", () => {
   });
 });
 
+describe("splitGif of files made by hand", () => {
+  const head = [..."GIF89a"].map(char => char.charCodeAt(0));
+  const screen = [1, 0, 1, 0, 0x80, 0, 0, 0, 0, 0, 255, 255, 255];
+  const image = [0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00];
+
+  it("gives a frame with no control block no delay and no disposal", () => {
+    const split = splitGif(Uint8Array.from([...head, ...screen, ...image, 0x3B]));
+
+    expect(split!.frames).toMatchObject([{ delay: 0, dispose: "none", width: 1, height: 1 }]);
+  });
+
+  it("keeps a frame the previous one's control block says to leave in place", () => {
+    const control = [0x21, 0xF9, 0x04, 0x04, 0x07, 0x00, 0x00, 0x00];
+    const split = splitGif(Uint8Array.from([...head, ...screen, ...control, ...image, 0x3B]));
+
+    expect(split!.frames).toMatchObject([{ delay: 70, dispose: "none" }]);
+  });
+
+  it("stops at an image cut short before its header ends, and at a block it does not know", () => {
+    expect(splitGif(Uint8Array.from([...head, ...screen, ...image.slice(0, 5)]))).toBeNull();
+    expect(splitGif(Uint8Array.from([...head, ...screen, ...image, 0x99, 0x3B]))!.frames).toHaveLength(1);
+  });
+});
+
 describe("splitApng", () => {
   const signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
   const header = chunk("IHDR", [...u32(40), ...u32(20), 8, 6, 0, 0, 0]);
@@ -201,5 +225,34 @@ describe("splitApng", () => {
 
   it("refuses what is not a PNG", () => {
     expect(splitApng(Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9]))).toBeNull();
+    expect(splitApng(Uint8Array.from([1, 2, 3]))).toBeNull();
+  });
+
+  it("refuses one with no frames, or with no header", () => {
+    expect(splitApng(Uint8Array.from([...signature, ...header, ...chunk("IDAT", [1]), ...chunk("IEND", [])]))).toBeNull();
+    expect(splitApng(Uint8Array.from([...signature, ...chunk("acTL", [...u32(1), ...u32(0)]), ...frameControl(0, 4, 4, 0, 0, 0, 0), ...chunk("IDAT", [1])]))).toBeNull();
+  });
+
+  it("stops at a chunk that runs past the end of the file", () => {
+    const whole = [...signature, ...header, ...frameControl(0, 40, 20, 0, 0, 0, 0), ...chunk("IDAT", [1, 2, 3])];
+
+    expect(splitApng(Uint8Array.from(whole))!.frames).toHaveLength(1);
+    expect(splitApng(Uint8Array.from(whole.slice(0, -2)))).toBeNull();
+  });
+
+  it("times a frame by a hundredth of a second when its control block gives no denominator, and ignores chunks it has no use for", () => {
+    const control = chunk("fcTL", [...u32(0), ...u32(40), ...u32(20), ...u32(0), ...u32(0), 0, 5, 0, 0, 0, 0]);
+    const split = splitApng(Uint8Array.from([
+      ...signature,
+      ...header,
+      ...chunk("abCd", [1]),
+      ...control,
+      ...chunk("IDAT", [1]),
+      ...chunk("gAMA", [0, 0, 0xB1, 0x8F]),
+      ...chunk("IEND", []),
+    ]));
+
+    expect(split!.frames[0]!.delay).toBe(50);
+    expect([...split!.frames[0]!.bytes]).toEqual([...signature, ...header, ...chunk("IDAT", [1]), ...chunk("IEND", [])]);
   });
 });

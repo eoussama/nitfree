@@ -13,6 +13,7 @@ import { inspectImage } from "./inspect";
 class FakeWorker {
   static last: FakeWorker | null = null;
   static fail = false;
+  static noiseFirst = false;
 
   onmessage: ((event: { data: unknown }) => void) | null = null;
   onerror: ((event: { message: string; preventDefault: () => void }) => void) | null = null;
@@ -25,6 +26,11 @@ class FakeWorker {
     }
 
     FakeWorker.last = this;
+
+    if (FakeWorker.noiseFirst) {
+      queueMicrotask(() => this.reply({ type: "noise" }));
+    }
+
     queueMicrotask(() => this.reply({ type: "ready" }));
   }
 
@@ -50,12 +56,14 @@ async function flush(): Promise<void> {
 function useWorker(): void {
   FakeWorker.last = null;
   FakeWorker.fail = false;
+  FakeWorker.noiseFirst = false;
   vi.stubGlobal("Worker", FakeWorker);
   vi.stubGlobal("location", { origin: new URL(browser.runtime.getURL("/gif-worker.js")).origin });
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("the page encoder", () => {
@@ -194,5 +202,42 @@ describe("the worker encoder", () => {
 
     expect(stopped).toBe(true);
     expect(inspectImage(new Uint8Array(await file.arrayBuffer()))).toMatchObject({ format: "gif", width: 4, height: 4 });
+  });
+
+  it("ignores what the worker says that it does not know, and waits for it to be ready", async () => {
+    useWorker();
+    // Something else first: the page is still waiting for "ready".
+    FakeWorker.noiseFirst = true;
+
+    const encoder = await startGifEncoder(() => undefined);
+
+    // Said again once started, it is not taken for anything.
+    FakeWorker.last!.reply({ type: "ready" });
+    await encoder.add(frame());
+    expect(FakeWorker.last!.posted).toHaveLength(1);
+  });
+
+  it("starts the worker from a copy of its script where the page is not the extension's", async () => {
+    useWorker();
+    vi.stubGlobal("location", { origin: "https://discord.com" });
+
+    const sources: string[] = [];
+    const revoked: string[] = [];
+
+    vi.stubGlobal("fetch", vi.fn(async () => ({ text: async () => "postMessage('ready')" })));
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:copy");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(url => void revoked.push(url));
+    vi.stubGlobal("Worker", class extends FakeWorker {
+      constructor(source: string) {
+        super();
+        sources.push(source);
+      }
+    });
+
+    const encoder = await startGifEncoder(() => undefined);
+
+    expect(sources).toEqual(["blob:copy"]);
+    expect(revoked).toEqual(["blob:copy"]);
+    encoder.close();
   });
 });

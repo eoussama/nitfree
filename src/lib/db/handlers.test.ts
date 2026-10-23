@@ -187,3 +187,28 @@ describe("library handlers", () => {
     expect(item.title).toBe("x");
   });
 });
+
+describe("library handlers, where nothing else changes", () => {
+  it("find no similar picture, and announce no removal when a merge removes nothing", async () => {
+    const item = await handlers["library:add"]!({ file: new Blob([png(4, 4)]), type: "emoji", title: "wave" }, sender);
+
+    expect(await handlers["library:similar"]!({ fingerprint: "00".repeat(11), width: 4, height: 4 }, sender)).toBeNull();
+
+    notify.mockClear();
+    await handlers["library:merge"]!({ keep: item.id, remove: [] }, sender);
+    expect(notify.mock.calls).toEqual([["library:changed", { change: "updated", ids: [item.id] }]]);
+  });
+
+  it("announce no item changes when a tag or pack that nothing uses is deleted", async () => {
+    const tag = await handlers["tags:add"]!({ name: "Cats" }, sender);
+    const pack = await handlers["packs:add"]!({ name: "Pets" }, sender);
+
+    notify.mockClear();
+    await handlers["tags:remove"]!({ id: tag.id }, sender);
+    await handlers["packs:remove"]!({ id: pack.id }, sender);
+    expect(notify.mock.calls).toEqual([
+      ["tags:changed", { change: "removed", ids: [tag.id] }],
+      ["packs:changed", { change: "removed", ids: [pack.id] }],
+    ]);
+  });
+});

@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { clipFrameSize, clipTimes, defaultClip, loadVideo, MAX_CLIP, MIN_CLIP, moveClip, seekVideo } from "./video";
+import { installCanvas } from "~/test/canvas";
+import { asVideo, FakeVideo } from "~/test/video";
+
+import { inspectImage } from "./inspect";
+import { splitGif } from "./split";
+import { clipFrameSize, clipTimes, defaultClip, loadVideo, MAX_CLIP, MIN_CLIP, moveClip, seekVideo, videoToGif } from "./video";
 
 
 
@@ -46,65 +51,6 @@ describe("clips", () => {
   });
 });
 
-/**
- * A video element that loads and seeks when told to: a length of null is one that does not say how
- * long it is until it is seeked past its end, as videos recorded in a browser do.
- */
-class FakeVideo extends EventTarget {
-  readyState = 4;
-  seeking = false;
-  muted = false;
-  preload = "";
-  videoWidth = 640;
-  videoHeight = 360;
-  error: { message: string } | null = null;
-  duration = Number.NaN;
-  seeks: number[] = [];
-  private time = 0;
-
-  constructor(private readonly length: number | null, private readonly loads = true) {
-    super();
-  }
-
-  get currentTime(): number {
-    return this.time;
-  }
-
-  set currentTime(value: number) {
-    this.seeks.push(value);
-    this.time = Math.min(value, this.length ?? Math.min(value, 12));
-    queueMicrotask(() => {
-      if (this.length === null && value > 1e6) {
-        this.duration = 12;
-      }
-
-      this.dispatchEvent(new Event("seeked"));
-    });
-  }
-
-  private url = "";
-
-  get src(): string {
-    return this.url;
-  }
-
-  set src(url: string) {
-    this.url = url;
-    queueMicrotask(() => {
-      if (!this.loads) {
-        this.error = { message: "Unsupported." };
-        this.dispatchEvent(new Event("error"));
-
-        return;
-      }
-
-      this.duration = this.length ?? Number.NaN;
-      this.dispatchEvent(new Event("loadeddata"));
-    });
-  }
-}
-
-const asVideo = (video: FakeVideo) => video as unknown as HTMLVideoElement;
 
 describe("video loading", () => {
   beforeEach(() => {
@@ -145,6 +91,14 @@ describe("video loading", () => {
     await expect(loadVideo(asVideo(new FakeVideo(5, false)), "blob:video")).rejects.toThrow("Unsupported.");
   });
 
+  it("says so itself when the browser gives no reason", async () => {
+    const video = new FakeVideo(5, false);
+
+    video.failure = null;
+
+    await expect(loadVideo(asVideo(video), "blob:video")).rejects.toThrow("The video cannot be played.");
+  });
+
   it("stops waiting once told to", async () => {
     const controller = new AbortController();
     const loading = loadVideo(asVideo(new FakeVideo(5)), "blob:video", controller.signal);
@@ -181,5 +135,46 @@ describe("seekVideo", () => {
     video.seeking = true;
     await seekVideo(asVideo(video), 0);
     expect(video.seeks).toEqual([0]);
+  });
+});
+
+describe("videoToGif", () => {
+  const clip = { start: 0, end: 1, rate: 10, size: 160 };
+
+  beforeEach(() => {
+    installCanvas();
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("makes a GIF of a frame for each step of the clip, saying how far it has got", async () => {
+    const video = new FakeVideo(10);
+    const progress: [number, number][] = [];
+    const gif = await videoToGif(asVideo(video), clip, (done, total) => progress.push([done, total]));
+    const bytes = new Uint8Array(await gif.arrayBuffer());
+
+    expect(video.seeks).toEqual(clipTimes(clip).slice(1));
+    expect(progress).toEqual(Array.from({ length: 10 }, (_, i) => [i + 1, 10]));
+    expect(inspectImage(bytes)).toMatchObject({ format: "gif", width: 160, height: 90, animated: true });
+    expect(splitGif(bytes)!.frames.map(frame => frame.delay)).toEqual(Array.from({ length: 10 }).fill(100));
+  });
+
+  it("stops where it is told to, before the first frame or in the middle", async () => {
+    const early = new AbortController();
+
+    early.abort(new Error("Cancelled."));
+    await expect(videoToGif(asVideo(new FakeVideo(10)), clip, () => undefined, early.signal)).rejects.toThrow("Cancelled.");
+
+    const midway = new AbortController();
+    const video = new FakeVideo(10);
+
+    await expect(videoToGif(asVideo(video), clip, (done) => {
+      if (done === 3) {
+        midway.abort(new Error("Stopped."));
+      }
+    }, midway.signal)).rejects.toThrow("Stopped.");
   });
 });

@@ -56,3 +56,12 @@ describe("codec", () => {
     expect(restored.items[0]?.createdAt).toEqual(new Date(1_000));
   });
 });
+
+describe("encode of objects with no prototype", () => {
+  it("treats them as plain objects", async () => {
+    const bare = Object.create(null) as Record<string, unknown>;
+
+    bare.name = "bare";
+    expect(await decode(await encode(bare))).toEqual({ name: "bare" });
+  });
+});

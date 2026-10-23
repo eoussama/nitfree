@@ -82,7 +82,7 @@ export function buildSections(items: readonly TItem[], packs: readonly TPack[] =
   const favorites = items.filter(item => item.favorite).sort((a, b) => a.title.localeCompare(b.title));
   const recent = items
     .filter(item => item.usedAt !== null)
-    .sort((a, b) => (b.usedAt ?? 0) - (a.usedAt ?? 0))
+    .sort((a, b) => b.usedAt! - a.usedAt!)
     .slice(0, RECENT_LIMIT);
   const sections: TSection[] = [
     { id: "favorites", items: favorites },

@@ -74,7 +74,7 @@ function skipSubBlocks(bytes: Uint8Array, offset: number): number {
   let position = offset;
 
   while (position < bytes.length && bytes[position] !== 0) {
-    position += (bytes[position] ?? 0) + 1;
+    position += bytes[position]! + 1;
   }
 
   return position + 1;
@@ -92,7 +92,7 @@ function inspectGif(bytes: Uint8Array, view: DataView): TImageInfo | null {
     return null;
   }
 
-  const flags = bytes[10] ?? 0;
+  const flags = bytes[10]!;
   let offset = 13 + (flags & 0x80 ? 3 * 2 ** ((flags & 0x07) + 1) : 0);
   let frames = 0;
 
@@ -137,7 +137,7 @@ function inspectWebp(bytes: Uint8Array, view: DataView): TImageInfo | null {
     const width = 1 + (view.getUint32(data + 4, true) & 0xFFFFFF);
     const height = 1 + (view.getUint32(data + 6, true) >>> 8);
 
-    return info("webp", width, height, ((bytes[data] ?? 0) & 0x02) !== 0);
+    return info("webp", width, height, (bytes[data]! & 0x02) !== 0);
   }
 
   if (chunk === "VP8L" && bytes[data] === 0x2F) {
@@ -168,7 +168,7 @@ function inspectJpeg(bytes: Uint8Array, view: DataView): TImageInfo | null {
       return null;
     }
 
-    const marker = bytes[offset + 1] ?? 0;
+    const marker = bytes[offset + 1]!;
 
     if (marker === 0xFF) {
       offset++;

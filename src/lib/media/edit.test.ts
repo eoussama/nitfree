@@ -28,6 +28,14 @@ function alphas(rgba: Uint8ClampedArray, width: number): string[] {
   return rows;
 }
 
+describe("editedFileName", () => {
+  it("keeps the name and takes the extension of what the file became", () => {
+    expect(editedFileName("party.parrot.png", "image/gif")).toBe("party.parrot.gif");
+    expect(editedFileName("wave", "image/png")).toBe("wave.png");
+    expect(editedFileName(".png", "image/png")).toBe("image.png");
+  });
+});
+
 describe("crop rectangles", () => {
   it("takes the largest square in the middle", () => {
     expect(squareWithin({ x: 0, y: 0, width: 100, height: 60 })).toEqual({ x: 20, y: 0, width: 60, height: 60 });

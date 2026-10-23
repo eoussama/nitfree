@@ -36,7 +36,7 @@ function isDiscordHost(url: URL): boolean {
 }
 
 function fileName(url: URL): string {
-  const last = url.pathname.split("/").at(-1) ?? "";
+  const last = url.pathname.split("/").at(-1)!;
 
   try {
     return decodeURIComponent(last);
@@ -127,13 +127,13 @@ export function findChatMedia(target: Element): TChatMedia | null {
   const emoji = target.closest<HTMLImageElement>(SELECTORS.chatEmoji.join(","));
 
   if (emoji) {
-    return emojiMedia(emoji.dataset.id ?? "", emoji.alt, emoji.currentSrc || emoji.src);
+    return emojiMedia(emoji.dataset.id!, emoji.alt, emoji.currentSrc || emoji.src);
   }
 
   const sticker = target.closest<HTMLElement>(SELECTORS.chatSticker.join(","));
 
   if (sticker) {
-    return stickerMedia(sticker.dataset.id ?? "", sticker.dataset.name ?? "", sticker.dataset.formatType ?? "");
+    return stickerMedia(sticker.dataset.id!, sticker.dataset.name ?? "", sticker.dataset.formatType ?? "");
   }
 
   const image = target.closest<HTMLAnchorElement>(SELECTORS.chatImage.join(","));

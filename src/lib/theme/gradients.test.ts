@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hexToRgb, hslToRgb, rgbToHsl } from "./color";
+import { hexToRgb, hslToRgb, luminance, rgbToHsl } from "./color";
 import { blendColors, COLOR_THEMES, colorThemeCss, findColorTheme, THEME_CLASS } from "./gradients";
 
 
@@ -9,9 +9,22 @@ const rgb = (hex: string) => hexToRgb(hex)!;
 
 describe("colors", () => {
   it("go to HSL and back", () => {
-    for (const hex of ["#5865f2", "#ff0000", "#0f4c45", "#fdf6c3", "#808080"]) {
+    // One from each sixth of the hue wheel, and a gray.
+    for (const hex of ["#5865f2", "#ff0000", "#ff8000", "#80ff00", "#00ff80", "#0080ff", "#8000ff", "#ff0080", "#0f4c45", "#fdf6c3", "#808080"]) {
       expect(hslToRgb(rgbToHsl(rgb(hex)))).toEqual(rgb(hex));
     }
+  });
+
+  it("refuse anything but #rrggbb", () => {
+    expect(hexToRgb("#abc")).toBeNull();
+    expect(hexToRgb("blue")).toBeNull();
+  });
+
+  it("measure how light they look, for dark colors by the linear part of the curve", () => {
+    expect(luminance(rgb("#000000"))).toBe(0);
+    expect(luminance(rgb("#ffffff"))).toBeCloseTo(1);
+    expect(luminance(rgb("#010101"))).toBeCloseTo(0.0003, 4);
+    expect(luminance(rgb("#00ff00"))).toBeGreaterThan(luminance(rgb("#ff0000")));
   });
 });
 
@@ -38,6 +51,33 @@ describe("blendColors", () => {
     const { base } = blendColors(rgb("#161616"), rgb("#6b5a2e"), true);
 
     expect(base[0]).toBeCloseTo(rgbToHsl(rgb("#6b5a2e"))[0]);
+  });
+});
+
+describe("colorThemeCss for themes of its own making", () => {
+  it("makes a gradient of a lone color, and takes one it cannot read for black", () => {
+    expect(colorThemeCss({ id: "peach", scheme: "light", angle: 90, colors: ["#ff8000"] })).toContain("linear-gradient(90deg, #ff8000, #ff8000)");
+    expect(colorThemeCss({ id: "peach", scheme: "light", angle: 90, colors: ["nope", "#ff8000"] })).toContain("--custom-theme-primary-color: nope;");
+  });
+
+  it("takes the last color for the first when it cannot be read", () => {
+    expect(colorThemeCss({ id: "peach", scheme: "light", angle: 90, colors: ["#ff8000", "nope"] })).toContain("--custom-theme-secondary-color: nope;");
+  });
+
+  it("gives blues and purples less extreme text, on dark surfaces too", () => {
+    expect(blendColors(rgb("#4b2a8a"), rgb("#120c2c"), true).text[2]).toBe(0.8);
+  });
+
+  it("keeps a pink's text as light as any outside blue", () => {
+    expect(blendColors(rgb("#ff0080"), rgb("#800040"), true).text[2]).toBe(0.95);
+  });
+
+  it("gives light text on dark surfaces and dark text on light ones, outside blue", () => {
+    const { text: dark } = blendColors(rgb("#8a3b12"), rgb("#1f0a0a"), true);
+    const { text: light } = blendColors(rgb("#ffecd2"), rgb("#fcb69f"), false);
+
+    expect(dark[2]).toBe(0.95);
+    expect(light[2]).toBe(0.15);
   });
 });
 

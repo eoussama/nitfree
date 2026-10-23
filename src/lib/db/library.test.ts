@@ -209,6 +209,27 @@ describe("cache", () => {
   });
 });
 
+describe("fingerprints that cannot be made", () => {
+  it("are left out, without stopping an item from being added", async () => {
+    const failing = createLibrary(db, steppingClock(), async () => {
+      throw new Error("Cannot decode.");
+    });
+    const item = await failing.add({ file: file(png(8, 8)), type: "emoji", title: "plain" });
+
+    expect(item.title).toBe("plain");
+    expect((await db.items.get(item.id))?.fingerprint).toBeNull();
+  });
+});
+
+describe("favorites", () => {
+  it("are set and taken back by an update", async () => {
+    const item = await library.add({ file: file(png(4, 4)), type: "emoji", title: "wave", favorite: true });
+
+    expect((await library.update(item.id, { favorite: false })).favorite).toBe(false);
+    expect((await library.update(item.id, { favorite: true })).favorite).toBe(true);
+  });
+});
+
 describe("duplicates", () => {
   const RED = "0123456789abcdefff0000";
 
@@ -239,6 +260,30 @@ describe("duplicates", () => {
     expect(await finder.similar({ fingerprint: RED, width: 48, height: 48 })).toMatchObject({ id: loaf.id, title: "loaf" });
     expect(await finder.similar({ fingerprint: RED, width: 96, height: 48 })).toBeNull();
     expect(await finder.similar({ fingerprint: "fedcba9876543210ff0000", width: 48, height: 48 })).toBeNull();
+  });
+
+  it("leaves an item with no file unfingerprinted, and one replaced while it was read as it is now", async () => {
+    let target = "";
+    const fingerprint = vi.fn(async () => {
+      // The file is replaced while its old one is being looked at.
+      await db.items.update(target, { hash: "replaced" });
+
+      return RED;
+    });
+    const finder = createLibrary(db, steppingClock(), fingerprint);
+    const lost = await finder.add({ file: file(png(64, 64)), type: "emoji", title: "lost" });
+    const swapped = await finder.add({ file: file(png(32, 32)), type: "emoji", title: "swapped" });
+
+    await db.items.update(lost.id, { fingerprint: undefined });
+    await db.items.update(swapped.id, { fingerprint: undefined });
+    await db.blobs.delete(lost.id);
+    target = swapped.id;
+    fingerprint.mockClear();
+
+    await finder.duplicates();
+    expect(fingerprint).toHaveBeenCalledTimes(1);
+    expect((await db.items.get(lost.id))?.fingerprint).toBeNull();
+    expect((await db.items.get(swapped.id))?.fingerprint).toBeUndefined();
   });
 
   it("finds only the same files when images cannot be fingerprinted", async () => {

@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fingerprintBands, fingerprintPixels, hashDistance, isSimilar } from "./fingerprint";
+import { fileOf, installCanvas, paintedCanvas } from "~/test/canvas";
+
+import { fingerprintBands, fingerprintPixels, hashDistance, imageFingerprint, isSimilar } from "./fingerprint";
+import { png } from "./fixtures";
 
 
 
@@ -48,5 +51,31 @@ describe("comparing fingerprints", () => {
 
     expect(fingerprintBands(a)).toEqual(["0:01", "1:23", "2:45", "3:67", "4:89", "5:ab", "6:cd", "7:ef"]);
     expect(fingerprintBands(a).filter(band => fingerprintBands(b).includes(band))).toHaveLength(6);
+  });
+});
+
+describe("imageFingerprint", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("is none where the browser cannot decode or draw images", async () => {
+    vi.stubGlobal("createImageBitmap", undefined);
+    expect(await imageFingerprint(new Blob(["x"]))).toBeNull();
+
+    installCanvas();
+    vi.stubGlobal("OffscreenCanvas", undefined);
+    expect(await imageFingerprint(new Blob(["x"]))).toBeNull();
+  });
+
+  it("is none for a file that cannot be decoded", async () => {
+    installCanvas();
+    expect(await imageFingerprint(new Blob(["not an image"]))).toBeNull();
+  });
+
+  it("is made from the picture, a transparent one counting as white", async () => {
+    installCanvas();
+    expect(await imageFingerprint(new Blob([png(32, 32)]))).toBe("0000000000000000ffffff");
+    expect(await imageFingerprint(await fileOf(paintedCanvas(32, 32, "#ff0000")))).toBe("0000000000000000ff0000");
   });
 });

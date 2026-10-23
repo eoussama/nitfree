@@ -125,7 +125,7 @@ export function findDiscordAutocomplete(box: Element): HTMLElement | null {
  * @returns The ids of the files the next message carries.
  */
 export function draftAttachmentIds(composer: Element): string[] {
-  return findAll(composer, SELECTORS.draftAttachment).map(item => item.getAttribute("data-list-item-id") ?? "");
+  return findAll(composer, SELECTORS.draftAttachment).map(item => item.getAttribute("data-list-item-id")!);
 }
 
 /**
