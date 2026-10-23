@@ -148,6 +148,8 @@ editor:
   unreadable: Impossible de lire ce fichier. Il a peut-être été déplacé ou modifié.
   titleRequired: Chaque élément doit avoir un nom.
   duplicate: "Ce fichier est déjà dans votre bibliothèque sous le nom « {title} ». L'enregistrer en garde une deuxième copie."
+  similar: "Ce fichier ressemble à « {title} », déjà dans votre bibliothèque. L'enregistrer en garde une deuxième copie."
+  similarDraft: Ce fichier ressemble à un fichier plus haut. Ajouter les deux en garde deux copies.
   duplicateDraft: Ce fichier figure aussi plus haut. Ajouter les deux en garde deux copies.
   saveFailed: "Échec de l'enregistrement : {error}"
   removeTag: Retirer {tag}

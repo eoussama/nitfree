@@ -6,7 +6,7 @@ import type { TImageInfo } from "~/lib/media";
 import { inspectImage } from "~/lib/media";
 import { imageFingerprint } from "~/lib/media/fingerprint";
 
-import { groupDuplicates } from "./duplicates";
+import { findSimilar, groupDuplicates } from "./duplicates";
 import { ITEM_TYPES } from "./types";
 
 
@@ -96,6 +96,23 @@ function checkTitle(title: string): string {
 export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now, fingerprint: TFingerprinter = imageFingerprint) {
   async function fingerprintOf(file: Blob): Promise<string | null> {
     return fingerprint(file).catch(() => null);
+  }
+
+  // Items with no fingerprint yet, such as those added by an earlier version, get one, once.
+  async function fingerprintAll(): Promise<void> {
+    const missing = await db.items.filter(row => row.fingerprint === undefined).toArray();
+
+    for (const row of missing) {
+      const blob = await db.blobs.get(row.id);
+      const print = blob ? await fingerprintOf(blob.original) : null;
+
+      // The file may have been replaced meanwhile, and the fingerprint would then be of the old one.
+      await db.items.where("id").equals(row.id).modify((current) => {
+        if (current.hash === row.hash) {
+          current.fingerprint = print;
+        }
+      });
+    }
   }
 
   async function checkTags(ids: readonly string[]): Promise<string[]> {
@@ -358,21 +375,27 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
      * @returns The groups of duplicates, the item suggested to keep first in each.
      */
     async duplicates(): Promise<TDuplicateGroup[]> {
-      const missing = await db.items.filter(row => row.fingerprint === undefined).toArray();
-
-      for (const row of missing) {
-        const blob = await db.blobs.get(row.id);
-        const print = blob ? await fingerprintOf(blob.original) : null;
-
-        // The file may have been replaced meanwhile, and the fingerprint would then be of the old one.
-        await db.items.where("id").equals(row.id).modify((current) => {
-          if (current.hash === row.hash) {
-            current.fingerprint = print;
-          }
-        });
-      }
+      await fingerprintAll();
 
       return groupDuplicates(await db.items.toArray());
+    },
+
+    /**
+     * Finds the item showing the same picture as an image about to be added, such as a resized copy or
+     * one saved in another format, for the add dialog to warn about.
+     *
+     * @param picture - The image's size and fingerprint.
+     * @param picture.fingerprint - Its fingerprint.
+     * @param picture.width - Its width.
+     * @param picture.height - Its height.
+     * @returns The item, or null when none looks like it.
+     */
+    async similar(picture: { fingerprint: string; width: number; height: number }): Promise<TItem | null> {
+      await fingerprintAll();
+
+      const found = findSimilar(picture, await db.items.toArray());
+
+      return found ? toItem(found) : null;
     },
 
     /**

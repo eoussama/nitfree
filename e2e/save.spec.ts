@@ -132,6 +132,18 @@ test.describe("saving from chat", () => {
     }
   });
 
+  test("an emoji already added from disk, as another file, is flagged before saving a second copy", async ({ context, extensionId, page }) => {
+    const popup = await context.newPage();
+
+    // The same picture, at another size: not the file Discord serves, but the same emoji.
+    await openPopup(popup, extensionId);
+    await request(popup, "library:add", { file: png(128, 128, [250, 200, 40, 255]), type: "emoji", title: "my_blob" });
+    await page.bringToFront();
+
+    await save(page, page.locator("img.emoji"));
+    await expect(addDialog(page)).toContainText("This looks like “my_blob”, already in your library. Saving it keeps a second copy.");
+  });
+
   test("a file Discord no longer serves is said in a notice", async ({ page }) => {
     await page.route("https://media.discordapp.net/stickers/222.png", route => route.fulfill({ status: 404, headers: { "access-control-allow-origin": "*" } }));
     await page.locator("img[data-type=\"sticker\"]").click({ button: "right" });

@@ -149,6 +149,8 @@ editor:
   titleRequired: Every item needs a name.
   duplicate: "This file is already in your library as “{title}”. Saving it keeps a second copy."
   duplicateDraft: This file is also listed above. Adding both keeps two copies.
+  similar: "This looks like “{title}”, already in your library. Saving it keeps a second copy."
+  similarDraft: This looks like a file listed above. Adding both keeps two copies.
   saveFailed: "Could not save: {error}"
   removeTag: Remove {tag}
   drop: Drop to add to Nitfree

@@ -11,10 +11,39 @@ type TCandidate = Pick<TItemRow, "id" | "hash" | "fingerprint" | "width" | "heig
  */
 const MAX_RATIO_DIFFERENCE = 0.05;
 
-function sameShape(a: TCandidate, b: TCandidate): boolean {
+type TPicture = Pick<TItemRow, "width" | "height"> & { fingerprint: string };
+
+function sameShape(a: Pick<TItemRow, "width" | "height">, b: Pick<TItemRow, "width" | "height">): boolean {
   const ratio = (a.width / a.height) / (b.width / b.height);
 
   return Math.abs(ratio - 1) <= MAX_RATIO_DIFFERENCE;
+}
+
+/**
+ * Whether two images show the same picture, maybe resized or saved in another format: the same shape,
+ * and fingerprints close together.
+ *
+ * @param a - An image's size and fingerprint.
+ * @param b - Another's.
+ * @returns Whether they match.
+ */
+export function areSimilar(a: TPicture, b: TPicture): boolean {
+  return sameShape(a, b) && isSimilar(a.fingerprint, b.fingerprint);
+}
+
+/**
+ * Finds the item that shows the same picture as an image, among items with fingerprints; only those
+ * sharing a part of its fingerprint are compared.
+ *
+ * @param picture - The image's size and fingerprint.
+ * @param items - The items.
+ * @returns The one that would be kept of the matches, or null when none matches.
+ */
+export function findSimilar<T extends TCandidate>(picture: TPicture, items: readonly T[]): T | null {
+  const bands = new Set(fingerprintBands(picture.fingerprint));
+  const matches = items.filter(item => item.fingerprint && fingerprintBands(item.fingerprint).some(band => bands.has(band)) && areSimilar(picture, { ...item, fingerprint: item.fingerprint }));
+
+  return matches.sort(preference)[0] ?? null;
 }
 
 // Larger first, then the most sent, then the oldest: the order in which items are suggested to keep.
@@ -76,7 +105,7 @@ export function groupDuplicates(items: readonly TCandidate[]): TDuplicateGroup[]
           continue;
         }
 
-        if (exact || (sameShape(first, second) && isSimilar(first.fingerprint!, second.fingerprint!))) {
+        if (exact || areSimilar({ ...first, fingerprint: first.fingerprint! }, { ...second, fingerprint: second.fingerprint! })) {
           join(bucket[a]!, bucket[b]!);
         }
       }

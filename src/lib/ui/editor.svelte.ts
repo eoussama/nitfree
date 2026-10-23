@@ -3,8 +3,10 @@ import type { TImageInfo } from "~/lib/media";
 
 import { toError, tryCatch } from "@eoussama/core";
 
+import { areSimilar } from "~/lib/db/duplicates";
 import { hashBytes } from "~/lib/db/library";
 import { inspectImage } from "~/lib/media";
+import { imageFingerprint } from "~/lib/media/fingerprint";
 import { sendMessage } from "~/lib/messaging";
 
 import { guessItemType, isAcceptedFile, resolveTagNames, titleFromFileName } from "./drafts";
@@ -24,6 +26,10 @@ export type TDraft = {
   info: TImageInfo | null;
   // The file's content hash, to warn when it is already in the library; null for the item being edited.
   hash: string | null;
+  // How the picture looks, and the library item that looks the same, such as a resized copy or the
+  // same image saved by Discord: to warn about copies that are not the same file.
+  fingerprint: string | null;
+  similar: TItem | null;
   error: string | null;
   title: string;
   type: TItemType;
@@ -57,23 +63,39 @@ let ticket = 0;
 // What had focus before the dialog opened, focused again when it closes.
 let returnFocus: HTMLElement | null = null;
 
-async function readFile(file: File): Promise<Pick<TDraft, "info" | "hash" | "error" | "url" | "ownsUrl">> {
+type TRead = Pick<TDraft, "info" | "hash" | "fingerprint" | "similar" | "error" | "url" | "ownsUrl">;
+
+// The library item showing the same picture; none when the background cannot tell.
+async function findSimilar(fingerprint: string | null, info: TImageInfo | null): Promise<TItem | null> {
+  if (!fingerprint || !info) {
+    return null;
+  }
+
+  const [, found] = await tryCatch(sendMessage("library:similar", { fingerprint, width: info.width, height: info.height }));
+
+  return found ?? null;
+}
+
+async function readFile(file: File): Promise<TRead> {
   if (!isAcceptedFile(file) && !file.type.startsWith("image/")) {
-    return { info: null, hash: null, error: i18n.t("editor.unsupported"), url: null, ownsUrl: false };
+    return { info: null, hash: null, fingerprint: null, similar: null, error: i18n.t("editor.unsupported"), url: null, ownsUrl: false };
   }
 
   // A file moved or changed since it was picked cannot be read any more.
   const [error, bytes] = await tryCatch(file.arrayBuffer());
 
   if (error) {
-    return { info: null, hash: null, error: i18n.t("editor.unreadable"), url: null, ownsUrl: false };
+    return { info: null, hash: null, fingerprint: null, similar: null, error: i18n.t("editor.unreadable"), url: null, ownsUrl: false };
   }
 
   const info = inspectImage(new Uint8Array(bytes));
+  const fingerprint = info ? await imageFingerprint(file).catch(() => null) : null;
 
   return {
     info,
     hash: info ? await hashBytes(new Uint8Array(bytes)) : null,
+    fingerprint,
+    similar: await findSimilar(fingerprint, info),
     error: info ? null : i18n.t("editor.unsupported"),
     url: info ? URL.createObjectURL(file) : null,
     ownsUrl: info !== null,
@@ -140,7 +162,8 @@ export function isUsable(draft: TDraft): boolean {
 
 /**
  * Warns when a draft's file is already in the library, or listed earlier in the dialog, so saving it
- * would keep a second copy.
+ * would keep a second copy: the same file, or one showing the same picture, such as a resized copy or
+ * the same image as Discord serves it.
  *
  * @param draft - A draft in the dialog.
  * @returns The warning, or null.
@@ -150,15 +173,32 @@ export function duplicateWarning(draft: TDraft): string | null {
     return null;
   }
 
-  const item = library.items.find(found => found.hash === draft.hash && found.id !== editor.item?.id);
+  const others = (found: TItem) => found.id !== editor.item?.id;
+  const item = library.items.find(found => found.hash === draft.hash && others(found));
 
   if (item) {
     return i18n.t("editor.duplicate", { title: item.title });
   }
 
   const index = editor.drafts.findIndex(found => found.key === draft.key);
+  const earlier = editor.drafts.slice(0, index);
 
-  return editor.drafts.slice(0, index).some(found => found.hash === draft.hash) ? i18n.t("editor.duplicateDraft") : null;
+  if (earlier.some(found => found.hash === draft.hash)) {
+    return i18n.t("editor.duplicateDraft");
+  }
+
+  // Read from the library as it is now, so an item deleted meanwhile is not named.
+  const similar = draft.similar && library.items.find(found => found.id === draft.similar?.id && others(found));
+
+  if (similar) {
+    return i18n.t("editor.similar", { title: similar.title });
+  }
+
+  const { fingerprint, info } = draft;
+  const looksLike = (found: TDraft) => found.fingerprint && found.info && fingerprint && info
+    && areSimilar({ ...info, fingerprint }, { ...found.info, fingerprint: found.fingerprint });
+
+  return earlier.some(looksLike) ? i18n.t("editor.similarDraft") : null;
 }
 
 /**
@@ -251,6 +291,8 @@ function itemDraft(item: TItem): TDraft {
     ownsUrl: false,
     info: { format: item.format, mime: item.mime, width: item.width, height: item.height, animated: item.animated },
     hash: null,
+    fingerprint: null,
+    similar: null,
     error: null,
     title: item.title,
     type: item.type,

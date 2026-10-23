@@ -93,6 +93,8 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
     // Fingerprints made while looking change nothing anyone sees.
     "library:duplicates": () => library.duplicates(),
 
+    "library:similar": picture => library.similar(picture),
+
     "library:merge": async ({ keep, remove }) => {
       const { item, removed } = await library.merge(keep, remove);
 

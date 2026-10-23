@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupDuplicates } from "./duplicates";
+import { findSimilar, groupDuplicates } from "./duplicates";
 
 
 
@@ -11,6 +11,22 @@ function item(id: string, overrides: Partial<TCandidate> = {}): TCandidate {
 }
 
 const RED = "0123456789abcdefff0000";
+
+describe("findSimilar", () => {
+  it("finds the item showing the same picture, the one that would be kept when several do", () => {
+    const items = [
+      item("small", { fingerprint: RED }),
+      item("big", { fingerprint: "0123456789abcdeeff0000", width: 128, height: 128 }),
+      item("wide", { fingerprint: RED, width: 128 }),
+      item("blue", { fingerprint: "0123456789abcdef0000ff" }),
+      item("old"),
+    ];
+
+    expect(findSimilar({ fingerprint: RED, width: 48, height: 48 }, items)?.id).toBe("big");
+    expect(findSimilar({ fingerprint: RED, width: 96, height: 48 }, items)?.id).toBe("wide");
+    expect(findSimilar({ fingerprint: "fedcba9876543210ff0000", width: 48, height: 48 }, items)).toBeNull();
+  });
+});
 
 describe("groupDuplicates", () => {
   it("groups the same files, and near-identical images of the same shape", () => {

@@ -231,6 +231,16 @@ describe("duplicates", () => {
     expect((await db.items.get(wide.id))?.fingerprint).toBe(RED);
   });
 
+  it("finds the item an image about to be added looks like, fingerprinting older items first", async () => {
+    const finder = createLibrary(db, steppingClock(), async () => RED);
+    const loaf = await finder.add({ file: file(png(64, 64)), type: "emoji", title: "loaf" });
+
+    await db.items.update(loaf.id, { fingerprint: undefined });
+    expect(await finder.similar({ fingerprint: RED, width: 48, height: 48 })).toMatchObject({ id: loaf.id, title: "loaf" });
+    expect(await finder.similar({ fingerprint: RED, width: 96, height: 48 })).toBeNull();
+    expect(await finder.similar({ fingerprint: "fedcba9876543210ff0000", width: 48, height: 48 })).toBeNull();
+  });
+
   it("finds only the same files when images cannot be fingerprinted", async () => {
     const a = await library.add({ file: file(png(64, 64)), type: "emoji", title: "a" });
     const copy = await library.add({ file: file(png(64, 64)), type: "emoji", title: "copy" });

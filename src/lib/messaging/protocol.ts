@@ -24,6 +24,7 @@ export interface TProtocol {
   "library:cacheUsage": { request: void; response: TCacheUsage };
   "library:clearCache": { request: void; response: TCacheUsage };
   "library:duplicates": { request: void; response: TDuplicateGroup[] };
+  "library:similar": { request: { fingerprint: string; width: number; height: number }; response: TItem | null };
   "library:merge": { request: { keep: string; remove: string[] }; response: TItem };
 
   "tags:list": { request: void; response: TTag[] };

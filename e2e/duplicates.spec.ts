@@ -42,7 +42,7 @@ test.describe("duplicates", () => {
     const chooser = popup.waitForEvent("filechooser");
 
     await popup.getByRole("button", { name: "Add Files" }).click();
-    await (await chooser).setFiles([file("again.png", png(64, 64)), file("new.png", png(32, 32)), file("new-too.png", png(32, 32))]);
+    await (await chooser).setFiles([file("again.png", png(64, 64)), file("new.png", png(32, 32, [0, 200, 0, 255])), file("new-too.png", png(32, 32, [0, 200, 0, 255]))]);
 
     const dialog = addDialog(popup);
     const drafts = dialog.getByRole("group");
@@ -56,6 +56,24 @@ test.describe("duplicates", () => {
     await dialog.getByRole("button", { name: "Add 3 files" }).click();
     await expect(dialog).toHaveCount(0);
     expect(await items(popup)).toHaveLength(4);
+  });
+
+  test("adding a near-identical copy, such as a resized one, warns too", async () => {
+    await add(popup, "loaf", png(64, 64));
+    await popup.reload();
+    await expect(popup.locator("dd[data-type=\"emoji\"]")).toHaveText("1");
+
+    const chooser = popup.waitForEvent("filechooser");
+
+    await popup.getByRole("button", { name: "Add Files" }).click();
+    await (await chooser).setFiles([file("bigger.png", png(128, 128)), file("blue.png", png(64, 64, [0, 0, 255, 255])), file("bigger-again.png", png(96, 96))]);
+
+    const drafts = addDialog(popup).getByRole("group");
+
+    await expect(drafts).toHaveCount(3);
+    await expect(drafts.nth(0)).toContainText("This looks like “loaf”, already in your library. Saving it keeps a second copy.");
+    await expect(drafts.nth(1)).not.toContainText("looks like");
+    await expect(drafts.nth(2)).toContainText("This looks like “loaf”");
   });
 
   test("groups identical and near-identical items, and keeps the chosen one with the others' tags", async () => {

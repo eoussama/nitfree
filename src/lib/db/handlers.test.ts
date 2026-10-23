@@ -9,7 +9,7 @@ import { png } from "~/lib/media/fixtures";
 import { createLibraryHandlers } from "./handlers";
 import { createLibrary } from "./library";
 import { createTags } from "./tags";
-import { openTestDatabase } from "./testing";
+import { openTestDatabase, steppingClock } from "./testing";
 
 
 
@@ -22,7 +22,8 @@ beforeEach(async () => {
   const db = await openTestDatabase();
 
   notify = vi.fn<TNotify>(async () => undefined);
-  handlers = createLibraryHandlers(createLibrary(db), createTags(db), notify);
+  // A clock that moves on each read, so items added one after the other are never the same age.
+  handlers = createLibraryHandlers(createLibrary(db, steppingClock()), createTags(db), notify);
 });
 
 describe("library handlers", () => {
