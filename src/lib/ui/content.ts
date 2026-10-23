@@ -8,7 +8,6 @@ import { chatButtonGroupOf, composerOf, findEmojiButton, findExpandedPickerButto
 import { sendMessage } from "~/lib/messaging";
 import { picksSend } from "~/lib/settings";
 
-import { closeDetails } from "./details.svelte";
 import { resetEditor } from "./editor.svelte";
 import { mountOverlay, mountPopover, mountToggler, watchChatButtonGroups } from "./inject";
 import { followLibrary } from "./library.svelte";
@@ -267,7 +266,6 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     window.removeEventListener("pagehide", flushTrash);
     flushTrash();
     stopSaving();
-    closeDetails(false);
     resetEditor();
     closeMenu();
     clearNotice();

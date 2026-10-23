@@ -13,8 +13,7 @@
   import Trash from "@lucide/svelte/icons/trash";
 
   import { sendMessage } from "~/lib/messaging";
-  import { openDetails } from "~/lib/ui/details.svelte";
-  import { startEdit } from "~/lib/ui/editor.svelte";
+  import { startEdit, startView } from "~/lib/ui/editor.svelte";
   import { saveItem } from "~/lib/ui/export";
   import { closeMenu, menu } from "~/lib/ui/menu.svelte";
   import { focusAfterRemoval, tileAfterUnfavorite } from "~/lib/ui/tiles";
@@ -82,7 +81,7 @@
     closeMenu();
 
     if (item) {
-      openDetails(item, restoreFocus);
+      startView(item, restoreFocus);
     }
   }
 

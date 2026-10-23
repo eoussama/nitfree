@@ -11,6 +11,7 @@ popup:
   items:
     1: 1 élément
     n: $1 éléments
+  failed: "Impossible : {error}"
   storage:
     heading: Stockage
     usage: Espace utilisé
@@ -25,14 +26,8 @@ popup:
     delete:
       1: Supprimer 1 élément
       n: Supprimer $1 éléments
-    confirmTitle:
-      1: Supprimer 1 élément
-      n: Supprimer $1 éléments
     confirm: Leurs fichiers sont définitivement supprimés de votre bibliothèque. Cette action est irréversible.
-    confirmDelete: Supprimer
-    cancel: Annuler
     deleted: "{items} supprimés."
-    failed: "Impossible : {error}"
     persistTitle: Stockage persistant
     persist: Protéger ma bibliothèque
     persistHint: Sans cela, le navigateur peut effacer votre bibliothèque quand le disque manque d'espace.
@@ -57,7 +52,6 @@ popup:
       n: Les $1 autres éléments sont définitivement supprimés de votre bibliothèque, une fois leurs tags, favoris et envois repris. Cette action est irréversible.
     confirmMerge: Garder et supprimer les autres
     merged: "« {title} » gardé, {items} supprimés."
-    failed: "Impossible : {error}"
   add: Ajout rapide
   drop: Déposez ou collez des images ici, ou choisissez-les.
   settings: Paramètres
@@ -71,7 +65,6 @@ popup:
   transfer:
     heading: Sauvegarde
     exportTitle: Exporter
-    importTitle: Importer
     export: Exporter la bibliothèque
     exportSettings: Inclure les paramètres
     exportHint: Enregistre tous les éléments, étiquettes et favoris dans un fichier .nitfree.
@@ -79,7 +72,6 @@ popup:
     importFolder: Importer un dossier
     importHint: Une sauvegarde .nitfree, ou un zip ou dossier d'images, dont les noms de dossiers deviennent des étiquettes.
     reading: Lecture du fichier…
-    exporting: "Export de {done} sur {total}"
     importing: "Import de {done} sur {total}"
     tags:
       1: 1 étiquette
@@ -96,8 +88,6 @@ popup:
     replaceHint: Tout son contenu est d'abord supprimé.
     withSettings: Appliquer aussi les paramètres de ce fichier
     start: Importer
-    cancel: Annuler
-    exported: "{items} exportés."
     imported: "{added} ajoutés, {skipped} déjà dans votre bibliothèque ignorés."
     failed: "{failed} n'ont pas pu être ajoutés."
 toggler:
@@ -114,8 +104,6 @@ panel:
   noFilterResults: Rien ne correspond à ces filtres.
   noQueryFilterResults: Rien ne correspond à « {query} » avec ces filtres.
   filters:
-    type: Type
-    tags: Tags
     noTags: Ajoutez des tags à vos éléments pour filtrer par tag.
     find: Trouver un tag
     noMatch: Aucun tag ne correspond à « {query} ».
@@ -145,6 +133,8 @@ editor:
   replace: Remplacer le fichier
   remove: Retirer
   cancel: Annuler
+  close: Fermer
+  enlarge: Agrandir
   save: Enregistrer
   addCount:
     1: Ajouter 1 fichier
@@ -165,10 +155,6 @@ menu:
   download: Télécharger
   delete: Supprimer
 details:
-  close: Fermer
-  enlarge: Agrandir
-  noTags: Aucun tag
-  noDescription: Aucune description
   file: Fichier
   fileInfo: "{format} · {width} × {height} · {size}"
   added: Ajouté
@@ -186,7 +172,6 @@ export:
   progress: "Export de {done} sur {total}"
   done: "{items} exportés."
   failed: "Export impossible : {error}"
-  missing: Le fichier de « {title} » est introuvable.
 archive:
   notZip: Ce n'est pas un fichier zip, ou il est endommagé.
   unreadable: "{name} est illisible dans ce fichier."

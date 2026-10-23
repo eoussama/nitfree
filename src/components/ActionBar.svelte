@@ -17,8 +17,7 @@
   import Trash from "@lucide/svelte/icons/trash";
 
   import { sendMessage } from "~/lib/messaging";
-  import { openDetails } from "~/lib/ui/details.svelte";
-  import { startEdit } from "~/lib/ui/editor.svelte";
+  import { startEdit, startView } from "~/lib/ui/editor.svelte";
   import { saveItem } from "~/lib/ui/export";
   import { motion } from "~/lib/ui/motion.svelte";
   import { focusAfterRemoval } from "~/lib/ui/tiles";
@@ -95,7 +94,7 @@
     const tile = cell.querySelector<HTMLElement>("[data-tile]");
 
     ondone();
-    openDetails(current, tile);
+    startView(current, tile);
   }
 
   function edit(): void {

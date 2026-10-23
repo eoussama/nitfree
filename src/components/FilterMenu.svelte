@@ -83,7 +83,7 @@
   onkeydown={onKeydown}
 >
   <div class="group" role="group" aria-labelledby="nf-filter-types">
-    <h4 id="nf-filter-types" class="heading">{i18n.t("panel.filters.type")}</h4>
+    <h4 id="nf-filter-types" class="heading">{i18n.t("editor.type")}</h4>
     <div class="types">
       {#each types as option (option.value)}
         {@const chosen = filters.types.includes(option.value)}
@@ -103,7 +103,7 @@
   </div>
 
   <div class="group tags" role="group" aria-labelledby="nf-filter-tags">
-    <h4 id="nf-filter-tags" class="heading">{i18n.t("panel.filters.tags")}</h4>
+    <h4 id="nf-filter-tags" class="heading">{i18n.t("editor.tags")}</h4>
 
     {#if tags.length === 0}
       <p class="hint">{i18n.t("panel.filters.noTags")}</p>

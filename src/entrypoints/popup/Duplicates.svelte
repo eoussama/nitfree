@@ -79,7 +79,7 @@
 
     busy = false;
     message = error
-      ? { text: i18n.t("popup.duplicates.failed", { error: toError(error).message }), error: true }
+      ? { text: i18n.t("popup.failed", { error: toError(error).message }), error: true }
       : { text: i18n.t("popup.duplicates.merged", { title: item.title, items: i18n.t("popup.items", others.length) }), error: false };
   }
 </script>
@@ -87,7 +87,7 @@
 <div class="form-section">
   <p class="form-description">{i18n.t("popup.duplicates.hint")}</p>
   {#if failed && !found}
-    <p class="feedback critical" role="alert">{i18n.t("popup.duplicates.failed", { error: failed })}</p>
+    <p class="feedback critical" role="alert">{i18n.t("popup.failed", { error: failed })}</p>
   {:else if !found}
     <p class="form-description" role="status">{i18n.t("popup.duplicates.searching")}</p>
   {:else if !groups.length}

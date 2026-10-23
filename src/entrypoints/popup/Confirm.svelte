@@ -52,7 +52,7 @@
     <p id="nf-confirm-body" class="body">{body}</p>
   </div>
   <footer class="footer">
-    <button class="button secondary" type="button" onclick={oncancel}>{i18n.t("popup.storage.cancel")}</button>
+    <button class="button secondary" type="button" onclick={oncancel}>{i18n.t("editor.cancel")}</button>
     <button class="button critical" type="button" onclick={onconfirm}>{action}</button>
   </footer>
 </dialog>

@@ -2,7 +2,7 @@
 
 <!--
   Tag field: chosen tags as chips, a text field that suggests existing tags as you type, and Enter or a
-  comma to add one, new or existing.
+  comma to add one, new or existing. Read only, it just shows the chips.
 -->
 <script lang="ts">
   import type { TTag } from "~/lib/db";
@@ -19,9 +19,10 @@
     available: readonly TTag[];
     id: string;
     label: string;
+    readonly?: boolean;
   };
 
-  let { tags = $bindable(), available, id, label }: TProps = $props();
+  let { tags = $bindable(), available, id, label, readonly = false }: TProps = $props();
 
   let text = $state("");
   let input: HTMLInputElement | undefined = $state();
@@ -31,7 +32,7 @@
   // -1 until the user moves through the suggestions with the arrow keys.
   let highlighted = $state(-1);
 
-  const suggestions = $derived(focused && !dismissed ? suggestTags(text, available, tags) : []);
+  const suggestions = $derived(focused && !dismissed && !readonly ? suggestTags(text, available, tags) : []);
   const listId = $derived(`${id}-suggestions`);
 
   $effect(() => {
@@ -89,13 +90,15 @@
   {#each tags as tag (tag)}
     <span class="chip">
       {tag}
-      <button class="chip-remove" type="button" aria-label={i18n.t("editor.removeTag", { tag })} onclick={() => {
-        remove(tag);
-        // The chip's button goes away with it.
-        input?.focus();
-      }}>
-        <X size={12} strokeWidth={3} aria-hidden="true" />
-      </button>
+      {#if !readonly}
+        <button class="chip-remove" type="button" aria-label={i18n.t("editor.removeTag", { tag })} onclick={() => {
+          remove(tag);
+          // The chip's button goes away with it.
+          input?.focus();
+        }}>
+          <X size={12} strokeWidth={3} aria-hidden="true" />
+        </button>
+      {/if}
     </span>
   {/each}
   <input
@@ -105,7 +108,8 @@
     class="input"
     type="text"
     autocomplete="off"
-    placeholder={tags.length ? "" : i18n.t("editor.tagsPlaceholder")}
+    placeholder={tags.length || readonly ? "" : i18n.t("editor.tagsPlaceholder")}
+    {readonly}
     aria-label={label}
     role="combobox"
     aria-autocomplete="list"

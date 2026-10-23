@@ -76,7 +76,7 @@ export async function saveItem(item: TItem): Promise<void> {
   const [error, file] = await tryCatch(sendMessage("library:file", { id: item.id }));
 
   if (error || !file) {
-    showNotice(i18n.t("export.failed", { error: error ? toError(error).message : i18n.t("export.missing", { title: item.title }) }));
+    showNotice(i18n.t("export.failed", { error: error ? toError(error).message : i18n.t("send.missing", { title: item.title }) }));
 
     return;
   }

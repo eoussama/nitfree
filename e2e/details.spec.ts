@@ -47,13 +47,20 @@ test.describe("details", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Edit" })).toBeFocused();
     expect(await fields(page)).toMatchObject({
-      Type: "Emoji",
-      Tags: "party",
-      Description: "Hello there",
       File: expect.stringMatching(/^PNG · 64 × 48 · \d+ bytes$/),
       Sent: "Never sent",
     });
-    await expect(dialog.getByRole("textbox")).toHaveCount(0);
+
+    // The very fields of editing, read only, and the controls of a view rather than of a form.
+    await expect(dialog.getByRole("textbox", { name: "Name" })).toHaveValue("wave");
+    await expect(dialog.getByRole("textbox", { name: "Name" })).toHaveJSProperty("readOnly", true);
+    await expect(dialog.getByRole("radio", { name: "Emoji" })).toHaveAttribute("aria-checked", "true");
+    await expect(dialog.getByRole("radio", { name: "Sticker" })).toBeDisabled();
+    await expect(dialog.getByText("party")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Remove party" })).toHaveCount(0);
+    await expect(dialog.getByRole("textbox", { name: "Description" })).toHaveValue("Hello there");
+    await expect(dialog.getByRole("textbox", { name: "Description" })).toHaveJSProperty("readOnly", true);
+    await expect(dialog.getByRole("button", { name: "Cancel" })).toHaveCount(0);
 
     // Favorite follows the library at once.
     await dialog.getByRole("button", { name: "Add to Favorites" }).click();
@@ -115,8 +122,14 @@ test.describe("details", () => {
 
     const edit = page.getByRole("dialog", { name: "Edit item" });
 
+    // The same dialog, now editable and with what was shown.
     await expect(detailsDialog(page)).toHaveCount(0);
     await expect(edit.getByRole("textbox", { name: "Name" })).toHaveValue("wave");
+    await expect(edit.getByRole("textbox", { name: "Name" })).toHaveJSProperty("readOnly", false);
+    await expect(edit.getByRole("textbox", { name: "Description" })).toHaveValue("Hello there");
+    await expect(edit.getByRole("button", { name: "Remove party" })).toBeVisible();
+    await expect(edit.getByRole("button", { name: "Save" })).toBeVisible();
+    await expect(edit.getByRole("button", { name: "Download" })).toHaveCount(0);
 
     await page.keyboard.press("Escape");
     await expect(edit).toHaveCount(0);

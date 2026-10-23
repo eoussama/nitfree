@@ -11,6 +11,7 @@ popup:
   items:
     1: 1 item
     n: $1 items
+  failed: "Could not do that: {error}"
   storage:
     heading: Storage
     usage: Space used
@@ -25,14 +26,8 @@ popup:
     delete:
       1: Delete 1 item
       n: Delete $1 items
-    confirmTitle:
-      1: Delete 1 item
-      n: Delete $1 items
     confirm: Their files are deleted from your library for good. This cannot be undone.
-    confirmDelete: Delete
-    cancel: Cancel
     deleted: "Deleted {items}."
-    failed: "Could not do that: {error}"
     persistTitle: Persistent storage
     persist: Keep my library safe
     persistHint: Without this, the browser may clear your library when the disk runs low on space.
@@ -57,7 +52,6 @@ popup:
       n: The $1 other items are deleted from your library for good, once their tags, favorite and sends are moved over. This cannot be undone.
     confirmMerge: Keep and delete others
     merged: "Kept “{title}” and deleted {items}."
-    failed: "Could not do that: {error}"
   add: Quick add
   drop: Drop or paste images here, or pick them.
   settings: Settings
@@ -71,7 +65,6 @@ popup:
   transfer:
     heading: Backup
     exportTitle: Export
-    importTitle: Import
     export: Export library
     exportSettings: Include settings
     exportHint: Saves every item, tag and favorite as one .nitfree file.
@@ -79,7 +72,6 @@ popup:
     importFolder: Import folder
     importHint: A .nitfree backup, or a zip or folder of images, where folder names become tags.
     reading: Reading the file…
-    exporting: "Exporting {done} of {total}"
     importing: "Importing {done} of {total}"
     tags:
       1: 1 tag
@@ -96,8 +88,6 @@ popup:
     replaceHint: Everything in it is deleted first.
     withSettings: Also apply the settings in this file
     start: Import
-    cancel: Cancel
-    exported: "Exported {items}."
     imported: "Added {added}, skipped {skipped} already in your library."
     failed: "{failed} could not be added."
 toggler:
@@ -114,8 +104,6 @@ panel:
   noFilterResults: Nothing matches these filters.
   noQueryFilterResults: Nothing matches “{query}” with these filters.
   filters:
-    type: Type
-    tags: Tags
     noTags: Tag your items to filter by them.
     find: Find a tag
     noMatch: No tag matches “{query}”.
@@ -145,6 +133,8 @@ editor:
   replace: Replace file
   remove: Remove
   cancel: Cancel
+  close: Close
+  enlarge: View larger
   save: Save
   addCount:
     1: Add 1 file
@@ -165,10 +155,6 @@ menu:
   download: Download
   delete: Delete
 details:
-  close: Close
-  enlarge: View larger
-  noTags: No tags
-  noDescription: No description
   file: File
   fileInfo: "{format} · {width} × {height} · {size}"
   added: Added
@@ -186,7 +172,6 @@ export:
   progress: "Exporting {done} of {total}"
   done: "Exported {items}."
   failed: "Could not export: {error}"
-  missing: The file of “{title}” is missing.
 archive:
   notZip: This is not a zip file, or it is damaged.
   unreadable: "{name} in this file cannot be read."

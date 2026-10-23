@@ -27,7 +27,7 @@
 
   const progress = $derived(
     transfer.busy === "export"
-      ? i18n.t("popup.transfer.exporting", { done: String(transfer.done), total: String(transfer.total) })
+      ? i18n.t("export.progress", { done: String(transfer.done), total: String(transfer.total) })
       : transfer.busy === "import"
       ? i18n.t("popup.transfer.importing", { done: String(transfer.done), total: String(transfer.total) })
       : transfer.busy === "read" ? i18n.t("popup.transfer.reading") : "",
@@ -72,7 +72,7 @@
     {:else if transfer.error}
       <p class="feedback critical" role="alert">{transfer.error}</p>
     {:else if result?.kind === "export"}
-      <p class="feedback positive" role="status">{i18n.t("popup.transfer.exported", { items: i18n.t("popup.items", result.count) })}</p>
+      <p class="feedback positive" role="status">{i18n.t("export.done", { items: i18n.t("popup.items", result.count) })}</p>
     {:else if result?.kind === "import"}
       <p class="feedback positive" role="status">
         {i18n.t("popup.transfer.imported", { added: String(result.added), skipped: String(result.skipped) })}
@@ -98,7 +98,7 @@
 </div>
 
 <div class="form-section">
-  <h2 class="form-title">{i18n.t("popup.transfer.importTitle")}</h2>
+  <h2 class="form-title">{i18n.t("popup.transfer.start")}</h2>
 
   {#if pending}
     <div class="summary">
@@ -139,7 +139,7 @@
     {/if}
 
     <div class="actions">
-      <button class="button secondary" type="button" disabled={busy} onclick={cancelImport}>{i18n.t("popup.transfer.cancel")}</button>
+      <button class="button secondary" type="button" disabled={busy} onclick={cancelImport}>{i18n.t("editor.cancel")}</button>
       <button class="button" class:primary={mode === "merge"} class:critical={mode === "replace"} type="button" disabled={busy} onclick={() => void importPending(mode, importSettings)}>
         {i18n.t("popup.transfer.start")}
       </button>

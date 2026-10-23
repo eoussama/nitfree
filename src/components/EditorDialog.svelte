@@ -1,34 +1,63 @@
 <svelte:options css="injected" />
 
 <!--
-  The add and edit dialog, styled like a Discord modal: title, one row per file with its preview and
-  details, and a footer with Cancel and the primary action.
+  The add, edit and details dialog, styled like a Discord modal: title, one row per file with its
+  preview and details, and a footer with the controls of the mode. Viewing shows the very fields of
+  editing, read only, with Favorite, Download and Edit instead of Cancel and Save. Clicking a
+  preview shows it larger, with zoom.
 -->
 <script lang="ts">
   import type { TItemType } from "~/lib/db";
   import type { TDraft } from "~/lib/ui/editor.svelte";
 
+  import Download from "@lucide/svelte/icons/download";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Star from "@lucide/svelte/icons/star";
+  import StarOff from "@lucide/svelte/icons/star-off";
   import X from "@lucide/svelte/icons/x";
+  import ZoomIn from "@lucide/svelte/icons/zoom-in";
   import { tick } from "svelte";
 
-  // Not from "~/lib/db": that would bundle Dexie into the content script, and Chrome refuses its "\uffff" key bound as invalid UTF-8.
+  // Not from "~/lib/db": that would bundle Dexie into the content script, and Chrome refuses its "￿" key bound as invalid UTF-8.
   import { ITEM_TYPES } from "~/lib/db/types";
+  import { formatBytes } from "~/lib/format";
+  import { sendMessage } from "~/lib/messaging";
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
-  import { closeEditor, duplicateWarning, editor, isUsable, removeDraft, replaceFile, saveEditor } from "~/lib/ui/editor.svelte";
+  import { closeEditor, duplicateWarning, editFromView, editor, isUsable, removeDraft, replaceFile, saveEditor } from "~/lib/ui/editor.svelte";
+  import { saveItem } from "~/lib/ui/export";
   import { library } from "~/lib/ui/library.svelte";
 
+  import Lightbox from "./Lightbox.svelte";
   import TagInput from "./TagInput.svelte";
 
 
 
-  let dialog: HTMLElement | undefined = $state();
+  const locale = i18n.t("locale");
+  const dates = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" });
 
+  let dialog: HTMLElement | undefined = $state();
+  // The preview shown larger, and the button to focus again once it closes.
+  let enlarged: number | null = $state(null);
+  let enlargedFrom: HTMLElement | null = null;
+
+  const viewing = $derived(editor.mode === "view");
   const usable = $derived(editor.drafts.filter(isUsable));
-  const heading = $derived(editor.mode === "edit" ? i18n.t("editor.editTitle") : i18n.t("editor.addTitle"));
+  // The item as the library has it now, for what changes while it shows, such as its favorite.
+  const current = $derived(editor.item ? library.items.find(found => found.id === editor.item?.id) ?? null : null);
+  const enlargedDraft = $derived(editor.drafts.find(draft => draft.key === enlarged && draft.url && draft.info) ?? null);
+  const heading = $derived(viewing ? `:${editor.drafts[0]?.title ?? ""}:` : editor.mode === "edit" ? i18n.t("editor.editTitle") : i18n.t("editor.addTitle"));
   const action = $derived(editor.mode === "edit" ? i18n.t("editor.save") : i18n.t("editor.addCount", usable.length));
 
-  // Focus the first name to change, or the dialog's first button when no file can be added.
+  // Focus the first name to change, the action of a view, or the dialog's first button when no file can be added.
   function focusFirst(): void {
+    const primary = viewing ? dialog?.querySelector<HTMLElement>("[data-primary]") : null;
+
+    if (primary) {
+      primary.focus();
+
+      return;
+    }
+
     const title = dialog?.querySelector<HTMLInputElement>("input[data-title]");
 
     if (title) {
@@ -45,8 +74,48 @@
     }
   });
 
+  // The item went away while shown, e.g. deleted from another tab.
+  $effect(() => {
+    if (viewing && library.loaded && !current) {
+      closeEditor();
+    }
+  });
+
+  // The larger preview goes with the dialog it belongs to.
+  $effect(() => {
+    if (!editor.mode) {
+      enlarged = null;
+    }
+  });
+
+  function favorite(): void {
+    if (current) {
+      void sendMessage("library:update", { id: current.id, patch: { favorite: !current.favorite } }).catch(() => undefined);
+    }
+  }
+
+  async function edit(): Promise<void> {
+    editFromView();
+    await tick();
+    focusFirst();
+  }
+
+  function enlarge(draft: TDraft, button: HTMLElement): void {
+    enlarged = draft.key;
+    enlargedFrom = button;
+  }
+
+  function closeLightbox(): void {
+    enlarged = null;
+    enlargedFrom?.focus();
+  }
+
   async function onSubmit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
+
+    if (viewing) {
+      return;
+    }
 
     // Every field is disabled while saving, so the dialog holds focus; files that failed get it back.
     dialog?.focus();
@@ -87,7 +156,7 @@
     <form class="form" onsubmit={event => void onSubmit(event)}>
       <header class="modal-header">
         <h2 class="modal-title" id="nf-editor-title">{heading}</h2>
-        <button class="close" type="button" aria-label={i18n.t("editor.cancel")} disabled={editor.saving} onclick={closeEditor}>
+        <button class="close" type="button" aria-label={viewing ? i18n.t("editor.close") : i18n.t("editor.cancel")} disabled={editor.saving} onclick={closeEditor}>
           <X size={24} aria-hidden="true" />
         </button>
       </header>
@@ -98,11 +167,12 @@
           <fieldset class="draft" class:unusable={!isUsable(draft)} disabled={editor.saving}>
             <legend class="sr-only">{draft.file?.name ?? draft.title}</legend>
 
-            <div class="preview">
+            <button class="preview" type="button" aria-label={i18n.t("editor.enlarge")} disabled={!draft.url || !draft.info} onclick={event => enlarge(draft, event.currentTarget)}>
               {#if draft.url}
-                <img src={draft.url} alt="" />
+                <img src={draft.url} alt="" draggable="false" />
+                <span class="enlarge" aria-hidden="true"><ZoomIn size={18} /></span>
               {/if}
-            </div>
+            </button>
 
             <div class="fields">
               {#if draft.error}
@@ -116,7 +186,7 @@
               {#if draft.info}
                 <label class="field">
                   <span class="label">{i18n.t("editor.title")}</span>
-                  <input class="input" type="text" required data-title bind:value={draft.title} />
+                  <input class="input" type="text" required data-title readonly={viewing} bind:value={draft.title} />
                 </label>
 
                 <div class="field" role="radiogroup" aria-label={i18n.t("editor.type")}>
@@ -129,6 +199,7 @@
                         type="button"
                         role="radio"
                         aria-checked={draft.type === type}
+                        disabled={viewing}
                         onclick={() => setType(draft, type)}
                       >
                         {i18n.t(`panel.types.${type}`)}
@@ -139,13 +210,30 @@
 
                 <div class="field">
                   <label class="label" for="nf-tags-{draft.key}">{i18n.t("editor.tags")}</label>
-                  <TagInput bind:tags={draft.tags} available={library.tags} id="nf-tags-{draft.key}" label={i18n.t("editor.tags")} />
+                  <TagInput bind:tags={draft.tags} available={library.tags} id="nf-tags-{draft.key}" label={i18n.t("editor.tags")} readonly={viewing} />
                 </div>
 
                 <label class="field">
                   <span class="label">{i18n.t("editor.description")}</span>
-                  <textarea class="input textarea" rows="2" placeholder={i18n.t("editor.optional")} bind:value={draft.description}></textarea>
+                  <textarea class="input textarea" rows="2" placeholder={viewing ? "" : i18n.t("editor.optional")} readonly={viewing} bind:value={draft.description}></textarea>
                 </label>
+
+                {#if editor.item}
+                  <dl class="meta">
+                    <div class="meta-row">
+                      <dt class="meta-label">{i18n.t("details.file")}</dt>
+                      <dd class="meta-value">{i18n.t("details.fileInfo", { format: editor.item.format.toUpperCase(), width: editor.item.width, height: editor.item.height, size: formatBytes(editor.item.size, locale) })}{editor.item.animated ? ` · ${i18n.t("panel.animated")}` : ""}</dd>
+                    </div>
+                    <div class="meta-row">
+                      <dt class="meta-label">{i18n.t("details.added")}</dt>
+                      <dd class="meta-value">{dates.format(editor.item.createdAt)}</dd>
+                    </div>
+                    <div class="meta-row">
+                      <dt class="meta-label">{i18n.t("details.sent")}</dt>
+                      <dd class="meta-value">{i18n.t("details.sentCount", editor.item.usageCount)}{editor.item.usedAt ? ` · ${i18n.t("details.lastSent", { date: dates.format(editor.item.usedAt) })}` : ""}</dd>
+                    </div>
+                  </dl>
+                {/if}
               {/if}
 
               <div class="draft-actions">
@@ -154,7 +242,7 @@
                     {i18n.t("editor.replace")}
                     <input class="sr-only" type="file" accept={ACCEPTED_FILES} onchange={event => pickReplacement(draft, event.currentTarget)} />
                   </label>
-                {:else if editor.drafts.length > 1 || draft.error}
+                {:else if !viewing && (editor.drafts.length > 1 || draft.error)}
                   <button class="link" type="button" onclick={() => void remove(draft)}>{i18n.t("editor.remove")}</button>
                 {/if}
               </div>
@@ -167,11 +255,30 @@
         {#if editor.error}
           <p class="footer-error" role="alert">{editor.error}</p>
         {/if}
-        <button class="button secondary" type="button" disabled={editor.saving} onclick={closeEditor}>{i18n.t("editor.cancel")}</button>
-        <button class="button primary" type="submit" disabled={editor.saving || editor.reading > 0 || !usable.length}>{action}</button>
+        {#if viewing}
+          <button class="button secondary" type="button" aria-pressed={current?.favorite ?? false} onclick={favorite}>
+            {#if current?.favorite}<StarOff size={16} aria-hidden="true" />{:else}<Star size={16} aria-hidden="true" />{/if}
+            {current?.favorite ? i18n.t("menu.unfavorite") : i18n.t("menu.favorite")}
+          </button>
+          <button class="button secondary" type="button" onclick={() => current && void saveItem(current)}>
+            <Download size={16} aria-hidden="true" />
+            {i18n.t("menu.download")}
+          </button>
+          <button class="button primary" type="button" data-primary onclick={() => void edit()}>
+            <Pencil size={16} aria-hidden="true" />
+            {i18n.t("menu.edit")}
+          </button>
+        {:else}
+          <button class="button secondary" type="button" disabled={editor.saving} onclick={closeEditor}>{i18n.t("editor.cancel")}</button>
+          <button class="button primary" type="submit" disabled={editor.saving || editor.reading > 0 || !usable.length}>{action}</button>
+        {/if}
       </footer>
     </form>
   </div>
+
+  {#if enlargedDraft?.url && enlargedDraft.info}
+    <Lightbox url={enlargedDraft.url} title={enlargedDraft.title} width={enlargedDraft.info.width} height={enlargedDraft.info.height} onclose={closeLightbox} />
+  {/if}
 {/if}
 
 <style>
@@ -224,15 +331,20 @@
   }
 
   .modal-title {
+    min-width: 0;
     margin: 0;
+    overflow: hidden;
     font-size: 20px;
     font-weight: 600;
     line-height: 24px;
     color: var(--text-strong, var(--nf-text, #fff));
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .close {
     display: flex;
+    flex: none;
     align-items: center;
     justify-content: center;
     width: 32px;
@@ -273,22 +385,49 @@
     border-top: 1px solid var(--border-subtle, var(--nf-border, #3f4147));
   }
 
+  /* A click shows it larger. */
   .preview {
+    position: relative;
     display: flex;
     flex: none;
     align-items: center;
     justify-content: center;
     width: 96px;
     height: 96px;
+    padding: 0;
     overflow: hidden;
+    border: none;
     border-radius: var(--radius-sm, 8px);
     background-color: var(--background-base-lower, rgb(0 0 0 / 16%));
+    cursor: zoom-in;
+  }
+
+  .preview:disabled {
+    cursor: default;
   }
 
   .preview img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+  }
+
+  .enlarge {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    display: flex;
+    padding: 3px;
+    border-radius: var(--radius-xs, 4px);
+    background-color: rgb(0 0 0 / 60%);
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+  }
+
+  .preview:hover .enlarge,
+  .preview:focus-visible .enlarge {
+    opacity: 1;
   }
 
   .fields {
@@ -337,6 +476,16 @@
     outline-offset: -2px;
   }
 
+  /* Viewing: the same fields, as plain values. */
+  .input:read-only {
+    border-color: transparent;
+    cursor: default;
+  }
+
+  .input:read-only:focus {
+    outline-color: var(--border-focus, var(--nf-accent, #5865f2));
+  }
+
   .input::placeholder {
     color: var(--input-placeholder-text-default, var(--nf-muted, #949ba4));
   }
@@ -346,6 +495,10 @@
     min-height: 64px;
     padding: 10px 12px;
     resize: vertical;
+  }
+
+  .textarea:read-only {
+    resize: none;
   }
 
   .segments {
@@ -371,7 +524,15 @@
     transition: background-color 0.1s ease-in-out, color 0.1s ease-in-out;
   }
 
-  .segment:hover {
+  .segment:disabled {
+    cursor: default;
+  }
+
+  .segment:disabled:not(.selected) {
+    opacity: 0.5;
+  }
+
+  .segment:hover:not(:disabled) {
     background-color: var(--control-secondary-background-hover, rgb(151 151 159 / 16%));
     color: var(--interactive-text-hover, #fff);
   }
@@ -398,6 +559,33 @@
     flex: 1;
   }
 
+  /* What Nitfree knows about the file; not something to edit. */
+  .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  .meta-label {
+    flex: none;
+    width: 56px;
+    color: var(--text-muted, var(--nf-muted, #949ba4));
+  }
+
+  .meta-value {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
   .draft-actions {
     display: flex;
   }
@@ -419,6 +607,7 @@
 
   .modal-footer {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
@@ -430,6 +619,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     min-width: 96px;
     height: 40px;
     padding: 7px 15px;
@@ -441,6 +631,10 @@
     line-height: 20px;
     cursor: pointer;
     transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
+  }
+
+  .button :global(svg) {
+    flex: none;
   }
 
   .button:disabled,
@@ -476,6 +670,7 @@
   }
 
   .button:focus-visible,
+  .preview:focus-visible,
   .segment:focus-visible,
   .close:focus-visible,
   .link:focus-visible,

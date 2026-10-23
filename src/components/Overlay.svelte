@@ -1,21 +1,19 @@
 <svelte:options css="injected" />
 
 <!--
-  Everything Nitfree shows above Discord's page: the details dialog and its larger preview, the add
-  and edit dialog, the item menu, and the notice and undo toast at the bottom. Escape closes the
+  Everything Nitfree shows above Discord's page: the add, edit and details dialog with its larger
+  preview, the item menu, and the notice and undo toast at the bottom. Escape closes the
   filter menu, the tag suggestions, the larger preview, the menu or a dialog first, before Discord or
   Nitfree's panel see it; Tab stays inside the topmost dialog while one is open. Files dropped here
   never reach Discord's upload; dropped or pasted on the add dialog, they join it.
 -->
 <script lang="ts">
-  import { closeDetails, details } from "~/lib/ui/details.svelte";
   import { closeEditor, editor, startAdd } from "~/lib/ui/editor.svelte";
   import { escapeTop, hasEscapeLayer } from "~/lib/ui/escape";
   import { closeMenu, menu } from "~/lib/ui/menu.svelte";
   import { hideTooltip } from "~/lib/ui/tooltip.svelte";
 
   import ContextMenu from "./ContextMenu.svelte";
-  import DetailsDialog from "./DetailsDialog.svelte";
   import EditorDialog from "./EditorDialog.svelte";
   import Notice from "./Notice.svelte";
   import Tooltip from "./Tooltip.svelte";
@@ -42,7 +40,7 @@
         hideTooltip();
       }
 
-      if (event.key === "Escape" && (menu.item || editor.mode || details.id || hasEscapeLayer())) {
+      if (event.key === "Escape" && (menu.item || editor.mode || hasEscapeLayer())) {
         event.preventDefault();
         event.stopImmediatePropagation();
 
@@ -53,19 +51,14 @@
         if (menu.item) {
           closeMenu(true);
         }
-        else if (editor.mode) {
-          if (!editor.saving) {
-            closeEditor();
-          }
-        }
-        else {
-          closeDetails();
+        else if (!editor.saving) {
+          closeEditor();
         }
 
         return;
       }
 
-      if (event.key === "Tab" && (editor.mode || details.id) && !menu.item) {
+      if (event.key === "Tab" && editor.mode && !menu.item) {
         const all = focusables();
         const active = host.shadowRoot?.activeElement;
 
@@ -158,7 +151,6 @@
   });
 </script>
 
-<DetailsDialog />
 <EditorDialog />
 <ContextMenu />
 <Tooltip />

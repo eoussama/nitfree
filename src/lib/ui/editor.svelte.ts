@@ -34,7 +34,8 @@ export type TDraft = {
 };
 
 type TEditorState = {
-  mode: "add" | "edit" | null;
+  // "view" shows an item read only, with the same fields as "edit".
+  mode: "add" | "edit" | "view" | null;
   item: TItem | null;
   drafts: TDraft[];
   saving: boolean;
@@ -102,7 +103,7 @@ export function focusedElement(): HTMLElement | null {
   return active instanceof HTMLElement && active !== document.body ? active : null;
 }
 
-function open(mode: "add" | "edit", item: TItem | null, drafts: TDraft[], focus: HTMLElement | null): void {
+function open(mode: "add" | "edit" | "view", item: TItem | null, drafts: TDraft[], focus: HTMLElement | null): void {
   release(editor.drafts);
   session++;
   returnFocus = focus;
@@ -189,7 +190,7 @@ async function readDrafts(files: readonly File[], preset: TDraftPreset): Promise
  * @returns Whether files would be added.
  */
 export function canStartAdd(): boolean {
-  return !editor.saving && editor.mode !== "edit";
+  return !editor.saving && (editor.mode === null || editor.mode === "add");
 }
 
 /**
@@ -242,18 +243,8 @@ export async function startAdd(files: Iterable<File>, focus: HTMLElement | null 
   open("add", null, drafts, focus);
 }
 
-/**
- * Opens the dialog to edit an item.
- *
- * @param item - The item to edit.
- * @param focus - What to focus when the dialog closes; by default, what has focus now.
- */
-export function startEdit(item: TItem, focus: HTMLElement | null = focusedElement()): void {
-  if (editor.saving) {
-    return;
-  }
-
-  const draft: TDraft = {
+function itemDraft(item: TItem): TDraft {
+  return {
     key: nextKey++,
     file: null,
     url: null,
@@ -266,9 +257,13 @@ export function startEdit(item: TItem, focus: HTMLElement | null = focusedElemen
     description: item.description,
     tags: item.tags.flatMap(id => library.tags.find(tag => tag.id === id)?.name ?? []),
   };
+}
+
+function openItem(mode: "edit" | "view", item: TItem, focus: HTMLElement | null): void {
+  const draft = itemDraft(item);
 
   ticket++;
-  open("edit", item, [draft], focus);
+  open(mode, item, [draft], focus);
 
   void thumbnail(item).then((url) => {
     // Still the same dialog, and the user has not picked a replacement file meanwhile.
@@ -276,6 +271,51 @@ export function startEdit(item: TItem, focus: HTMLElement | null = focusedElemen
       editor.drafts[0].url = url;
     }
   });
+}
+
+/**
+ * Opens the dialog to edit an item.
+ *
+ * @param item - The item to edit.
+ * @param focus - What to focus when the dialog closes; by default, what has focus now.
+ */
+export function startEdit(item: TItem, focus: HTMLElement | null = focusedElement()): void {
+  if (editor.saving) {
+    return;
+  }
+
+  openItem("edit", item, focus);
+}
+
+/**
+ * Opens the dialog to look at an item: the same fields as editing, read only, with Favorite,
+ * Download and Edit.
+ *
+ * @param item - The item to show.
+ * @param focus - What to focus when the dialog closes; by default, what has focus now.
+ */
+export function startView(item: TItem, focus: HTMLElement | null = focusedElement()): void {
+  if (editor.saving) {
+    return;
+  }
+
+  openItem("view", item, focus);
+}
+
+/**
+ * Makes the open item dialog editable, with the item as the library has it now.
+ */
+export function editFromView(): void {
+  const item = editor.mode === "view" && editor.item ? library.items.find(found => found.id === editor.item?.id) : null;
+  const draft = editor.drafts[0];
+
+  if (!item || !draft) {
+    return;
+  }
+
+  Object.assign(draft, itemDraft(item), { key: draft.key, url: draft.url });
+  editor.item = item;
+  editor.mode = "edit";
 }
 
 /**

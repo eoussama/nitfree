@@ -208,7 +208,7 @@
         <ZoomIn size={20} aria-hidden="true" />
       </button>
       <span class="separator" aria-hidden="true"></span>
-      <button class="control" type="button" data-close aria-label={i18n.t("details.close")} onclick={onclose}>
+      <button class="control" type="button" data-close aria-label={i18n.t("editor.close")} onclick={onclose}>
         <X size={20} aria-hidden="true" />
       </button>
     </div>

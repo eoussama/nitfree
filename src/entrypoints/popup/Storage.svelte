@@ -92,7 +92,7 @@
     busy = false;
     measured++;
     message = error
-      ? { section, text: i18n.t("popup.storage.failed", { error: toError(error).message }), error: true }
+      ? { section, text: i18n.t("popup.failed", { error: toError(error).message }), error: true }
       : { section, text, error: false };
   }
 
@@ -216,9 +216,9 @@
 
 <Confirm
   open={confirming && chosen.length > 0}
-  title={i18n.t("popup.storage.confirmTitle", chosen.length)}
+  title={i18n.t("popup.storage.delete", chosen.length)}
   body={i18n.t("popup.storage.confirm")}
-  action={i18n.t("popup.storage.confirmDelete")}
+  action={i18n.t("menu.delete")}
   onconfirm={() => void deleteChosen()}
   oncancel={() => (confirming = false)}
 />
