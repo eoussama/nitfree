@@ -23,10 +23,11 @@
   import { formatBytes } from "~/lib/format";
   import { sendMessage } from "~/lib/messaging";
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
-  import { closeEditor, duplicateWarning, editFromView, editor, isUsable, removeDraft, replaceFile, saveEditor } from "~/lib/ui/editor.svelte";
+  import { closeEditor, duplicateWarning, editFromView, editor, isUsable, removeDraft, replaceFile, revertDraft, saveEditor } from "~/lib/ui/editor.svelte";
   import { saveItem } from "~/lib/ui/export";
   import { library } from "~/lib/ui/library.svelte";
 
+  import ImageEditor from "./ImageEditor.svelte";
   import Lightbox from "./Lightbox.svelte";
   import TagInput from "./TagInput.svelte";
 
@@ -39,12 +40,16 @@
   // The preview shown larger, and the button to focus again once it closes.
   let enlarged: number | null = $state(null);
   let enlargedFrom: HTMLElement | null = null;
+  // The draft whose image is being edited, and the link to focus again once that is done.
+  let retouching: number | null = $state(null);
+  let retouchingFrom: HTMLElement | null = null;
 
   const viewing = $derived(editor.mode === "view");
   const usable = $derived(editor.drafts.filter(isUsable));
   // The item as the library has it now, for what changes while it shows, such as its favorite.
   const current = $derived(editor.item ? library.items.find(found => found.id === editor.item?.id) ?? null : null);
   const enlargedDraft = $derived(editor.drafts.find(draft => draft.key === enlarged && draft.url && draft.info) ?? null);
+  const retouchedDraft = $derived(editor.drafts.find(draft => draft.key === retouching && draft.info) ?? null);
   const heading = $derived(viewing ? `:${editor.drafts[0]?.title ?? ""}:` : editor.mode === "edit" ? i18n.t("editor.editTitle") : i18n.t("editor.addTitle"));
   const action = $derived(editor.mode === "edit" ? i18n.t("editor.save") : i18n.t("editor.addCount", usable.length));
 
@@ -85,6 +90,7 @@
   $effect(() => {
     if (!editor.mode) {
       enlarged = null;
+      retouching = null;
     }
   });
 
@@ -108,6 +114,30 @@
   function closeLightbox(): void {
     enlarged = null;
     enlargedFrom?.focus();
+  }
+
+  function retouch(draft: TDraft, button: HTMLElement): void {
+    retouching = draft.key;
+    retouchingFrom = button;
+  }
+
+  async function closeImageEditor(): Promise<void> {
+    retouching = null;
+    await tick();
+
+    // The link is gone when the edits turned an item into a new one: the draft's other link takes focus.
+    if (retouchingFrom?.isConnected) {
+      retouchingFrom.focus();
+    }
+    else {
+      dialog?.querySelector<HTMLElement>("[data-retouch]")?.focus();
+    }
+  }
+
+  async function revert(draft: TDraft): Promise<void> {
+    await revertDraft(draft);
+    await tick();
+    dialog?.querySelector<HTMLElement>("[data-retouch]")?.focus();
   }
 
   async function onSubmit(event: SubmitEvent): Promise<void> {
@@ -183,6 +213,10 @@
                 <p class="draft-warning">{warning}</p>
               {/if}
 
+              {#if draft.copyOf}
+                <p class="draft-note">{i18n.t("imageEditor.copyNote", { title: draft.copyOf.title })}</p>
+              {/if}
+
               {#if draft.info}
                 <label class="field">
                   <span class="label">{i18n.t("editor.title")}</span>
@@ -237,6 +271,12 @@
               {/if}
 
               <div class="draft-actions">
+                {#if !viewing && draft.info}
+                  <button class="link" type="button" data-retouch onclick={event => retouch(draft, event.currentTarget)}>{i18n.t("imageEditor.open")}</button>
+                {/if}
+                {#if draft.source}
+                  <button class="link" type="button" onclick={() => void revert(draft)}>{i18n.t("imageEditor.revert")}</button>
+                {/if}
                 {#if editor.mode === "edit"}
                   <label class="link">
                     {i18n.t("editor.replace")}
@@ -278,6 +318,10 @@
 
   {#if enlargedDraft?.url && enlargedDraft.info}
     <Lightbox url={enlargedDraft.url} title={enlargedDraft.title} width={enlargedDraft.info.width} height={enlargedDraft.info.height} onclose={closeLightbox} />
+  {/if}
+
+  {#if retouchedDraft}
+    <ImageEditor draft={retouchedDraft} onclose={() => void closeImageEditor()} />
   {/if}
 {/if}
 
@@ -555,6 +599,13 @@
     color: var(--text-feedback-warning, var(--nf-warning-text, #fbb848));
   }
 
+  .draft-note {
+    margin: 0;
+    font-size: 14px;
+    line-height: 18px;
+    color: var(--text-muted, var(--nf-muted, #949ba4));
+  }
+
   .footer-error {
     flex: 1;
   }
@@ -588,6 +639,8 @@
 
   .draft-actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
   }
 
   .link {

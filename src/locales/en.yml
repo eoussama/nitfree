@@ -162,6 +162,35 @@ editor:
   saveFailed: "Could not save: {error}"
   removeTag: Remove {tag}
   drop: Drop to add to Nitfree
+imageEditor:
+  open: Edit image
+  title: Edit image
+  revert: Revert to original
+  copyNote: "Saving adds the edited image as a new item. “{title}” stays as it is."
+  loading: Loading the image…
+  failed: "Could not edit the image: {error}"
+  size: "{width} × {height}"
+  squareHint: Emojis and stickers look best square.
+  crop: Crop
+  aspect: Shape
+  free: Free
+  square: Square
+  uncrop: Show all
+  cropArea: Crop area. Use the arrow keys to move it, or Shift and the arrow keys to resize it.
+  frames: Frames
+  start: First frame
+  end: Last frame
+  framesRange: "Frames {start} to {end} of {count} · {duration}"
+  play: Play
+  pause: Pause
+  background: Remove background
+  backgroundHint: Makes one color transparent where it surrounds the image, from its edges inward.
+  pickColor: Pick color
+  picking: Click the background
+  tolerance: Tolerance
+  reset: Reset
+  apply: Apply
+  applying: Applying…
 menu:
   favorite: Add to Favorites
   unfavorite: Remove from Favorites

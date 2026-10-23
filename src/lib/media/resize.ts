@@ -65,7 +65,23 @@ export function drawScaled(source: CanvasImageSource, from: TSize, to: TSize): O
   return canvas;
 }
 
-function gifFrame(canvas: OffscreenCanvas): { index: Uint8Array; palette: number[][]; transparentIndex: number } {
+/**
+ * A frame's delay as a GIF plays it.
+ *
+ * @param duration - How long the frame shows, in milliseconds.
+ * @returns The delay to write.
+ */
+export function gifDelay(duration: number): number {
+  return duration > MIN_DELAY ? duration : DEFAULT_DELAY;
+}
+
+/**
+ * A canvas's pixels as a GIF frame: its own palette, and the pixels too transparent to keep dropped.
+ *
+ * @param canvas - The frame.
+ * @returns The frame's palette indices, palette and transparent color.
+ */
+export function gifFrame(canvas: OffscreenCanvas): { index: Uint8Array; palette: number[][]; transparentIndex: number } {
   const rgba = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
 
   for (let i = 0; i < rgba.length; i += 4) {
@@ -121,7 +137,7 @@ export async function resizeImage(file: Blob, info: TImageInfo, max: number): Pr
       // Every frame is complete, so each one replaces the last instead of drawing over it.
       encoder.writeFrame(index, target.width, target.height, {
         palette,
-        delay: frame.duration > MIN_DELAY ? frame.duration : DEFAULT_DELAY,
+        delay: gifDelay(frame.duration),
         repeat: frame.repeat,
         transparent: transparentIndex !== -1,
         transparentIndex: Math.max(transparentIndex, 0),

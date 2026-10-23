@@ -162,6 +162,35 @@ editor:
   saveFailed: "Échec de l'enregistrement : {error}"
   removeTag: Retirer {tag}
   drop: Déposez pour ajouter à Nitfree
+imageEditor:
+  open: Retoucher l'image
+  title: Retoucher l'image
+  revert: Revenir à l'original
+  copyNote: "L'enregistrement ajoute l'image retouchée comme nouvel élément. « {title} » reste tel quel."
+  loading: Chargement de l'image…
+  failed: "Impossible de retoucher l'image : {error}"
+  size: "{width} × {height}"
+  squareHint: Les emojis et les stickers rendent mieux carrés.
+  crop: Recadrer
+  aspect: Forme
+  free: Libre
+  square: Carré
+  uncrop: Tout afficher
+  cropArea: Zone de recadrage. Déplacez-la avec les flèches, ou redimensionnez-la avec Maj et les flèches.
+  frames: Images
+  start: Première image
+  end: Dernière image
+  framesRange: "Images {start} à {end} sur {count} · {duration}"
+  play: Lecture
+  pause: Pause
+  background: Retirer le fond
+  backgroundHint: Rend transparente une couleur autour de l'image, de ses bords vers l'intérieur.
+  pickColor: Choisir la couleur
+  picking: Cliquez sur le fond
+  tolerance: Tolérance
+  reset: Réinitialiser
+  apply: Appliquer
+  applying: Application…
 menu:
   favorite: Ajouter aux favoris
   unfavorite: Retirer des favoris

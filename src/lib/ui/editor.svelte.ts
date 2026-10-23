@@ -1,11 +1,13 @@
 import type { TItem, TItemType } from "~/lib/db";
 import type { TImageInfo } from "~/lib/media";
+import type { TEdits } from "~/lib/media/edit";
 
 import { toError, tryCatch } from "@eoussama/core";
 
 import { areSimilar } from "~/lib/db/duplicates";
 import { hashBytes } from "~/lib/db/library";
 import { inspectImage } from "~/lib/media";
+import { applyEdits, editedFileName } from "~/lib/media/edit";
 import { imageFingerprint } from "~/lib/media/fingerprint";
 import { sendMessage } from "~/lib/messaging";
 
@@ -35,6 +37,12 @@ export type TDraft = {
   type: TItemType;
   description: string;
   tags: string[];
+  // The file before quick edits, kept to edit again from or to go back to, and the edits made to it;
+  // both null when the image is not edited.
+  source: File | null;
+  edits: TEdits | null;
+  // The library item this draft is an edited copy of: it is added as a new item, and that one stays as it is.
+  copyOf: TItem | null;
   // Told the saved name once the file is in the library, such as to confirm a save from chat.
   onsaved?: (title: string) => void;
 };
@@ -173,7 +181,8 @@ export function duplicateWarning(draft: TDraft): string | null {
     return null;
   }
 
-  const others = (found: TItem) => found.id !== editor.item?.id;
+  // Not the item being edited, nor the one an edited copy is made from.
+  const others = (found: TItem) => found.id !== editor.item?.id && found.id !== draft.copyOf?.id;
   const item = library.items.find(found => found.hash === draft.hash && others(found));
 
   if (item) {
@@ -219,6 +228,9 @@ async function readDrafts(files: readonly File[], preset: TDraftPreset): Promise
       type: preset.type ?? guessItemType(read.info),
       description: "",
       tags: [],
+      source: null,
+      edits: null,
+      copyOf: null,
       onsaved: preset.onsaved,
     };
   }));
@@ -298,7 +310,19 @@ function itemDraft(item: TItem): TDraft {
     type: item.type,
     description: item.description,
     tags: item.tags.flatMap(id => library.tags.find(tag => tag.id === id)?.name ?? []),
+    source: null,
+    edits: null,
+    copyOf: null,
   };
+}
+
+function showThumbnail(draft: TDraft, item: TItem): void {
+  void thumbnail(item).then((url) => {
+    // Still the same dialog, and the user has not picked a replacement file meanwhile.
+    if (editor.drafts[0]?.key === draft.key && !editor.drafts[0].file) {
+      editor.drafts[0].url = url;
+    }
+  });
 }
 
 function openItem(mode: "edit" | "view", item: TItem, focus: HTMLElement | null): void {
@@ -306,13 +330,7 @@ function openItem(mode: "edit" | "view", item: TItem, focus: HTMLElement | null)
 
   ticket++;
   open(mode, item, [draft], focus);
-
-  void thumbnail(item).then((url) => {
-    // Still the same dialog, and the user has not picked a replacement file meanwhile.
-    if (editor.drafts[0]?.key === draft.key && !editor.drafts[0].file) {
-      editor.drafts[0].url = url;
-    }
-  });
+  showThumbnail(draft, item);
 }
 
 /**
@@ -398,7 +416,106 @@ export async function replaceFile(draft: TDraft, file: File): Promise<void> {
   }
 
   release([current]);
-  Object.assign(current, read, { file });
+  Object.assign(current, read, { file, source: null, edits: null });
+}
+
+/**
+ * The file quick edits start from: the original of an edited draft, else the draft's file, else the
+ * file of the item being edited.
+ *
+ * @param draft - A draft in the dialog.
+ * @returns The file, or null when the item's file is missing.
+ */
+export async function editSource(draft: TDraft): Promise<File | null> {
+  const item = editor.item;
+  const file = draft.source ?? draft.file;
+
+  if (file) {
+    return file;
+  }
+
+  const blob = item ? await sendMessage("library:file", { id: item.id }) : null;
+
+  return item && blob ? new File([blob], `${item.title}.${item.format}`, { type: blob.type }) : null;
+}
+
+/**
+ * Gives a draft the image made from its original with quick edits; the original is kept, to edit
+ * again from or to go back to. Edits to an item in the library make a new version: the dialog then
+ * adds it as a new item, and that item stays as it is.
+ *
+ * @param draft - A draft in the dialog.
+ * @param source - The original, from {@link editSource}.
+ * @param edits - The edits.
+ * @returns Once the dialog shows the edited image.
+ */
+export async function editDraft(draft: TDraft, source: File, edits: TEdits): Promise<void> {
+  const opened = session;
+  const info = inspectImage(new Uint8Array(await source.arrayBuffer()));
+
+  if (!info) {
+    throw new Error(i18n.t("editor.unsupported"));
+  }
+
+  const blob = await applyEdits(source, info, edits);
+  const file = new File([blob], editedFileName(source.name, blob.type), { type: blob.type });
+  const read = await readFile(file);
+  const current = editor.drafts.find(found => found.key === draft.key);
+
+  if (opened !== session || !current) {
+    release([{ ...draft, ...read }]);
+
+    return;
+  }
+
+  release([current]);
+  Object.assign(current, read, { file, source, edits });
+
+  if (editor.mode === "edit" && editor.item) {
+    current.copyOf = editor.item;
+    editor.item = null;
+    editor.mode = "add";
+  }
+}
+
+/**
+ * Takes quick edits back: the draft gets its original again. An edited copy of a library item goes
+ * back to editing that item, as long as it is still there.
+ *
+ * @param draft - An edited draft.
+ * @returns Once the dialog shows the original.
+ */
+export async function revertDraft(draft: TDraft): Promise<void> {
+  const opened = session;
+  const current = editor.drafts.find(found => found.key === draft.key);
+
+  if (!current?.source) {
+    return;
+  }
+
+  const item = current.copyOf && library.items.find(found => found.id === current.copyOf?.id);
+
+  if (item) {
+    release([current]);
+    Object.assign(current, itemDraft(item), { key: current.key, title: current.title, type: current.type, description: current.description, tags: current.tags });
+    editor.item = item;
+    editor.mode = "edit";
+    showThumbnail(current, item);
+
+    return;
+  }
+
+  const source = current.source;
+  const read = await readFile(source);
+
+  if (opened !== session || !editor.drafts.includes(current)) {
+    release([{ ...current, ...read }]);
+
+    return;
+  }
+
+  release([current]);
+  Object.assign(current, read, { file: source, source: null, edits: null, copyOf: null });
 }
 
 /**
