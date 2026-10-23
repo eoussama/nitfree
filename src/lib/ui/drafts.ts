@@ -4,12 +4,20 @@ import type { TImageInfo } from "~/lib/media";
 
 
 /**
- * What the file picker offers; the background checks the actual bytes again when saving.
+ * What the file picker offers for an item's file; the background checks the actual bytes again when saving.
  */
-export const ACCEPTED_FILES = ".png,.apng,.jpg,.jpeg,.jfif,.gif,.webp,image/png,image/apng,image/jpeg,image/gif,image/webp";
+export const ACCEPTED_IMAGES = ".png,.apng,.jpg,.jpeg,.jfif,.gif,.webp,image/png,image/apng,image/jpeg,image/gif,image/webp";
+
+/**
+ * What the file picker offers when adding: images, and videos to turn into GIFs.
+ */
+export const ACCEPTED_FILES = `${ACCEPTED_IMAGES},.mp4,.m4v,.webm,video/mp4,video/webm`;
 
 const ACCEPTED_TYPES = new Set(["image/png", "image/apng", "image/jpeg", "image/gif", "image/webp"]);
 const ACCEPTED_EXTENSIONS = /\.(?:a?png|jpe?g|jfif|gif|webp)$/i;
+
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const VIDEO_EXTENSIONS = /\.(?:mp4|m4v|webm)$/i;
 
 /**
  * Discord shows emojis up to this size and stickers up to the next.
@@ -25,6 +33,16 @@ const STICKER_MAX = 320;
  */
 export function isAcceptedFile(file: Pick<File, "name" | "type">): boolean {
   return ACCEPTED_TYPES.has(file.type) || ACCEPTED_EXTENSIONS.test(file.name);
+}
+
+/**
+ * Whether a file looks like a video Nitfree can turn into a GIF, before reading it.
+ *
+ * @param file - A picked, dropped or pasted file.
+ * @returns Whether it is an MP4 or WebM video.
+ */
+export function isVideoFile(file: Pick<File, "name" | "type">): boolean {
+  return VIDEO_TYPES.has(file.type) || VIDEO_EXTENSIONS.test(file.name);
 }
 
 /**
@@ -64,6 +82,16 @@ export function guessItemType(info: Pick<TImageInfo, "width" | "height" | "anima
   }
 
   return info.animated && info.format === "gif" ? "gif" : "image";
+}
+
+/**
+ * The type of a GIF made from a video: a sticker up to a sticker's size, else a GIF. The user can change it.
+ *
+ * @param info - What was read from the GIF.
+ * @returns The type.
+ */
+export function videoItemType(info: Pick<TImageInfo, "width" | "height">): TItemType {
+  return Math.max(info.width, info.height) <= STICKER_MAX ? "sticker" : "gif";
 }
 
 /**

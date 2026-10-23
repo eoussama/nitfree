@@ -12,7 +12,7 @@ All of this is kept in your browser's storage for the extension, on your device 
 
 **Your library** (in the extension's own IndexedDB database):
 
-- The image files you add (PNG, GIF, WebP or JPEG), and smaller copies made for sending at emoji and sticker sizes.
+- The image files you add (PNG, GIF, WebP or JPEG), and smaller copies made for sending at emoji and sticker sizes. A video you turn into a GIF (MP4 or WebM) is read on your device and never stored: only the GIF made from it is.
 - What you enter for each item: its name, type (emoji, sticker, GIF or image), tags, the packs it is in, optional description, and whether it is a favorite.
 - Details read from each file so the library works: size, format, width and height, whether it is animated, a hash used to spot identical files, and a small fingerprint of how each image looks, used to spot near-identical ones.
 - When each item was added, last edited and last sent, and how many times it was sent, which is used for the Recent section.

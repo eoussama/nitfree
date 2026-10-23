@@ -3,6 +3,7 @@ import type { TItem, TItemType } from "~/lib/db";
 import type { TImageInfo } from "~/lib/media";
 
 import type { TEdits } from "~/lib/media/edit";
+import type { TClip } from "~/lib/media/video";
 
 import { toError, tryCatch } from "@eoussama/core";
 import { areSimilar } from "~/lib/db/duplicates";
@@ -13,7 +14,7 @@ import { imageFingerprint } from "~/lib/media/fingerprint";
 
 import { sendMessage } from "~/lib/messaging";
 
-import { guessItemType, isAcceptedFile, resolveTagNames, titleFromFileName } from "./drafts";
+import { guessItemType, isAcceptedFile, isVideoFile, resolveTagNames, titleFromFileName, videoItemType } from "./drafts";
 import { library } from "./library.svelte";
 import { thumbnail } from "./thumbnails";
 
@@ -47,6 +48,10 @@ export type TDraft = {
   edits: TEdits | null;
   // The library item this draft is an edited copy of: it is added as a new item, and that one stays as it is.
   copyOf: TItem | null;
+  // The video the draft's GIF is made from, and the clip taken from it, to make it again from; the
+  // clip is null until the GIF is made, and the draft cannot be saved before.
+  video: File | null;
+  clip: TClip | null;
   // Told the saved name once the file is in the library, such as to confirm a save from chat.
   onsaved?: (title: string) => void;
 };
@@ -220,22 +225,30 @@ export function duplicateWarning(draft: TDraft): string | null {
  */
 export type TDraftPreset = Partial<Pick<TDraft, "title" | "type" | "onsaved">>;
 
+// A video shows as it is until a GIF is made from it.
+function readVideo(file: File): TRead {
+  return { info: null, hash: null, fingerprint: null, similar: null, error: null, url: URL.createObjectURL(file), ownsUrl: true };
+}
+
 async function readDrafts(files: readonly File[], preset: TDraftPreset): Promise<TDraft[]> {
   return Promise.all(files.map(async (file): Promise<TDraft> => {
-    const read = await readFile(file);
+    const video = isVideoFile(file) ? file : null;
+    const read = video ? readVideo(video) : await readFile(file);
 
     return {
       key: nextKey++,
-      file,
+      file: video ? null : file,
       ...read,
       title: preset.title ?? titleFromFileName(file.name),
-      type: preset.type ?? guessItemType(read.info),
+      type: preset.type ?? (video ? "sticker" : guessItemType(read.info)),
       description: "",
       tags: [],
       packs: [],
       source: null,
       edits: null,
       copyOf: null,
+      video,
+      clip: null,
       onsaved: preset.onsaved,
     };
   }));
@@ -319,6 +332,8 @@ function itemDraft(item: TItem): TDraft {
     source: null,
     edits: null,
     copyOf: null,
+    video: null,
+    clip: null,
   };
 }
 
@@ -422,7 +437,7 @@ export async function replaceFile(draft: TDraft, file: File): Promise<void> {
   }
 
   release([current]);
-  Object.assign(current, read, { file, source: null, edits: null });
+  Object.assign(current, read, { file, source: null, edits: null, video: null, clip: null });
 }
 
 /**
@@ -522,6 +537,42 @@ export async function revertDraft(draft: TDraft): Promise<void> {
 
   release([current]);
   Object.assign(current, read, { file: source, source: null, edits: null, copyOf: null });
+}
+
+/**
+ * Gives a video's draft the GIF made from it, with the clip it was made from, to make it again
+ * from. Quick edits made to the previous GIF are dropped. The first GIF also sets the type: a
+ * sticker up to a sticker's size, else a GIF.
+ *
+ * @param draft - A draft of a video.
+ * @param clip - The clip the GIF was made from.
+ * @param gif - The GIF.
+ * @returns Once the dialog shows the GIF.
+ */
+export async function convertDraft(draft: TDraft, clip: TClip, gif: Blob): Promise<void> {
+  const opened = session;
+  const video = draft.video;
+
+  if (!video) {
+    return;
+  }
+
+  const file = new File([gif], editedFileName(video.name, gif.type), { type: gif.type });
+  const read = await readFile(file);
+  const current = editor.drafts.find(found => found.key === draft.key);
+
+  if (opened !== session || !current) {
+    release([{ ...draft, ...read }]);
+
+    return;
+  }
+
+  if (read.info && !current.clip) {
+    current.type = videoItemType(read.info);
+  }
+
+  release([current]);
+  Object.assign(current, read, { file, clip, source: null, edits: null });
 }
 
 /**

@@ -82,8 +82,17 @@ export function gifDelay(duration: number): number {
  * @returns The frame's palette indices, palette and transparent color.
  */
 export function gifFrame(canvas: OffscreenCanvas): { index: Uint8Array; palette: number[][]; transparentIndex: number } {
-  const rgba = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
+  return gifPixels(canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data);
+}
 
+/**
+ * Pixels as a GIF frame, as {@link gifFrame} makes it, for where there is no canvas to read, such as
+ * a worker given the pixels.
+ *
+ * @param rgba - The pixels, changed in place.
+ * @returns The frame's palette indices, palette and transparent color.
+ */
+export function gifPixels(rgba: Uint8ClampedArray): { index: Uint8Array; palette: number[][]; transparentIndex: number } {
   for (let i = 0; i < rgba.length; i += 4) {
     if (rgba[i + 3]! < ALPHA_THRESHOLD) {
       rgba[i] = rgba[i + 1] = rgba[i + 2] = rgba[i + 3] = 0;

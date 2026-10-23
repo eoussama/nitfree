@@ -171,7 +171,7 @@ editor:
   addCount:
     1: Ajouter 1 fichier
     n: Ajouter $1 fichiers
-  unsupported: Ce fichier n'est pas une image prise en charge.
+  unsupported: Ce fichier n'est pas une image ou une vidéo prise en charge.
   unreadable: Impossible de lire ce fichier. Il a peut-être été déplacé ou modifié.
   titleRequired: Chaque élément doit avoir un nom.
   duplicate: "Ce fichier est déjà dans votre bibliothèque sous le nom « {title} ». L'enregistrer en garde une deuxième copie."
@@ -210,6 +210,28 @@ imageEditor:
   reset: Réinitialiser
   apply: Appliquer
   applying: Application…
+video:
+  title: Vidéo en GIF
+  make: Créer un GIF
+  edit: Modifier l'extrait
+  hint: Choisissez la partie de cette vidéo à transformer en GIF, puis ajoutez-la.
+  loading: Chargement de la vidéo…
+  unreadable: Cette vidéo ne peut pas être lue. Nitfree accepte les vidéos MP4 et WebM.
+  clip: Extrait
+  start: Début
+  end: Fin
+  range: "{start} à {end} · {length}"
+  clipHint: "jusqu'à {max}"
+  rate: Images par seconde
+  fps: "{rate} i/s"
+  size: Taille
+  pixels: "{size} px"
+  sizeHint: Le plus grand côté. Jusqu'à 320 pixels, il est ajouté comme sticker, au-delà comme GIF.
+  frames:
+    1: 1 image
+    n: $1 images
+  progress: "Création de l'image {done} sur {total}"
+  tooLarge: "Ce GIF ferait {size}, au-delà de la limite d'envoi de 10 Mo de Discord. Choisissez un extrait plus court, moins d'images par seconde ou une taille plus petite."
 menu:
   favorite: Ajouter aux favoris
   unfavorite: Retirer des favoris

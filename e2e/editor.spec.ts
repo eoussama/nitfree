@@ -81,7 +81,7 @@ test.describe("adding, editing and deleting", () => {
     const dialog = addDialog(page);
 
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole("alert")).toHaveText("This file is not a supported image.");
+    await expect(dialog.getByRole("alert")).toHaveText("This file is not a supported image or video.");
     await expect(dialog.getByRole("textbox", { name: "Name" })).toHaveValue("Party_Parrot");
     await expect(dialog.getByRole("textbox", { name: "Name" })).toBeFocused();
     await expect(dialog.getByRole("radio", { name: "Emoji" })).toHaveAttribute("aria-checked", "true");

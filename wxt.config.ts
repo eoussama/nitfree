@@ -12,6 +12,8 @@ export default defineConfig({
     default_locale: "en",
     permissions: ["storage"],
     host_permissions: ["*://discord.com/*"],
+    // Discord's tab starts the GIF worker from a copy of its script, so it reads the script first.
+    web_accessible_resources: [{ resources: ["gif-worker.js"], matches: ["*://discord.com/*"] }],
     ...(browser === "firefox" && {
       browser_specific_settings: {
         gecko: {

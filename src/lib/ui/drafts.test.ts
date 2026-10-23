@@ -2,7 +2,7 @@ import type { TTag } from "~/lib/db";
 
 import { describe, expect, it } from "vitest";
 
-import { guessItemType, isAcceptedFile, parseTagNames, resolveTagNames, suggestTags, titleFromFileName } from "./drafts";
+import { guessItemType, isAcceptedFile, isVideoFile, parseTagNames, resolveTagNames, suggestTags, titleFromFileName, videoItemType } from "./drafts";
 
 
 
@@ -36,6 +36,27 @@ describe("titleFromFileName", () => {
   it("falls back when nothing is left", () => {
     expect(titleFromFileName(".png")).toBe("untitled");
     expect(titleFromFileName("")).toBe("untitled");
+  });
+});
+
+describe("isVideoFile", () => {
+  it("accepts MP4 and WebM videos, by type or extension", () => {
+    expect(isVideoFile({ name: "clip.mp4", type: "video/mp4" })).toBe(true);
+    expect(isVideoFile({ name: "clip.WEBM", type: "" })).toBe(true);
+    expect(isVideoFile({ name: "clip", type: "video/webm" })).toBe(true);
+  });
+
+  it("rejects images and other videos", () => {
+    expect(isVideoFile({ name: "party.gif", type: "image/gif" })).toBe(false);
+    expect(isVideoFile({ name: "clip.mov", type: "video/quicktime" })).toBe(false);
+  });
+});
+
+describe("videoItemType", () => {
+  it("makes a sticker up to a sticker's size, else a GIF", () => {
+    expect(videoItemType({ width: 320, height: 180 })).toBe("sticker");
+    expect(videoItemType({ width: 160, height: 160 })).toBe("sticker");
+    expect(videoItemType({ width: 480, height: 270 })).toBe("gif");
   });
 });
 

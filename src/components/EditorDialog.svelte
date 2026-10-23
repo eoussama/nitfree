@@ -22,7 +22,7 @@
   import { ITEM_TYPES } from "~/lib/db/types";
   import { formatBytes } from "~/lib/format";
   import { sendMessage } from "~/lib/messaging";
-  import { ACCEPTED_FILES } from "~/lib/ui/drafts";
+  import { ACCEPTED_IMAGES } from "~/lib/ui/drafts";
   import { closeEditor, duplicateWarning, editFromView, editor, isUsable, removeDraft, replaceFile, revertDraft, saveEditor } from "~/lib/ui/editor.svelte";
   import { saveItem } from "~/lib/ui/export";
   import { library } from "~/lib/ui/library.svelte";
@@ -30,6 +30,7 @@
   import ImageEditor from "./ImageEditor.svelte";
   import Lightbox from "./Lightbox.svelte";
   import TagInput from "./TagInput.svelte";
+  import VideoEditor from "./VideoEditor.svelte";
 
 
 
@@ -43,6 +44,11 @@
   // The draft whose image is being edited, and the link to focus again once that is done.
   let retouching: number | null = $state(null);
   let retouchingFrom: HTMLElement | null = null;
+  // The draft whose video is being made into a GIF, the link to focus again once that is done, and
+  // the videos already offered, each made into a GIF as soon as it is added but only once.
+  let converting: number | null = $state(null);
+  let convertingFrom: HTMLElement | null = null;
+  let offered: number[] = [];
 
   const viewing = $derived(editor.mode === "view");
   const usable = $derived(editor.drafts.filter(isUsable));
@@ -50,6 +56,7 @@
   const current = $derived(editor.item ? library.items.find(found => found.id === editor.item?.id) ?? null : null);
   const enlargedDraft = $derived(editor.drafts.find(draft => draft.key === enlarged && draft.url && draft.info) ?? null);
   const retouchedDraft = $derived(editor.drafts.find(draft => draft.key === retouching && draft.info) ?? null);
+  const convertedDraft = $derived(editor.drafts.find(draft => draft.key === converting && draft.video) ?? null);
   const heading = $derived(viewing ? `:${editor.drafts[0]?.title ?? ""}:` : editor.mode === "edit" ? i18n.t("editor.editTitle") : i18n.t("editor.addTitle"));
   const action = $derived(editor.mode === "edit" ? i18n.t("editor.save") : i18n.t("editor.addCount", usable.length));
 
@@ -91,6 +98,23 @@
     if (!editor.mode) {
       enlarged = null;
       retouching = null;
+      converting = null;
+      offered = [];
+    }
+  });
+
+  // A video added opens straight into making its GIF, one at a time.
+  $effect(() => {
+    if (editor.saving || retouching !== null || converting !== null || enlarged !== null) {
+      return;
+    }
+
+    const next = editor.drafts.find(draft => draft.video && !draft.clip && !offered.includes(draft.key));
+
+    if (next) {
+      offered.push(next.key);
+      converting = next.key;
+      convertingFrom = null;
     }
   });
 
@@ -131,6 +155,24 @@
     }
     else {
       dialog?.querySelector<HTMLElement>("[data-retouch]")?.focus();
+    }
+  }
+
+  function convert(draft: TDraft, button: HTMLElement): void {
+    converting = draft.key;
+    convertingFrom = button;
+  }
+
+  // Opened as the video was added, it gives focus to where the dialog starts.
+  async function closeVideoEditor(): Promise<void> {
+    converting = null;
+    await tick();
+
+    if (convertingFrom?.isConnected) {
+      convertingFrom.focus();
+    }
+    else {
+      focusFirst();
     }
   }
 
@@ -194,17 +236,24 @@
       <div class="modal-content">
         {#each editor.drafts as draft (draft.key)}
           {@const warning = duplicateWarning(draft)}
-          <fieldset class="draft" class:unusable={!isUsable(draft)} disabled={editor.saving}>
-            <legend class="sr-only">{draft.file?.name ?? draft.title}</legend>
+          {@const unmade = draft.video !== null && !draft.clip}
+          <fieldset class="draft" class:unusable={!isUsable(draft) && !unmade} disabled={editor.saving}>
+            <legend class="sr-only">{draft.video?.name ?? draft.file?.name ?? draft.title}</legend>
 
             <button class="preview" type="button" aria-label={i18n.t("editor.enlarge")} disabled={!draft.url || !draft.info} onclick={event => enlarge(draft, event.currentTarget)}>
-              {#if draft.url}
+              {#if draft.url && unmade}
+                <video src={draft.url} muted preload="metadata"></video>
+              {:else if draft.url}
                 <img src={draft.url} alt="" draggable="false" />
                 <span class="enlarge" aria-hidden="true"><ZoomIn size={18} /></span>
               {/if}
             </button>
 
             <div class="fields">
+              {#if unmade}
+                <p class="draft-note">{i18n.t("video.hint")}</p>
+              {/if}
+
               {#if draft.error}
                 <p class="draft-error" role="alert">{draft.error}</p>
               {/if}
@@ -276,6 +325,9 @@
               {/if}
 
               <div class="draft-actions">
+                {#if !viewing && draft.video}
+                  <button class="link" type="button" data-convert onclick={event => convert(draft, event.currentTarget)}>{unmade ? i18n.t("video.make") : i18n.t("video.edit")}</button>
+                {/if}
                 {#if !viewing && draft.info}
                   <button class="link" type="button" data-retouch onclick={event => retouch(draft, event.currentTarget)}>{i18n.t("imageEditor.open")}</button>
                 {/if}
@@ -285,7 +337,7 @@
                 {#if editor.mode === "edit"}
                   <label class="link">
                     {i18n.t("editor.replace")}
-                    <input class="sr-only" type="file" accept={ACCEPTED_FILES} onchange={event => pickReplacement(draft, event.currentTarget)} />
+                    <input class="sr-only" type="file" accept={ACCEPTED_IMAGES} onchange={event => pickReplacement(draft, event.currentTarget)} />
                   </label>
                 {:else if !viewing && (editor.drafts.length > 1 || draft.error)}
                   <button class="link" type="button" onclick={() => void remove(draft)}>{i18n.t("editor.remove")}</button>
@@ -327,6 +379,12 @@
 
   {#if retouchedDraft}
     <ImageEditor draft={retouchedDraft} onclose={() => void closeImageEditor()} />
+  {/if}
+
+  {#if convertedDraft}
+    {#key convertedDraft.key}
+      <VideoEditor draft={convertedDraft} onclose={() => void closeVideoEditor()} />
+    {/key}
   {/if}
 {/if}
 
@@ -455,7 +513,8 @@
     cursor: default;
   }
 
-  .preview img {
+  .preview img,
+  .preview video {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
