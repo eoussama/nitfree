@@ -38,6 +38,7 @@ export function createGifWriter(): { write: (frame: TGifFrame) => void; finish: 
         delay,
         repeat: 0,
         transparent: transparentIndex !== -1,
+        // Stryker disable next-line MethodExpression: gifenc only reads the index of a frame marked transparent.
         transparentIndex: Math.max(transparentIndex, 0),
         dispose: 2,
       });

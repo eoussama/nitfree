@@ -38,8 +38,8 @@ function stubMedia(answers: Record<string, boolean> = {}): { set: (query: string
       get matches() {
         return entry.matches;
       },
-      addEventListener: (_: string, listener: () => void) => entry.listeners.add(listener),
-      removeEventListener: (_: string, listener: () => void) => entry.listeners.delete(listener),
+      addEventListener: (type: string, listener: () => void) => type === "change" && entry.listeners.add(listener),
+      removeEventListener: (type: string, listener: () => void) => type === "change" && entry.listeners.delete(listener),
     };
   });
 
@@ -169,6 +169,88 @@ describe("watchTheme", () => {
     expect(heard.mock.lastCall![0]).toMatchObject({ reducedMotion: true });
 
     stop();
+  });
+});
+
+describe("watchTheme, one change at a time", () => {
+  let background = "rgb(1, 1, 1)";
+  let heard: ReturnType<typeof vi.fn>;
+  let stop: () => void;
+  let media: ReturnType<typeof stubMedia>;
+
+  // Each change to the page is told apart by the palette it brings, read from a style the test controls.
+  async function changesAfter(change: () => unknown): Promise<number> {
+    const before = heard.mock.calls.length;
+
+    background = `rgb(${Math.floor(Math.random() * 255)}, 2, 3)`;
+    await change();
+    await wait();
+
+    return heard.mock.calls.length - before;
+  }
+
+  beforeEach(() => {
+    media = stubMedia();
+    document.documentElement.className = "theme-dark";
+    vi.spyOn(window, "getComputedStyle").mockReturnValue({ getPropertyValue: (name: string) => (name === "--background-base-lower" ? background : "") } as CSSStyleDeclaration);
+    heard = vi.fn();
+    stop = watchTheme(document.documentElement, heard);
+  });
+
+  afterEach(() => {
+    stop();
+  });
+
+  it("hears the root's class and style change, and none of its other attributes", async () => {
+    expect(await changesAfter(() => document.documentElement.classList.add("x"))).toBe(1);
+    expect(await changesAfter(() => document.documentElement.setAttribute("style", "color: red"))).toBe(1);
+    expect(await changesAfter(() => document.documentElement.setAttribute("data-x", "1"))).toBe(0);
+  });
+
+  it("hears a style added or edited in the head, however deep", async () => {
+    const holder = document.head.appendChild(document.createElement("div"));
+    const style = document.head.appendChild(document.createElement("style"));
+
+    style.textContent = "a {}";
+    await wait();
+    expect(await changesAfter(() => document.head.append(document.createElement("meta")))).toBe(1);
+    expect(await changesAfter(() => holder.append(document.createElement("span")))).toBe(1);
+    expect(await changesAfter(() => ((style.firstChild as Text).data = "b {}"))).toBe(1);
+  });
+
+  it("hears a stylesheet or style finish loading, and not other things", async () => {
+    const link = document.head.appendChild(document.createElement("link"));
+    const style = document.head.appendChild(document.createElement("style"));
+    const image = document.head.appendChild(document.createElement("img"));
+
+    await wait();
+    expect(await changesAfter(() => link.dispatchEvent(new Event("load")))).toBe(1);
+    expect(await changesAfter(() => style.dispatchEvent(new Event("load")))).toBe(1);
+    expect(await changesAfter(() => image.dispatchEvent(new Event("load")))).toBe(0);
+  });
+
+  it("hears the system's motion setting change", async () => {
+    expect(await changesAfter(() => media.set("(prefers-reduced-motion: reduce)", true))).toBe(1);
+  });
+
+  it("hears nothing once stopped, not even a change already on its way", async () => {
+    const link = document.head.appendChild(document.createElement("link"));
+
+    await wait();
+    expect(await changesAfter(() => {
+      document.documentElement.classList.add("pending");
+      stop();
+    })).toBe(0);
+
+    // Heard, and waiting the moment it gives other changes to come, when it is stopped.
+    stop = watchTheme(document.documentElement, heard);
+    expect(await changesAfter(async () => {
+      document.documentElement.classList.add("again");
+      await new Promise(resolve => setTimeout(resolve, 0));
+      stop();
+    })).toBe(0);
+    expect(await changesAfter(() => link.dispatchEvent(new Event("load")))).toBe(0);
+    expect(await changesAfter(() => media.set("(prefers-reduced-motion: reduce)", true))).toBe(0);
   });
 });
 

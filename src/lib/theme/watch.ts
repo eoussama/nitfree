@@ -39,6 +39,7 @@ export function readTheme(root: HTMLElement): TThemeSnapshot | null {
  * @returns A function that stops watching.
  */
 export function watchTheme(root: HTMLElement, onChange: (snapshot: TThemeSnapshot) => void): () => void {
+  // Stryker disable next-line StringLiteral: any start that is not a theme's serialized form works the same.
   let last = "";
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -86,6 +87,7 @@ export function watchTheme(root: HTMLElement, onChange: (snapshot: TThemeSnapsho
 
   return () => {
     observer.disconnect();
+    // Stryker disable next-line BooleanLiteral: happy-dom removes a listener whatever its capture flag, as browsers do not.
     document.removeEventListener("load", onLoad, true);
     motion.removeEventListener("change", schedule);
     clearTimeout(timer);

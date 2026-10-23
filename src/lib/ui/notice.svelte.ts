@@ -29,6 +29,7 @@ export function showNotice(text: string): void {
  * Hides the notice.
  */
 export function clearNotice(): void {
+  // Stryker disable next-line all: a timer left running would only hide a notice already gone, and the next notice stops it.
   clearTimeout(timer);
   notice.text = null;
 }

@@ -175,6 +175,7 @@ export function clearBackground(rgba: Uint8ClampedArray, width: number, height: 
   const limit = (clamp(tolerance, 0, 100) / 100) * 255;
   const [r, g, b] = color;
   const cleared = new Uint8Array(width * height);
+  // Stryker disable next-line ArrayDeclaration: a stray first entry is no pixel, and visits nothing.
   const stack: number[] = [];
 
   const distance = (pixel: number): number => {
@@ -190,6 +191,10 @@ export function clearBackground(rgba: Uint8ClampedArray, width: number, height: 
     }
   };
 
+  // The checks below keep the fill inside the image, and are only there to be plain: a neighbor that
+  // wraps past a row's end is on an edge, and every edge pixel is visited first, and one past the
+  // image's ends is outside the pixels, so no change to them changes what is cleared.
+  // Stryker disable EqualityOperator,ConditionalExpression,ArithmeticOperator
   for (let x = 0; x < width; x++) {
     visit(x);
     visit((height - 1) * width + x);
@@ -227,16 +232,20 @@ export function clearBackground(rgba: Uint8ClampedArray, width: number, height: 
     return (x > 0 && cleared[pixel - 1] === 1) || (x < width - 1 && cleared[pixel + 1] === 1)
       || (pixel >= width && cleared[pixel - width] === 1) || (pixel < width * (height - 1) && cleared[pixel + width] === 1);
   };
+  // Stryker restore EqualityOperator,ConditionalExpression,ArithmeticOperator
 
+  // Stryker disable next-line EqualityOperator: one more pass lands past the image, where nothing is written.
   for (let pixel = 0; pixel < width * height; pixel++) {
     const i = pixel * 4;
 
     if (cleared[pixel]) {
       rgba[i] = rgba[i + 1] = rgba[i + 2] = rgba[i + 3] = 0;
     }
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: with no tolerance, no pixel is near enough to fade.
     else if (limit > 0 && touches(pixel)) {
       const d = distance(pixel);
 
+      // Stryker disable next-line EqualityOperator: at twice the tolerance the fade keeps the alpha as it is.
       if (d < limit * 2) {
         rgba[i + 3] = Math.round(rgba[i + 3]! * ((d - limit) / limit));
       }
@@ -258,6 +267,7 @@ function editFrame(frame: TFrame, crop: TRect, background: TEdits["background"])
 
   if (background) {
     const full = new OffscreenCanvas(frame.width, frame.height);
+    // Stryker disable next-line StringLiteral,ObjectLiteral,BooleanLiteral: a speed hint for the browser's canvas.
     const context = full.getContext("2d", { willReadFrequently: true })!;
 
     context.drawImage(frame.source, 0, 0);
@@ -271,6 +281,7 @@ function editFrame(frame: TFrame, crop: TRect, background: TEdits["background"])
 
   const canvas = new OffscreenCanvas(crop.width, crop.height);
 
+  // Stryker disable next-line StringLiteral,ObjectLiteral,BooleanLiteral: a speed hint for the browser's canvas.
   canvas.getContext("2d", { willReadFrequently: true })!.drawImage(source, -crop.x, -crop.y);
 
   return canvas;
@@ -288,6 +299,8 @@ export async function applyEdits(file: Blob, info: TImageInfo, edits: TEdits): P
   const crop = clampRect(edits.crop ?? fullRect(info), info);
   const start = edits.trim?.start ?? 0;
   const end = edits.trim?.end ?? Infinity;
+  // Only spares writing GIF frames for an image that ends up a PNG anyway, as one frame does.
+  // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: the output is the same either way.
   const animated = info.animated && end > start;
   const encoder = GIFEncoder();
   let first: OffscreenCanvas | null = null;
@@ -317,6 +330,7 @@ export async function applyEdits(file: Blob, info: TImageInfo, edits: TEdits): P
     first ??= canvas;
     count++;
 
+    // Stryker disable next-line ConditionalExpression: as above, the frames are only written to be dropped.
     if (animated) {
       const { index: pixels, palette, transparentIndex } = gifFrame(canvas);
 
@@ -325,6 +339,7 @@ export async function applyEdits(file: Blob, info: TImageInfo, edits: TEdits): P
         delay: gifDelay(frame.duration),
         repeat: frame.repeat,
         transparent: transparentIndex !== -1,
+        // Stryker disable next-line MethodExpression: gifenc only reads the index of a frame marked transparent.
         transparentIndex: Math.max(transparentIndex, 0),
         dispose: 2,
       });

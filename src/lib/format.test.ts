@@ -22,6 +22,14 @@ describe("formatBytes", () => {
     expect(formatBytes(3_240_000, "fr").replace(/\s/gu, " ")).toBe("3,2 Mo");
   });
 
+  it("goes up a unit at a thousand exactly, keeping bytes whole and units past ten without decimals", () => {
+    expect(formatBytes(999, "en")).toBe("999 bytes");
+    expect(formatBytes(1000, "en")).toBe("1 kB");
+    expect(formatBytes(1.5, "en")).toBe("2 bytes");
+    expect(formatBytes(12_340_000, "en")).toBe("12 MB");
+    expect(formatBytes(9_440_000, "en")).toBe("9.4 MB");
+  });
+
   it("treats a negative size as nothing", () => {
     expect(formatBytes(-5, "en")).toBe("0 bytes");
   });

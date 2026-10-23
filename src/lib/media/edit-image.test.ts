@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { canvasOf, fileOf, installCanvas, paintedCanvas, pixelAt } from "~/test/canvas";
 import { stubDecoder } from "~/test/decoder";
-
 import { gif } from "~/test/fixtures";
+
+import { readControls } from "~/test/gif";
 import { applyEdits, fullRect, NO_EDITS, previewFrames } from "./edit";
 import { inspectImage } from "./inspect";
 import { splitGif } from "./split";
@@ -113,6 +114,21 @@ describe("applyEdits of an animated image", () => {
     expect(inspectImage(new Uint8Array(await result.arrayBuffer()))).toMatchObject({ width: 4, height: 6, animated: true });
   });
 
+  it("marks see-through frames as such, and opaque ones as not, in a finished file", async () => {
+    // The frames of this fixture decode to nothing, so every one is see-through.
+    const clear = readControls(new Uint8Array(await (await applyEdits(file, info, NO_EDITS)).arrayBuffer()));
+
+    expect(clear.trailer).toBe(true);
+    expect(clear.frames.every(frame => frame.transparent)).toBe(true);
+
+    const { decoded } = stubDecoder({ supported: true, track: { frameCount: 3, repetitionCount: 0 }, durations: [70_000, 70_000, 70_000] });
+    const opaque = readControls(new Uint8Array(await (await applyEdits(file, info, { ...NO_EDITS, crop: { x: 0, y: 0, width: 8, height: 6 }, trim: { start: 1, end: 2 } })).arrayBuffer()));
+
+    expect(opaque.frames.map(frame => [frame.transparent, frame.index, frame.dispose])).toEqual([[false, 0, 2], [false, 0, 2]]);
+    // Every frame read is closed, the ones trimmed away too.
+    expect(decoded.map(image => image.closed)).toEqual([true, true, true]);
+  });
+
   it("fails when there is not a single frame to keep", async () => {
     stubDecoder({ supported: true, track: { frameCount: 0, repetitionCount: 1 }, durations: [] });
 
@@ -129,5 +145,13 @@ describe("previewFrames", () => {
     expect(frames.map(frame => [frame.canvas.width, frame.canvas.height])).toEqual([[16, 8], [16, 8], [16, 8]]);
     // A frame with no delay of its own shows for the tenth of a second browsers give it.
     expect(frames.every(frame => frame.duration > 0)).toBe(true);
+  });
+
+  it("closes every frame it reads", async () => {
+    const { decoded } = stubDecoder({ supported: true, track: { frameCount: 2, repetitionCount: 0 }, durations: [70_000, 70_000] });
+    const bytes = gif(8, 6, 2);
+
+    await previewFrames(new Blob([bytes]), inspectImage(bytes)!, 16);
+    expect(decoded.map(image => image.closed)).toEqual([true, true]);
   });
 });

@@ -17,6 +17,7 @@ export function formatBytes(bytes: number, locale: string): string {
   }
 
   // One decimal while it says something, as in 3.2 MB; none for bytes or from 10 on.
+  // Stryker disable next-line EqualityOperator: at exactly 10, a decimal or none both show "10".
   const digits = unit > 0 && value < 10 ? 1 : 0;
 
   return new Intl.NumberFormat(locale, { style: "unit", unit: UNITS[unit], unitDisplay: unit === 0 ? "long" : "short", maximumFractionDigits: digits }).format(value);

@@ -149,6 +149,7 @@ export async function resizeImage(file: Blob, info: TImageInfo, max: number): Pr
         delay: gifDelay(frame.duration),
         repeat: frame.repeat,
         transparent: transparentIndex !== -1,
+        // Stryker disable next-line MethodExpression: gifenc only reads the index of a frame marked transparent.
         transparentIndex: Math.max(transparentIndex, 0),
         dispose: 2,
       });

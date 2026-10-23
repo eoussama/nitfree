@@ -68,9 +68,29 @@ describe("crop rectangles", () => {
     expect(clampRect({ x: -5, y: 50, width: 200, height: 20 }, SIZE)).toEqual({ x: 0, y: 40, width: 100, height: 20 });
   });
 
-  it("knows the whole image from a crop", () => {
+  it("knows the whole image from a crop, every side of it", () => {
     expect(isFullRect({ x: 0, y: 0, width: 100, height: 60 }, SIZE)).toBe(true);
     expect(isFullRect({ x: 0, y: 0, width: 60, height: 60 }, SIZE)).toBe(false);
+    expect(isFullRect({ x: 1, y: 0, width: 100, height: 60 }, SIZE)).toBe(false);
+    expect(isFullRect({ x: 0, y: 1, width: 100, height: 60 }, SIZE)).toBe(false);
+    expect(isFullRect({ x: 0, y: 0, width: 100, height: 59 }, SIZE)).toBe(false);
+  });
+
+  it("keeps a square dragged toward the far edges within the room on that side", () => {
+    // From (90, 10) right and down: only 10 pixels of room to the right.
+    expect(dragRect({ x: 90, y: 10 }, { x: 99, y: 59 }, SIZE, true)).toEqual({ x: 90, y: 10, width: 10, height: 10 });
+    // From (10, 50) right and down: only 10 pixels of room below.
+    expect(dragRect({ x: 10, y: 50 }, { x: 99, y: 59 }, SIZE, true)).toEqual({ x: 10, y: 50, width: 10, height: 10 });
+  });
+
+  it("resizes within the room left beyond the rectangle's corner", () => {
+    const rect = { x: 60, y: 30, width: 20, height: 20 };
+
+    expect(resizeRect(rect, 100, 0, SIZE, true)).toEqual({ x: 60, y: 30, width: 30, height: 30 });
+    expect(resizeRect({ ...rect, y: 10 }, 100, 0, SIZE, true)).toEqual({ x: 60, y: 10, width: 40, height: 40 });
+    expect(resizeRect(rect, 0, 100, SIZE, false)).toEqual({ x: 60, y: 30, width: 20, height: 30 });
+    expect(resizeRect(rect, 0, 5, SIZE, false)).toEqual({ x: 60, y: 30, width: 20, height: 25 });
+    expect(resizeRect(rect, 0, -5, SIZE, false)).toEqual({ x: 60, y: 30, width: 20, height: 15 });
   });
 });
 
@@ -125,9 +145,11 @@ describe("clearBackground", () => {
 });
 
 describe("edits", () => {
-  it("knows when nothing is edited", () => {
+  it("knows when nothing is edited, and each edit on its own", () => {
     expect(hasEdits(NO_EDITS)).toBe(false);
     expect(hasEdits({ ...NO_EDITS, trim: { start: 1, end: 3 } })).toBe(true);
+    expect(hasEdits({ ...NO_EDITS, crop: { x: 0, y: 0, width: 1, height: 1 } })).toBe(true);
+    expect(hasEdits({ ...NO_EDITS, background: { color: [0, 0, 0], tolerance: 1 } })).toBe(true);
   });
 
   it("names the edited file after the original, with its new extension", () => {

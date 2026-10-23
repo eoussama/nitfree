@@ -109,6 +109,7 @@ describe("isolate", () => {
 
 describe("the notice", () => {
   it("shows the latest text for a while, then goes", () => {
+    expect(notice.text).toBeNull();
     vi.useFakeTimers();
     showNotice("one");
     showNotice("two");
@@ -121,6 +122,17 @@ describe("the notice", () => {
 
     showNotice("three");
     clearNotice();
+    expect(notice.text).toBeNull();
+  });
+
+  it("gives a new notice the whole delay, whatever the last one had left", () => {
+    vi.useFakeTimers();
+    showNotice("one");
+    vi.advanceTimersByTime(NOTICE_DELAY - 100);
+    showNotice("two");
+    vi.advanceTimersByTime(200);
+    expect(notice.text).toBe("two");
+    vi.advanceTimersByTime(NOTICE_DELAY);
     expect(notice.text).toBeNull();
   });
 });
@@ -140,15 +152,41 @@ describe("motion", () => {
 });
 
 describe("archiveProblem", () => {
-  it("says what is wrong with a backup in words, and any other error as it is", () => {
-    const reasons = ["notZip", "unreadable", "invalid", "newer", "noLibrary", "duplicate", "missingFile", "mismatch", "unknownTag", "unknownPack", "empty", "notInLibrary"] as const;
+  const params = { name: "library.json", problem: "tags: Invalid type", title: "wave" };
 
-    for (const reason of reasons) {
-      expect(archiveProblem(new ArchiveError(reason, "log message", { name: "n", problem: "p", title: "t" }))).not.toContain("log message");
-      expect(archiveProblem(new ArchiveError(reason, "log message"))).not.toContain("log message");
-    }
+  it.each([
+    ["notZip", "This is not a zip file, or it is damaged."],
+    ["unreadable", "library.json in this file cannot be read."],
+    ["invalid", "library.json in this file is not valid (tags: Invalid type)."],
+    ["newer", "This backup was made by a newer version of Nitfree. Update Nitfree to import it."],
+    ["noLibrary", "This file is not a complete Nitfree backup."],
+    ["duplicate", "This backup lists “wave” twice."],
+    ["missingFile", "The file of “wave” is missing from this backup."],
+    ["mismatch", "The file of “wave” was changed or damaged after it was exported."],
+    ["unknownTag", "“wave” has a tag this backup does not list."],
+    ["unknownPack", "“wave” is in a pack this backup does not list."],
+    ["empty", "This has no images Nitfree accepts (PNG, APNG, GIF, WebP and JPEG)."],
+    ["notInLibrary", "The file of “wave” is missing from your library."],
+  ] as const)("says what %s means, naming what it is about", (reason, message) => {
+    expect(archiveProblem(new ArchiveError(reason, "log message", params))).toBe(message);
+  });
 
+  it.each([
+    ["unreadable", " in this file cannot be read."],
+    ["invalid", " in this file is not valid ()."],
+    ["duplicate", "This backup lists “” twice."],
+    ["missingFile", "The file of “” is missing from this backup."],
+    ["mismatch", "The file of “” was changed or damaged after it was exported."],
+    ["unknownTag", "“” has a tag this backup does not list."],
+    ["unknownPack", "“” is in a pack this backup does not list."],
+    ["notInLibrary", "The file of “” is missing from your library."],
+  ] as const)("names nothing for %s when the error names nothing", (reason, message) => {
+    expect(archiveProblem(new ArchiveError(reason, "log message"))).toBe(message);
+  });
+
+  it("says any other error as it is", () => {
     expect(archiveProblem(new Error("plain"))).toBe("plain");
+    expect(archiveProblem("text")).toBe("text");
   });
 });
 
