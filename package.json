@@ -21,9 +21,10 @@
     "lint:fix": "dx fix",
     "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "postinstall": "wxt prepare",
-    "check": "pnpm audit && pnpm lint && pnpm typecheck && pnpm build:all && pnpm test && pnpm test:e2e"
+    "check": "pnpm audit && pnpm lint && pnpm typecheck && pnpm build:all && pnpm test:coverage && pnpm test:e2e"
   },
   "dependencies": {
     "@eoussama/core": "^0.1.2",
@@ -40,6 +41,7 @@
     "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "@typescript/native": "npm:typescript@^7",
+    "@vitest/coverage-v8": "5.0.5",
     "@wxt-dev/module-svelte": "^2.0.5",
     "eslint": "^10.13.0",
     "eslint-plugin-svelte": "^3.23.1",
