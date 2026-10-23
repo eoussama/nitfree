@@ -86,13 +86,13 @@ test.describe("presentation", () => {
     await expect(tooltip(page)).toHaveCount(0);
   });
 
-  test("a hovered item gets Discord's hover bar to favorite, edit, download or delete it", async ({ page }) => {
+  test("a hovered item gets Discord's hover bar to favorite it, see its details, or open its menu", async ({ page }) => {
     await request(popup, "library:add", { file: png(64, 64), type: "emoji", title: "wave" });
     await openPanel(page);
 
     await tile(page, "wave").hover();
-    await expect(toolbar(page).getByRole("button")).toHaveCount(5);
-    expect(await toolbar(page).getByRole("button").evaluateAll(buttons => buttons.map(button => button.getAttribute("aria-label")))).toEqual(["Add to Favorites", "Details", "Edit", "Download", "Delete"]);
+    await expect(toolbar(page).getByRole("button")).toHaveCount(3);
+    expect(await toolbar(page).getByRole("button").evaluateAll(buttons => buttons.map(button => button.getAttribute("aria-label")))).toEqual(["Add to Favorites", "Details", "More options"]);
 
     // The bar floats a little above the tile, its buttons apart.
     const cell = (await tile(page, "wave").boundingBox())!;
@@ -125,12 +125,29 @@ test.describe("presentation", () => {
     await tile(page, "wave").hover();
     await expect(toolbar(page).getByRole("button", { name: "Remove from Favorites" })).toBeVisible();
 
-    await toolbar(page).getByRole("button", { name: "Edit" }).click();
+    // More opens the right-click menu under it, with the rest.
+    const more = toolbar(page).getByRole("button", { name: "More options" });
+    const moreBox = (await more.boundingBox())!;
+
+    await more.click();
+
+    const menu = page.getByRole("menu", { name: "wave" });
+
+    await expect(menu.getByRole("menuitem")).toHaveText(["Remove from Favorites", "Details", "Edit", "Download", "Delete"]);
+    await expect(menu.getByRole("menuitem").first()).toBeFocused();
+
+    const opened = (await menu.boundingBox())!;
+
+    expect(Math.abs(opened.x - moreBox.x)).toBeLessThanOrEqual(1);
+    expect(opened.y).toBeGreaterThanOrEqual(moreBox.y + moreBox.height - 1);
+
+    await menu.getByRole("menuitem", { name: "Edit" }).click();
     await expect(page.getByRole("dialog", { name: "Edit item" })).toBeVisible();
     await page.keyboard.press("Escape");
 
     await tile(page, "wave").hover();
-    await toolbar(page).getByRole("button", { name: "Delete" }).click();
+    await toolbar(page).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
     await expect(tile(page, "wave")).toHaveCount(0);
     await expect(page.getByRole("status")).toHaveText(/Deleted “wave”/);
 

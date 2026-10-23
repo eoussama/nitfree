@@ -2,27 +2,23 @@
 
 <!--
   The quick actions above the hovered item, styled like the bar Discord shows on a hovered message:
-  Favorite, Details, Edit, Download and, apart, Delete. It floats a little above the tile, or below it when there is no
+  Favorite, Details and More, which opens the item's menu. It floats a little above the tile, or below it when there is no
   room above, and goes once the pointer leaves both. The gap between them still counts as the bar, so
   moving up to it never passes over the tile above.
 -->
 <script lang="ts">
   import type { TItem } from "~/lib/db";
 
-  import Download from "@lucide/svelte/icons/download";
+  import Ellipsis from "@lucide/svelte/icons/ellipsis";
   import Eye from "@lucide/svelte/icons/eye";
-  import Pencil from "@lucide/svelte/icons/pencil";
   import Star from "@lucide/svelte/icons/star";
   import StarOff from "@lucide/svelte/icons/star-off";
-  import Trash from "@lucide/svelte/icons/trash";
 
   import { sendMessage } from "~/lib/messaging";
-  import { startEdit, startView } from "~/lib/ui/editor.svelte";
-  import { saveItem } from "~/lib/ui/export";
+  import { startView } from "~/lib/ui/editor.svelte";
+  import { openMenu } from "~/lib/ui/menu.svelte";
   import { motion } from "~/lib/ui/motion.svelte";
-  import { focusAfterRemoval } from "~/lib/ui/tiles";
   import { tooltip } from "~/lib/ui/tooltip.svelte";
-  import { deleteWithUndo } from "~/lib/ui/trash.svelte";
 
 
 
@@ -97,26 +93,14 @@
     startView(current, tile);
   }
 
-  function edit(): void {
+  // The same menu as a right click, opened under the button; it gives focus back to the tile.
+  function more(event: MouseEvent): void {
     const current = item;
     const tile = cell.querySelector<HTMLElement>("[data-tile]");
+    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
     ondone();
-    startEdit(current, tile);
-  }
-
-  function remove(): void {
-    const current = item;
-    const tile = cell.querySelector<HTMLElement>("[data-tile]");
-
-    ondone();
-
-    // Focus on the tile going away moves on, never down to Discord's page.
-    if (tile?.matches(":focus")) {
-      focusAfterRemoval(tile);
-    }
-
-    deleteWithUndo(current);
+    openMenu(current, box.left, box.bottom, tile);
   }
 
   // The buttons never take focus, so whatever had it keeps it, e.g. for a paste.
@@ -160,15 +144,8 @@
     <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.details")} onmousedown={keepFocus} onclick={view} {@attach tooltip(i18n.t("menu.details"))}>
       <Eye size={20} aria-hidden="true" />
     </button>
-    <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.edit")} onmousedown={keepFocus} onclick={edit} {@attach tooltip(i18n.t("menu.edit"))}>
-      <Pencil size={20} aria-hidden="true" />
-    </button>
-    <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.download")} onmousedown={keepFocus} onclick={() => void saveItem(item)} {@attach tooltip(i18n.t("menu.download"))}>
-      <Download size={20} aria-hidden="true" />
-    </button>
-    <span class="separator" aria-hidden="true"></span>
-    <button class="button danger" type="button" tabindex="-1" aria-label={i18n.t("menu.delete")} onmousedown={keepFocus} onclick={remove} {@attach tooltip(i18n.t("menu.delete"))}>
-      <Trash size={20} aria-hidden="true" />
+    <button class="button" type="button" tabindex="-1" aria-label={i18n.t("menu.more")} aria-haspopup="menu" onmousedown={keepFocus} onclick={more} {@attach tooltip(i18n.t("menu.more"))}>
+      <Ellipsis size={20} aria-hidden="true" />
     </button>
   </div>
 </div>
@@ -232,17 +209,7 @@
     transform: scale(1);
   }
 
-  .danger:hover {
-    color: var(--text-feedback-critical, #f57976);
-  }
 
-  .separator {
-    width: 1px;
-    height: 24px;
-    margin: 2px 4px;
-    border-radius: 100px;
-    background-color: var(--border-subtle, var(--nf-border, #3f4147));
-  }
 
   .reduced .button :global(svg) {
     transform: none;

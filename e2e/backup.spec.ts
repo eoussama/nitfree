@@ -199,7 +199,9 @@ test.describe("backup", () => {
     // From the hover bar.
     await tile(page, "loaf").hover();
 
-    const hovered = await downloaded(page, () => page.locator("[data-action-bar]").getByRole("button", { name: "Download" }).click());
+    await page.locator("[data-action-bar]").getByRole("button", { name: "More options" }).click();
+
+    const hovered = await downloaded(page, () => page.getByRole("menuitem", { name: "Download" }).click());
 
     expect(hovered.name).toBe("loaf.png");
 
