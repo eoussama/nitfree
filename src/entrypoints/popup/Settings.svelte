@@ -1,12 +1,15 @@
 <!--
   The popup's settings page: the sizes emojis and stickers are sent at, what a click on an item does,
-  whether animated items play in the panel, and whether typing `:name` suggests Nitfree items, and where. Each change is saved at once, and open Discord tabs
+  whether animated items play in the panel, whether typing `:name` suggests Nitfree items, and where,
+  and the keyboard shortcut that opens the panel. Each change is saved at once, and open Discord tabs
   follow it.
 -->
 <script lang="ts">
   import type { TClickAction, TSendSizes, TSuggestionsAt } from "~/lib/settings";
+  import type { TShortcut } from "~/lib/shortcut";
 
-  import { autocomplete, clampSendSize, clickAction, DEFAULT_SEND_SIZES, playAnimations, SEND_SIZE_LIMITS, sendSizes, suggestionsAt } from "~/lib/settings";
+  import { autocomplete, clampSendSize, clickAction, DEFAULT_SEND_SIZES, playAnimations, SEND_SIZE_LIMITS, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
+  import { DEFAULT_SHORTCUT, formatShortcut, isMac, isUsableShortcut, shortcutKeys as keysOf, shortcutOf } from "~/lib/shortcut";
 
 
 
@@ -19,6 +22,16 @@
   let play = $state(true);
   let suggest = $state(true);
   let at: TSuggestionsAt = $state("end");
+  let useShortcut = $state(true);
+  let keys: TShortcut = $state(DEFAULT_SHORTCUT);
+
+  // While recording: the modifiers held so far, and why the last combination was refused.
+  let recording = $state(false);
+  let held: TShortcut | null = $state(null);
+  let refused = $state(false);
+
+  const mac = isMac();
+  const shown = $derived(recording ? held : keys);
 
   $effect(() => {
     void sendSizes.getValue().then((value) => {
@@ -36,6 +49,12 @@
     void suggestionsAt.getValue().then((value) => {
       at = value;
     });
+    void shortcut.getValue().then((value) => {
+      useShortcut = value;
+    });
+    void shortcutKeys.getValue().then((value) => {
+      keys = value;
+    });
 
     const stops = [
       sendSizes.watch((value) => {
@@ -52,6 +71,12 @@
       }),
       suggestionsAt.watch((value) => {
         at = value ?? "end";
+      }),
+      shortcut.watch((value) => {
+        useShortcut = value ?? true;
+      }),
+      shortcutKeys.watch((value) => {
+        keys = value ?? DEFAULT_SHORTCUT;
       }),
     ];
 
@@ -89,6 +114,78 @@
     at = value;
     void suggestionsAt.setValue(value);
   }
+
+  function saveUseShortcut(value: boolean): void {
+    useShortcut = value;
+    recording = false;
+    void shortcut.setValue(value);
+  }
+
+  function saveKeys(value: TShortcut): void {
+    keys = value;
+    void shortcutKeys.setValue(value);
+  }
+
+  function startRecording(): void {
+    recording = true;
+    held = null;
+    refused = false;
+  }
+
+  function stopRecording(): void {
+    recording = false;
+    held = null;
+    refused = false;
+  }
+
+  // While recording, every key press is taken: Escape on its own stops, and the first key pressed
+  // with Ctrl, Alt or Command becomes the shortcut.
+  $effect(() => {
+    if (!recording) {
+      return;
+    }
+
+    const onKeydown = (event: KeyboardEvent): void => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const combination = shortcutOf(event);
+      const modifiers = { ctrl: event.ctrlKey, alt: event.altKey, shift: event.shiftKey, meta: event.metaKey };
+
+      if (combination?.key === "Escape" && !modifiers.ctrl && !modifiers.alt && !modifiers.shift && !modifiers.meta) {
+        stopRecording();
+
+        return;
+      }
+
+      if (!combination) {
+        held = { key: "", ...modifiers };
+
+        return;
+      }
+
+      if (!isUsableShortcut(combination)) {
+        held = null;
+        refused = true;
+
+        return;
+      }
+
+      saveKeys(combination);
+      stopRecording();
+    };
+    const onKeyup = (event: KeyboardEvent): void => {
+      held = event.ctrlKey || event.altKey || event.shiftKey || event.metaKey ? { key: "", ctrl: event.ctrlKey, alt: event.altKey, shift: event.shiftKey, meta: event.metaKey } : null;
+    };
+
+    window.addEventListener("keydown", onKeydown, true);
+    window.addEventListener("keyup", onKeyup, true);
+
+    return () => {
+      window.removeEventListener("keydown", onKeydown, true);
+      window.removeEventListener("keyup", onKeyup, true);
+    };
+  });
 </script>
 
 <div class="form-section">
@@ -157,6 +254,42 @@
   </fieldset>
 </div>
 
+<div class="form-section">
+  <label class="toggle">
+    <span>{i18n.t("popup.shortcut")}</span>
+    <input class="switch" type="checkbox" role="switch" checked={useShortcut} onchange={event => saveUseShortcut(event.currentTarget.checked)} />
+  </label>
+  <p class="form-description">{i18n.t("popup.shortcutHint")}</p>
+  <fieldset class="group" disabled={!useShortcut}>
+    <legend class="form-label">{i18n.t("popup.shortcutKeys")}</legend>
+    <!-- As a row of Discord's keybind settings: what it does, and its keys as chips at the end. -->
+    <div class="keybind" class:recording>
+      <span>{i18n.t("toggler.label")}</span>
+      <span class="combo" data-shortcut aria-live="polite">
+        {#if shown}
+          {#each keysOf(shown, mac).filter(Boolean) as key, index (index)}<kbd class="key">{key}</kbd>{/each}
+        {:else}
+          <span class="prompt">{i18n.t("popup.shortcutRecording")}</span>
+        {/if}
+      </span>
+    </div>
+    {#if refused}
+      <p class="feedback critical" role="alert">{mac ? i18n.t("popup.shortcutModifierMac") : i18n.t("popup.shortcutModifier")}</p>
+    {/if}
+    <div class="actions">
+      {#if recording}
+        <!-- Focused as it shows, in place of Change; leaving it stops recording. -->
+        <button class="button secondary" type="button" onclick={stopRecording} onblur={stopRecording} {@attach node => node.focus()}>{i18n.t("editor.cancel")}</button>
+      {:else}
+        {#if formatShortcut(keys, mac) !== formatShortcut(DEFAULT_SHORTCUT, mac)}
+          <button class="button secondary" type="button" onclick={() => saveKeys(DEFAULT_SHORTCUT)}>{i18n.t("popup.shortcutReset")}</button>
+        {/if}
+        <button class="button secondary" type="button" onclick={startRecording}>{i18n.t("popup.shortcutChange")}</button>
+      {/if}
+    </div>
+  </fieldset>
+</div>
+
 <style>
   .group {
     min-width: 0;
@@ -174,6 +307,64 @@
 
   .group > legend + * {
     clear: left;
+  }
+
+  /* A row of Discord's keybind settings: a filled box, the action's name, then its keys. */
+  .keybind {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    border-radius: var(--radius-sm, 8px);
+    background-color: var(--background-mod-subtle, var(--nf-mod-subtle));
+    color: var(--text-default, var(--nf-text));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+  }
+
+  /* Recording, it takes the focus ring of a field being typed in. */
+  .keybind.recording {
+    outline: 2px solid var(--input-border-active, var(--nf-accent));
+    outline-offset: -2px;
+  }
+
+  .group:disabled .keybind {
+    opacity: 0.5;
+  }
+
+  .combo {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  /* Discord's key chip: bold capitals on a darker cap with a raised bottom edge. */
+  .key {
+    min-width: 20px;
+    padding: 2px 6px;
+    box-sizing: border-box;
+    border: 1px solid var(--border-subtle, rgb(151 151 159 / 20%));
+    border-radius: 4px;
+    background-color: var(--background-base-lowest, rgb(0 0 0 / 20%));
+    color: var(--text-strong, var(--nf-text));
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    text-transform: uppercase;
+    box-shadow: inset 0 -1px 0 var(--border-subtle, rgb(151 151 159 / 20%));
+  }
+
+  .prompt {
+    color: var(--text-muted, var(--nf-muted));
+    font-size: 14px;
+    line-height: 18px;
   }
 
   .sizes {

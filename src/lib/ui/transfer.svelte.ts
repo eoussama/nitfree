@@ -5,7 +5,8 @@ import { tryCatch } from "@eoussama/core";
 
 import { applyArchive, ARCHIVE_EXTENSION, ArchiveError, readArchive, readImages } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
-import { autocomplete, clickAction, fitSendSizes, playAnimations, sendSizes, suggestionsAt } from "~/lib/settings";
+import { autocomplete, clickAction, fitSendSizes, playAnimations, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
+import { isUsableShortcut } from "~/lib/shortcut";
 
 import { download, exportName } from "./download";
 import { buildExport } from "./export";
@@ -193,6 +194,9 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
         playAnimations.setValue(archive.settings.playAnimations),
         archive.settings.autocomplete === undefined ? undefined : autocomplete.setValue(archive.settings.autocomplete),
         archive.settings.suggestionsAt === undefined ? undefined : suggestionsAt.setValue(archive.settings.suggestionsAt),
+        archive.settings.shortcut === undefined ? undefined : shortcut.setValue(archive.settings.shortcut),
+        // One that could not open the panel without taking typing is left out.
+        archive.settings.shortcutKeys && isUsableShortcut(archive.settings.shortcutKeys) ? shortcutKeys.setValue(archive.settings.shortcutKeys) : undefined,
       ]);
     }
 

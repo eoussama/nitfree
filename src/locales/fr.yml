@@ -66,6 +66,14 @@ popup:
   suggestionsAtEnd: Après les emojis de Discord
   suggestionsAtStart: Avant les emojis de Discord
   autocompleteHint: "Taper :nom dans un message ajoute vos éléments correspondants aux suggestions de Discord. Les flèches y mènent après celles de Discord ; Tab en ajoute un sans envoyer."
+  shortcut: Ouvrir Nitfree avec un raccourci
+  shortcutHint: L'utiliser dans un salon ouvre Nitfree, prêt pour la recherche. L'utiliser à nouveau le ferme.
+  shortcutKeys: Raccourci
+  shortcutChange: Modifier
+  shortcutReset: Réinitialiser
+  shortcutRecording: Appuyez sur les touches…
+  shortcutModifier: Maintenez Ctrl ou Alt avec la touche.
+  shortcutModifierMac: Maintenez ⌘, ⌥ ou ⌃ avec la touche.
   animations: Animer les éléments au survol
   transfer:
     heading: Sauvegarde

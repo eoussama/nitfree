@@ -36,6 +36,7 @@ Nitfree runs only on `discord.com`. There it:
 - Finds the chat bar and the expression picker so it can add its button and its tab.
 - When you right-click in a message, reads what is under the pointer (a custom emoji, a sticker or an image: its address, name and kind) to offer **Save to Nitfree** in Discord's menu. Nothing is kept unless you save it.
 - While you type in the message box, reads the current line up to the cursor, only to notice a `:name` and suggest matching items from your library. What you type is not stored or sent anywhere, and this stops when suggestions are turned off in the popup.
+- Checks each key press on Discord against the shortcut that opens Nitfree (Ctrl+Alt+N unless changed in the popup). Only that combination is acted on; key presses are not stored or sent anywhere, and this stops when the shortcut is turned off.
 - Reads the current page address only to check that you are still in the same channel when an item finishes preparing, so it is never sent to the wrong channel. The address is not stored.
 
 Nitfree does not read, store or send your messages, contacts, servers, account details or any other content of your Discord account.

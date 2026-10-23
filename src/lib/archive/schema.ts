@@ -61,6 +61,8 @@ export const ArchiveSettingsSchema = v.object({
   // Added in 0.3.0; backups made before it leave the setting as it is.
   autocomplete: v.optional(v.boolean()),
   suggestionsAt: v.optional(v.picklist(["end", "start"])),
+  shortcut: v.optional(v.boolean()),
+  shortcutKeys: v.optional(v.object({ key: v.pipe(v.string(), v.minLength(1), v.maxLength(32)), ctrl: v.boolean(), alt: v.boolean(), shift: v.boolean(), meta: v.boolean() })),
 });
 
 export type TManifest = v.InferOutput<typeof ManifestSchema>;

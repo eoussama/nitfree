@@ -67,6 +67,14 @@ popup:
   suggestionsAtEnd: After Discord's emojis
   suggestionsAtStart: Before Discord's emojis
   autocompleteHint: "Typing :name in a message adds your matching items to Discord's suggestions. The arrow keys reach them past Discord's own; Tab adds one without sending."
+  shortcut: Open Nitfree with a shortcut
+  shortcutHint: Pressing it in a channel opens Nitfree, ready to search. Pressing it again closes it.
+  shortcutKeys: Shortcut
+  shortcutChange: Change
+  shortcutReset: Reset
+  shortcutRecording: Press the keys…
+  shortcutModifier: Hold Ctrl or Alt with the key.
+  shortcutModifierMac: Hold ⌘, ⌥ or ⌃ with the key.
   transfer:
     heading: Backup
     exportTitle: Export

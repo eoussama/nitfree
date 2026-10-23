@@ -8,12 +8,13 @@ type TTooltipState = {
   text: string | null;
   side: TTooltipSide;
   rect: DOMRect | null;
+  keys: string[];
 };
 
 /**
  * The tooltip showing, if any. It is drawn in the page overlay, so a panel's edges never clip it.
  */
-export const tooltipState: TTooltipState = $state({ text: null, side: "top", rect: null });
+export const tooltipState: TTooltipState = $state({ text: null, side: "top", rect: null, keys: [] });
 
 let owner: Element | null = null;
 
@@ -23,12 +24,14 @@ let owner: Element | null = null;
  * @param target - The element it is about.
  * @param text - What it says.
  * @param side - Which side of the element it shows on.
+ * @param keys - The keys of a shortcut that does the same, shown after the text.
  */
-export function showTooltip(target: Element, text: string, side: TTooltipSide): void {
+export function showTooltip(target: Element, text: string, side: TTooltipSide, keys: string[] = []): void {
   owner = target;
   tooltipState.text = text;
   tooltipState.side = side;
   tooltipState.rect = target.getBoundingClientRect();
+  tooltipState.keys = keys;
 }
 
 /**
@@ -50,11 +53,12 @@ export function hideTooltip(target?: Element): void {
  *
  * @param text - What the tooltip says.
  * @param side - Which side of the element it shows on.
+ * @param keys - The keys of a shortcut that does the same.
  * @returns The attachment.
  */
-export function tooltip(text: string, side: TTooltipSide = "top"): Attachment<HTMLElement> {
+export function tooltip(text: string, side: TTooltipSide = "top", keys: string[] = []): Attachment<HTMLElement> {
   return (node) => {
-    const show = (): void => showTooltip(node, text, side);
+    const show = (): void => showTooltip(node, text, side, keys);
     const showOnKeyboardFocus = (): void => {
       if (node.matches(":focus-visible")) {
         show();

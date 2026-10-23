@@ -7,8 +7,9 @@ import { toError, tryCatch } from "@eoussama/core";
 import { chatButtonGroupOf, composerOf, findEmojiButton, findExpandedPickerButton } from "~/lib/discord";
 import { sendMessage } from "~/lib/messaging";
 import { picksSend } from "~/lib/settings";
+import { matchesShortcut } from "~/lib/shortcut";
 
-import { resetEditor } from "./editor.svelte";
+import { editor, resetEditor } from "./editor.svelte";
 import { mountOverlay, mountPopover, mountToggler, watchChatButtonGroups } from "./inject";
 import { followLibrary } from "./library.svelte";
 import { closeMenu } from "./menu.svelte";
@@ -28,6 +29,11 @@ import { flushTrash } from "./trash.svelte";
  */
 const PICKER_TIMEOUT = 600;
 
+/**
+ * The Nitfree button in a composer's button group.
+ */
+const TOGGLER = "[data-nitfree-toggler] [role=\"button\"]";
+
 function emojiButtonOf(anchor: HTMLElement): HTMLElement | null {
   const group = chatButtonGroupOf(anchor);
 
@@ -44,11 +50,27 @@ function anchorOfOpenPicker(): HTMLElement | null {
   const expanded = findExpandedPickerButton();
   const group = expanded && chatButtonGroupOf(expanded);
 
-  return group?.querySelector<HTMLElement>("[data-nitfree-toggler] [role=\"button\"]") ?? null;
+  return group?.querySelector<HTMLElement>(TOGGLER) ?? null;
 }
 
 /**
- * Starts everything Nitfree adds to Discord's page: the chat bar buttons, the Nitfree tab in the
+ * The Nitfree button the keyboard shortcut stands for: the one the panel is open for, else the one of
+ * the composer being typed in, such as a thread's, else the channel's, which comes first on the page.
+ *
+ * @returns The button, or null when no composer is shown.
+ */
+function shortcutAnchor(): HTMLElement | null {
+  if (panel.open && panel.anchor?.isConnected) {
+    return panel.anchor;
+  }
+
+  const composer = document.activeElement && composerOf(document.activeElement);
+
+  return composer?.querySelector<HTMLElement>(TOGGLER) ?? document.querySelector<HTMLElement>(TOGGLER);
+}
+
+/**
+ * Starts everything Nitfree adds to Discord's page: the chat bar buttons and their keyboard shortcut, the Nitfree tab in the
  * expression picker, the fallback popover, "Save to Nitfree" in message menus, the emojis suggested
  * while typing `:name`, and the live library they show.
  *
@@ -267,11 +289,41 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     }
   }
 
+  /**
+   * Opens the panel from the keyboard, as a click on the Nitfree button would, or closes it when it is
+   * open. Listens before Discord does, so the combination goes no further.
+   *
+   * @param event - A key press anywhere on the page.
+   */
+  function onShortcut(event: KeyboardEvent): void {
+    // AltGr counts as Ctrl+Alt on Windows, and with N types ń on a Polish keyboard: that is typing.
+    if (!preferences.shortcut || event.repeat || event.isComposing || editor.mode || event.getModifierState("AltGraph") || !matchesShortcut(event, preferences.shortcut)) {
+      return;
+    }
+
+    const anchor = shortcutAnchor();
+
+    if (!anchor) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    // As a click would: focus leaves the message box first, so Discord's picker, which keeps focus
+    // inside while open, does not take it back from the search field.
+    anchor.focus();
+    toggle(anchor);
+  }
+
   setToggleHandler(toggle);
 
   const stopTogglers = watchChatButtonGroups(ctx, mountToggler, afterScan);
 
+  window.addEventListener("keydown", onShortcut, true);
+
   return () => {
+    window.removeEventListener("keydown", onShortcut, true);
     cancelPending();
     setToggleHandler(togglePopover);
     stopTogglers();

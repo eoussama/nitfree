@@ -3,12 +3,15 @@
 <!--
   The Nitfree button in Discord's chat bar. It borrows the classes of Discord's own buttons,
   so it has their size and hover and active states; it only falls back to its own layout when
-  Discord's markup has changed.
+  Discord's markup has changed. Its tooltip names the keyboard shortcut that does the same.
 -->
 <script lang="ts">
   import type { TChatButtonClasses } from "~/lib/discord";
 
+  import { ariaShortcut, shortcutKeys } from "~/lib/shortcut";
   import { notePress, noteRelease, panel, togglePanel } from "~/lib/ui/panel.svelte";
+  import { preferences } from "~/lib/ui/preferences.svelte";
+  import { tooltip } from "~/lib/ui/tooltip.svelte";
 
   import Logo from "./Logo.svelte";
 
@@ -19,6 +22,7 @@
   let button: HTMLElement | undefined = $state();
 
   const open = $derived(panel.open && button !== undefined && panel.anchor === button);
+  const keys = $derived(preferences.shortcut ? shortcutKeys(preferences.shortcut) : []);
 
   function toggle(): void {
     if (button) {
@@ -48,6 +52,8 @@
     aria-label={i18n.t("toggler.label")}
     aria-haspopup="dialog"
     aria-expanded={open}
+    aria-keyshortcuts={preferences.shortcut ? ariaShortcut(preferences.shortcut) : undefined}
+    {@attach tooltip(i18n.t("toggler.label"), "top", keys)}
     onpointerdown={() => button && notePress(button)}
     onpointerup={() => button && noteRelease(button)}
     onclick={toggle}

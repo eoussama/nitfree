@@ -1,6 +1,8 @@
 import type { TClickAction, TSuggestionsAt } from "~/lib/settings";
+import type { TShortcut } from "~/lib/shortcut";
 
-import { autocomplete, clickAction, playAnimations, suggestionsAt } from "~/lib/settings";
+import { autocomplete, clickAction, playAnimations, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
+import { DEFAULT_SHORTCUT } from "~/lib/shortcut";
 
 
 
@@ -9,12 +11,14 @@ type TPreferences = {
   playAnimations: boolean;
   autocomplete: boolean;
   suggestionsAt: TSuggestionsAt;
+  shortcut: TShortcut | null;
 };
 
 /**
- * The popup's settings the panel follows, kept in step with extension storage.
+ * The popup's settings the panel follows, kept in step with extension storage. The shortcut is null
+ * while turned off.
  */
-export const preferences: TPreferences = $state({ clickAction: "send", playAnimations: true, autocomplete: true, suggestionsAt: "end" });
+export const preferences: TPreferences = $state({ clickAction: "send", playAnimations: true, autocomplete: true, suggestionsAt: "end", shortcut: DEFAULT_SHORTCUT });
 
 /**
  * Reads the settings and follows changes made in the popup.
@@ -23,13 +27,22 @@ export const preferences: TPreferences = $state({ clickAction: "send", playAnima
  */
 export function followPreferences(): () => void {
   let stopped = false;
+  let useShortcut = true;
+  let keys = DEFAULT_SHORTCUT;
 
-  void Promise.all([clickAction.getValue(), playAnimations.getValue(), autocomplete.getValue(), suggestionsAt.getValue()]).then(([action, play, suggest, at]) => {
+  const setShortcut = (): void => {
+    preferences.shortcut = useShortcut ? keys : null;
+  };
+
+  void Promise.all([clickAction.getValue(), playAnimations.getValue(), autocomplete.getValue(), suggestionsAt.getValue(), shortcut.getValue(), shortcutKeys.getValue()]).then(([action, play, suggest, at, on, combination]) => {
     if (!stopped) {
       preferences.clickAction = action;
       preferences.playAnimations = play;
       preferences.autocomplete = suggest;
       preferences.suggestionsAt = at;
+      useShortcut = on;
+      keys = combination;
+      setShortcut();
     }
   });
 
@@ -45,6 +58,14 @@ export function followPreferences(): () => void {
     }),
     suggestionsAt.watch((value) => {
       preferences.suggestionsAt = value;
+    }),
+    shortcut.watch((value) => {
+      useShortcut = value;
+      setShortcut();
+    }),
+    shortcutKeys.watch((value) => {
+      keys = value;
+      setShortcut();
     }),
   ];
 

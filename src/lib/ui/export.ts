@@ -5,7 +5,7 @@ import { toError, tryCatch } from "@eoussama/core";
 
 import { ARCHIVE_EXTENSION, tagsOf, writeArchive } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
-import { autocomplete, clickAction, playAnimations, sendSizes, suggestionsAt } from "~/lib/settings";
+import { autocomplete, clickAction, playAnimations, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
 
 import { download, exportName, safeFileName } from "./download";
 import { library } from "./library.svelte";
@@ -24,9 +24,9 @@ export type TExportOptions = {
 };
 
 async function readSettings(): Promise<TArchiveSettings> {
-  const [sizes, action, play, suggest, at] = await Promise.all([sendSizes.getValue(), clickAction.getValue(), playAnimations.getValue(), autocomplete.getValue(), suggestionsAt.getValue()]);
+  const [sizes, action, play, suggest, at, useShortcut, keys] = await Promise.all([sendSizes.getValue(), clickAction.getValue(), playAnimations.getValue(), autocomplete.getValue(), suggestionsAt.getValue(), shortcut.getValue(), shortcutKeys.getValue()]);
 
-  return { sendSizes: sizes, clickAction: action, playAnimations: play, autocomplete: suggest, suggestionsAt: at };
+  return { sendSizes: sizes, clickAction: action, playAnimations: play, autocomplete: suggest, suggestionsAt: at, shortcut: useShortcut, shortcutKeys: keys };
 }
 
 async function readFile(item: TItem): Promise<Uint8Array | null> {

@@ -2,7 +2,7 @@
 
 <!--
   The tooltip, styled like Discord's: its surface color with a subtle border, a pointer toward the
-  element, and a quick grow-in from that side. It sits 8 px beside the element it describes, and
+  element, and a quick grow-in from that side. A shortcut that does the same follows the text. It sits 8 px beside the element it describes, and
   8 px inside the window's edges.
 -->
 <script lang="ts">
@@ -52,7 +52,14 @@
     style:top="{position.top}px"
   >
     <span class="pointer" aria-hidden="true"></span>
-    <div class="content">{tooltipState.text}</div>
+    <div class="content">
+      {tooltipState.text}
+      {#if tooltipState.keys.length}
+        <span class="keys">
+          {#each tooltipState.keys as key, index (index)}<kbd class="key">{key}</kbd>{/each}
+        </span>
+      {/if}
+    </div>
   </div>
 {/if}
 
@@ -77,8 +84,40 @@
   }
 
   .content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
     overflow: hidden;
     padding: 8px 12px;
+  }
+
+  /* Wide enough to keep a shortcut on the line of its text. */
+  .tooltip:has(.keys) {
+    max-width: 300px;
+  }
+
+  /* A shortcut, one key per chip, as Discord shows its keybinds. */
+  .keys {
+    display: inline-flex;
+    gap: 2px;
+  }
+
+  .key {
+    box-sizing: border-box;
+    min-width: 20px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-subtle, rgb(151 151 159 / 20%));
+    border-radius: 4px;
+    background-color: var(--background-base-lowest, rgb(0 0 0 / 20%));
+    color: var(--text-strong, var(--nf-text, #fff));
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+    text-transform: uppercase;
+    box-shadow: inset 0 -1px 0 var(--border-subtle, rgb(151 151 159 / 20%));
   }
 
   /* A 5 px triangle in the tooltip's color, pointing at the element. */
