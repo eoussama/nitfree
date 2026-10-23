@@ -19,3 +19,8 @@ auditConfig:
     # node-forge has no patched release. It is only reached through web-ext's Android debugging
     # (adbkit), a build-time tool that never ships in the extension and never verifies RSA signatures.
     - GHSA-86w9-cpqp-85rv
+
+patchedDependencies:
+  # Vitest 5 matches test names joined with " > ", which Stryker's runner joins with spaces, so no
+  # test ran against a mutant. Drop the patch once the runner names tests the way Vitest does.
+  "@stryker-mutator/vitest-runner": patches/@stryker-mutator__vitest-runner.patch

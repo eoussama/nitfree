@@ -1,16 +1,24 @@
+import process from "node:process";
+
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { configDefaults, defineConfig } from "vitest/config";
 import { WxtVitest } from "wxt/testing/vitest-plugin";
 
 
 
+// Mutation testing runs many test processes at once, which on Windows cannot share the caches on disk.
+const mutating = process.env.STRYKER_MUTATOR_WORKER !== undefined;
+
 export default defineConfig({
   // Compiles the runes of the .svelte.ts files, which hold much of the interface's logic.
+  cacheDir: mutating ? `node_modules/.vite-stryker-${process.env.STRYKER_MUTATOR_WORKER}` : undefined,
   plugins: [WxtVitest(), svelte({ compilerOptions: { runes: true } })],
   // Svelte's client build, so components can be mounted in tests that run with a DOM.
   resolve: { conditions: ["browser"] },
   test: {
     exclude: [...configDefaults.exclude, "e2e/**"],
+    cache: !mutating,
+    fsModuleCache: !mutating,
     setupFiles: ["fake-indexeddb/auto", "src/test/setup.ts"],
     coverage: {
       provider: "v8",

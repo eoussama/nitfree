@@ -12,3 +12,5 @@ web-ext.config.ts
 test-results
 playwright-report
 coverage
+reports
+.stryker-tmp

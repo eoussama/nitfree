@@ -22,6 +22,7 @@
     "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
     "test:e2e": "playwright test",
     "postinstall": "wxt prepare",
     "check": "pnpm audit && pnpm lint && pnpm typecheck && pnpm build:all && pnpm test:coverage && pnpm test:e2e"
@@ -39,6 +40,8 @@
   "devDependencies": {
     "@eoussama/dx": "^0.1.3",
     "@playwright/test": "^1.64.1",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "^26.6.5",
     "@typescript/native": "npm:typescript@^7",
