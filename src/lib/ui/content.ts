@@ -18,6 +18,7 @@ import { createPickerTab } from "./picker";
 import { followPreferences, preferences } from "./preferences.svelte";
 import { followSaveFromChat } from "./save";
 import { attachFile, prepareFile, SendError } from "./send";
+import { followSuggestions } from "./suggest.svelte";
 import { flushTrash } from "./trash.svelte";
 
 
@@ -48,8 +49,8 @@ function anchorOfOpenPicker(): HTMLElement | null {
 
 /**
  * Starts everything Nitfree adds to Discord's page: the chat bar buttons, the Nitfree tab in the
- * expression picker, the fallback popover, "Save to Nitfree" in message menus and the live library
- * they show.
+ * expression picker, the fallback popover, "Save to Nitfree" in message menus, the emojis suggested
+ * while typing `:name`, and the live library they show.
  *
  * @param ctx - The content script's context.
  * @returns A function that removes it all.
@@ -66,6 +67,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
   const removePopover = mountPopover(pick);
   const removeOverlay = mountOverlay();
   const stopSaving = followSaveFromChat();
+  const stopSuggestions = followSuggestions((item, send, composer) => enqueue(item, send, composer));
 
   // Deletions waiting for their undo delay are made final when the page goes away.
   window.addEventListener("pagehide", flushTrash);
@@ -167,6 +169,17 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
       closePanel();
     }
 
+    enqueue(item, send, composer);
+  }
+
+  /**
+   * Puts an item in a composer after the picks before it, unless it is still on its way.
+   *
+   * @param item - The picked item.
+   * @param send - Whether to send the message.
+   * @param composer - The composer to put it in.
+   */
+  function enqueue(item: TItem, send: boolean, composer: Element): void {
     if (picking.has(item.id)) {
       return;
     }
@@ -266,6 +279,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     window.removeEventListener("pagehide", flushTrash);
     flushTrash();
     stopSaving();
+    stopSuggestions();
     resetEditor();
     closeMenu();
     clearNotice();

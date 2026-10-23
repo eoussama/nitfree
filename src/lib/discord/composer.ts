@@ -96,6 +96,29 @@ export function findMessageBox(composer: Element): HTMLElement | null {
 }
 
 /**
+ * Finds the message box an element is, or sits in, such as the focused element while typing.
+ *
+ * @param element - Any element.
+ * @returns The text box, or null.
+ */
+export function messageBoxOf(element: Element | null): HTMLElement | null {
+  return element?.closest<HTMLElement>(SELECTORS.messageBox.join(",")) ?? null;
+}
+
+/**
+ * Finds the autocomplete Discord shows above a message box, such as its emoji suggestions. The box
+ * points to it while it is open.
+ *
+ * @param box - The message box.
+ * @returns The list, or null when it is closed.
+ */
+export function findDiscordAutocomplete(box: Element): HTMLElement | null {
+  const id = box.getAttribute("aria-expanded") === "true" ? box.getAttribute("aria-controls") : null;
+
+  return id ? box.ownerDocument.getElementById(id) : null;
+}
+
+/**
  * Lists the attachments waiting in a composer, by the id Discord gives each.
  *
  * @param composer - The composer.

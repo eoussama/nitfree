@@ -37,6 +37,18 @@ export const clickAction = storage.defineItem<TClickAction>("local:clickAction",
 export const playAnimations = storage.defineItem<boolean>("local:playAnimations", { fallback: true });
 
 /**
+ * Whether typing `:name` in Discord's message box suggests Nitfree emojis.
+ */
+export const autocomplete = storage.defineItem<boolean>("local:autocomplete", { fallback: true });
+
+/**
+ * Where the suggested items go in Discord's autocomplete: after its own emojis, or before them.
+ */
+export type TSuggestionsAt = "end" | "start";
+
+export const suggestionsAt = storage.defineItem<TSuggestionsAt>("local:suggestionsAt", { fallback: "end" });
+
+/**
  * Whether a pick sends the item, given how it was made and what a plain click is set to do.
  *
  * @param primary - True for a plain click or Enter, false with Shift.

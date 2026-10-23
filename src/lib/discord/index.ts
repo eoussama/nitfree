@@ -1,14 +1,17 @@
+export { copyEmojiRow, discordOptions, emojiRows, NITFREE_OPTION, type TCopiedRow } from "./autocomplete";
 export {
   chatButtonGroupOf,
   composerOf,
   draftAttachmentIds,
   findAll,
   findChatButtonGroups,
+  findDiscordAutocomplete,
   findEmojiButton,
   findExpandedPickerButton,
   findMessageBox,
   findPickerButtons,
   findUploadInput,
+  messageBoxOf,
   readChatButtonClasses,
   readPickerTabClasses,
   type TChatButtonClasses,

@@ -1,21 +1,24 @@
 <!--
   The popup's settings page: the sizes emojis and stickers are sent at, what a click on an item does,
-  and whether animated items play in the panel. Each change is saved at once, and open Discord tabs
+  whether animated items play in the panel, and whether typing `:name` suggests Nitfree items, and where. Each change is saved at once, and open Discord tabs
   follow it.
 -->
 <script lang="ts">
-  import type { TClickAction, TSendSizes } from "~/lib/settings";
+  import type { TClickAction, TSendSizes, TSuggestionsAt } from "~/lib/settings";
 
-  import { clampSendSize, clickAction, DEFAULT_SEND_SIZES, playAnimations, SEND_SIZE_LIMITS, sendSizes } from "~/lib/settings";
+  import { autocomplete, clampSendSize, clickAction, DEFAULT_SEND_SIZES, playAnimations, SEND_SIZE_LIMITS, sendSizes, suggestionsAt } from "~/lib/settings";
 
 
 
   const SIZE_KINDS: (keyof TSendSizes)[] = ["emoji", "sticker"];
   const CLICK_ACTIONS: TClickAction[] = ["send", "add"];
+  const SUGGESTION_PLACES: TSuggestionsAt[] = ["end", "start"];
 
   let sizes: TSendSizes = $state({ ...DEFAULT_SEND_SIZES });
   let action: TClickAction = $state("send");
   let play = $state(true);
+  let suggest = $state(true);
+  let at: TSuggestionsAt = $state("end");
 
   $effect(() => {
     void sendSizes.getValue().then((value) => {
@@ -27,6 +30,12 @@
     void playAnimations.getValue().then((value) => {
       play = value;
     });
+    void autocomplete.getValue().then((value) => {
+      suggest = value;
+    });
+    void suggestionsAt.getValue().then((value) => {
+      at = value;
+    });
 
     const stops = [
       sendSizes.watch((value) => {
@@ -37,6 +46,12 @@
       }),
       playAnimations.watch((value) => {
         play = value ?? true;
+      }),
+      autocomplete.watch((value) => {
+        suggest = value ?? true;
+      }),
+      suggestionsAt.watch((value) => {
+        at = value ?? "end";
       }),
     ];
 
@@ -63,6 +78,16 @@
   function savePlay(value: boolean): void {
     play = value;
     void playAnimations.setValue(value);
+  }
+
+  function saveSuggest(value: boolean): void {
+    suggest = value;
+    void autocomplete.setValue(value);
+  }
+
+  function saveAt(value: TSuggestionsAt): void {
+    at = value;
+    void suggestionsAt.setValue(value);
   }
 </script>
 
@@ -111,6 +136,25 @@
     <span>{i18n.t("popup.animations")}</span>
     <input class="switch" type="checkbox" role="switch" checked={play} onchange={event => savePlay(event.currentTarget.checked)} />
   </label>
+</div>
+
+<div class="form-section">
+  <label class="toggle">
+    <span>{i18n.t("popup.autocomplete")}</span>
+    <input class="switch" type="checkbox" role="switch" checked={suggest} onchange={event => saveSuggest(event.currentTarget.checked)} />
+  </label>
+  <p class="form-description">{i18n.t("popup.autocompleteHint")}</p>
+  <fieldset class="group" disabled={!suggest}>
+    <legend class="form-label">{i18n.t("popup.suggestionsAt")}</legend>
+    <div class="options">
+      {#each SUGGESTION_PLACES as value (value)}
+        <label class="option">
+          <input class="radio" type="radio" name="nf-suggestions-at" {value} checked={at === value} onchange={() => saveAt(value)} />
+          <span>{value === "end" ? i18n.t("popup.suggestionsAtEnd") : i18n.t("popup.suggestionsAtStart")}</span>
+        </label>
+      {/each}
+    </div>
+  </fieldset>
 </div>
 
 <style>

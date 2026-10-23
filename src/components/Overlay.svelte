@@ -2,7 +2,7 @@
 
 <!--
   Everything Nitfree shows above Discord's page: the add, edit and details dialog with its larger
-  preview, the item menu, and the notice and undo toast at the bottom. Escape closes the
+  preview, the item menu, the emojis suggested while typing `:name`, and the notice and undo toast at the bottom. Escape closes the
   filter menu, the tag suggestions, the larger preview, the menu or a dialog first, before Discord or
   Nitfree's panel see it; Tab stays inside the topmost dialog while one is open. Files dropped here
   never reach Discord's upload; dropped or pasted on the add dialog, they join it.
@@ -16,6 +16,7 @@
   import ContextMenu from "./ContextMenu.svelte";
   import EditorDialog from "./EditorDialog.svelte";
   import Notice from "./Notice.svelte";
+  import Suggestions from "./Suggestions.svelte";
   import Tooltip from "./Tooltip.svelte";
   import UndoToast from "./UndoToast.svelte";
 
@@ -151,6 +152,7 @@
   });
 </script>
 
+<Suggestions />
 <EditorDialog />
 <ContextMenu />
 <Tooltip />

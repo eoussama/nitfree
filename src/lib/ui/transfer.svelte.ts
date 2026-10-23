@@ -5,7 +5,7 @@ import { tryCatch } from "@eoussama/core";
 
 import { applyArchive, ARCHIVE_EXTENSION, ArchiveError, readArchive, readImages } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
-import { clickAction, fitSendSizes, playAnimations, sendSizes } from "~/lib/settings";
+import { autocomplete, clickAction, fitSendSizes, playAnimations, sendSizes, suggestionsAt } from "~/lib/settings";
 
 import { download, exportName } from "./download";
 import { buildExport } from "./export";
@@ -191,6 +191,8 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
         sendSizes.setValue(fitSendSizes(archive.settings.sendSizes)),
         clickAction.setValue(archive.settings.clickAction),
         playAnimations.setValue(archive.settings.playAnimations),
+        archive.settings.autocomplete === undefined ? undefined : autocomplete.setValue(archive.settings.autocomplete),
+        archive.settings.suggestionsAt === undefined ? undefined : suggestionsAt.setValue(archive.settings.suggestionsAt),
       ]);
     }
 

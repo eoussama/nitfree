@@ -62,6 +62,11 @@ popup:
   clickAdd: Adds it to the message
   clickHint: Shift+click does the other.
   animations: Play animated items on hover
+  autocomplete: Suggest items while typing
+  suggestionsAt: Place suggestions
+  suggestionsAtEnd: After Discord's emojis
+  suggestionsAtStart: Before Discord's emojis
+  autocompleteHint: "Typing :name in a message adds your matching items to Discord's suggestions. The arrow keys reach them past Discord's own; Tab adds one without sending."
   transfer:
     heading: Backup
     exportTitle: Export
@@ -194,6 +199,8 @@ send:
   notAttached: Discord did not take “{title}”. Try again.
   moved: “{title}” was not sent, as the channel changed while it was being prepared.
   failed: "Could not send “{title}”: {error}"
+suggest:
+  title: Emoji matching
 save:
   menuItem: Save to Nitfree
   busy: Finish with the open Nitfree dialog first.

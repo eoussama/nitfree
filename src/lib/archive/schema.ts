@@ -58,6 +58,9 @@ export const ArchiveSettingsSchema = v.object({
   sendSizes: v.object({ emoji: v.number(), sticker: v.number() }),
   clickAction: v.picklist(["send", "add"]),
   playAnimations: v.boolean(),
+  // Added in 0.3.0; backups made before it leave the setting as it is.
+  autocomplete: v.optional(v.boolean()),
+  suggestionsAt: v.optional(v.picklist(["end", "start"])),
 });
 
 export type TManifest = v.InferOutput<typeof ManifestSchema>;

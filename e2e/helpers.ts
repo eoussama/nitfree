@@ -141,6 +141,19 @@ function pageHtml(picker: TPicker, messages: boolean): string {
       .text-sm-medium_cf4812 { font-size: 14px; font-weight: 500; line-height: 18px; }
       .focused_c1e9c4 { background: #4752c4; color: #fff; }
       .separator_c1e9c4 { margin: 4px; border-bottom: 1px solid #2e2f34; }
+      /* Discord's emoji autocomplete, from its stylesheet. */
+      .autocomplete__13533 { background-color: #2b2d31; border-radius: 5px 5px 0 0; color: #dbdee1; z-index: 3; }
+      .autocompleteInner__13533 { padding-bottom: 8px; }
+      .autocompleteRow__13533 { font-size: 14px; line-height: 16px; padding: 0 8px; }
+      .autocompleteRowContent__13533 { align-items: center; display: flex; min-height: 16px; }
+      .autocompleteRowIcon__13533 { flex: 0 0 auto; margin-inline-end: 8px; }
+      .base__13533 { border-radius: 3px; padding: 8px; }
+      .clickable__13533[role=option] > .base__13533 { cursor: pointer; }
+      .clickable__13533[role=option] > .base__13533:hover { background-color: rgb(78 80 88 / 30%); }
+      .clickable__13533[aria-selected=true] > .base__13533 { background-color: rgb(78 80 88 / 30%); }
+      .contentTitle__13533 { margin: 0; padding: 4px 0; font-size: 12px; text-transform: uppercase; }
+      .emojiImage__13533 { display: inline-block; width: 20px; height: 20px; object-fit: contain; font-size: 18px; line-height: 20px; }
+      .autocompleteRowContentSecondary__13533 { margin-inline-start: auto; font-size: 12px; }
     </style>
   </head>
   <body>
@@ -166,7 +179,7 @@ function pageHtml(picker: TPicker, messages: boolean): string {
  * @returns Resolves once Nitfree's content script has started.
  */
 export async function openDiscord(page: Page, { picker = false, messages = false }: { picker?: TPicker; messages?: boolean } = {}): Promise<void> {
-  await page.context().route("https://discord.com/**", route => route.fulfill({ contentType: "text/html", body: pageHtml(picker, messages) }));
+  await page.context().route("https://discord.com/**", route => route.fulfill({ contentType: "text/html; charset=utf-8", body: pageHtml(picker, messages) }));
   await page.goto("https://discord.com/channels/@me");
   await expect(page.locator("html")).toHaveAttribute("data-nitfree");
 }

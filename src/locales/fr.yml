@@ -61,6 +61,11 @@ popup:
   clickSend: L'envoie
   clickAdd: L'ajoute au message
   clickHint: Maj+clic fait l'autre.
+  autocomplete: Suggérer des éléments pendant la saisie
+  suggestionsAt: Placer les suggestions
+  suggestionsAtEnd: Après les emojis de Discord
+  suggestionsAtStart: Avant les emojis de Discord
+  autocompleteHint: "Taper :nom dans un message ajoute vos éléments correspondants aux suggestions de Discord. Les flèches y mènent après celles de Discord ; Tab en ajoute un sans envoyer."
   animations: Animer les éléments au survol
   transfer:
     heading: Sauvegarde
@@ -194,6 +199,8 @@ send:
   notAttached: Discord n'a pas pris « {title} ». Réessayez.
   moved: « {title} » n'a pas été envoyé, car le salon a changé pendant sa préparation.
   failed: "Impossible d'envoyer « {title} » : {error}"
+suggest:
+  title: Émojis correspondant à
 save:
   menuItem: Enregistrer dans Nitfree
   busy: Terminez d'abord avec la fenêtre Nitfree ouverte.

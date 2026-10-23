@@ -139,6 +139,17 @@ export const CLASS_PATTERNS = {
   menuIcon: /^icon_/,
   menuFocused: /^focused_/,
   menuSeparator: /^separator_/,
+
+  /**
+   * In Discord's autocomplete: a row laid out as a line, such as an emoji's (stickers are laid out
+   * side by side), its emoji image, the name, and the line naming the emoji's server.
+   */
+  autocompleteRowVertical: /^autocompleteRowVertical_/,
+  autocompleteEmoji: /^emoji(?:Image|Raw)_/,
+  autocompleteEmojiImage: /^emojiImage_/,
+  autocompleteContent: /^autocompleteRowContent_/,
+  autocompleteHeading: /^autocompleteRowHeading_/,
+  autocompleteSecondary: /^autocompleteRowContentSecondary_/,
 } as const;
 
 /**

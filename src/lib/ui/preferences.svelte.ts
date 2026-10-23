@@ -1,18 +1,20 @@
-import type { TClickAction } from "~/lib/settings";
+import type { TClickAction, TSuggestionsAt } from "~/lib/settings";
 
-import { clickAction, playAnimations } from "~/lib/settings";
+import { autocomplete, clickAction, playAnimations, suggestionsAt } from "~/lib/settings";
 
 
 
 type TPreferences = {
   clickAction: TClickAction;
   playAnimations: boolean;
+  autocomplete: boolean;
+  suggestionsAt: TSuggestionsAt;
 };
 
 /**
  * The popup's settings the panel follows, kept in step with extension storage.
  */
-export const preferences: TPreferences = $state({ clickAction: "send", playAnimations: true });
+export const preferences: TPreferences = $state({ clickAction: "send", playAnimations: true, autocomplete: true, suggestionsAt: "end" });
 
 /**
  * Reads the settings and follows changes made in the popup.
@@ -22,10 +24,12 @@ export const preferences: TPreferences = $state({ clickAction: "send", playAnima
 export function followPreferences(): () => void {
   let stopped = false;
 
-  void Promise.all([clickAction.getValue(), playAnimations.getValue()]).then(([action, play]) => {
+  void Promise.all([clickAction.getValue(), playAnimations.getValue(), autocomplete.getValue(), suggestionsAt.getValue()]).then(([action, play, suggest, at]) => {
     if (!stopped) {
       preferences.clickAction = action;
       preferences.playAnimations = play;
+      preferences.autocomplete = suggest;
+      preferences.suggestionsAt = at;
     }
   });
 
@@ -35,6 +39,12 @@ export function followPreferences(): () => void {
     }),
     playAnimations.watch((value) => {
       preferences.playAnimations = value;
+    }),
+    autocomplete.watch((value) => {
+      preferences.autocomplete = value;
+    }),
+    suggestionsAt.watch((value) => {
+      preferences.suggestionsAt = value;
     }),
   ];
 

@@ -20,7 +20,7 @@ All of this is kept in your browser's storage for the extension, on your device 
 
 **Your settings and extension state** (in the extension's local storage):
 
-- Your settings: emoji and sticker sending sizes, what a click on an item does, and whether animated items play on hover.
+- Your settings: emoji and sticker sending sizes, what a click on an item does, whether animated items play on hover, and whether items from your library are suggested while you type, and where.
 - Discord's current theme colors and your reduced-motion preference, so the popup can match Discord's look.
 - A copy of Discord's font files (gg sans), so the popup can use Discord's typeface.
 - The date Nitfree was installed.
@@ -35,6 +35,7 @@ Nitfree runs only on `discord.com`. There it:
 - Reads which font files Discord's stylesheets use for its gg sans typeface.
 - Finds the chat bar and the expression picker so it can add its button and its tab.
 - When you right-click in a message, reads what is under the pointer (a custom emoji, a sticker or an image: its address, name and kind) to offer **Save to Nitfree** in Discord's menu. Nothing is kept unless you save it.
+- While you type in the message box, reads the current line up to the cursor, only to notice a `:name` and suggest matching items from your library. What you type is not stored or sent anywhere, and this stops when suggestions are turned off in the popup.
 - Reads the current page address only to check that you are still in the same channel when an item finishes preparing, so it is never sent to the wrong channel. The address is not stored.
 
 Nitfree does not read, store or send your messages, contacts, servers, account details or any other content of your Discord account.
