@@ -25,7 +25,6 @@
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
   import { closeEditor, duplicateWarning, editFromView, editor, isUsable, removeDraft, replaceFile, revertDraft, saveEditor } from "~/lib/ui/editor.svelte";
   import { saveItem } from "~/lib/ui/export";
-  import { toggled } from "~/lib/ui/filters";
   import { library } from "~/lib/ui/library.svelte";
 
   import ImageEditor from "./ImageEditor.svelte";
@@ -248,31 +247,10 @@
                   <TagInput bind:tags={draft.tags} available={library.tags} id="nf-tags-{draft.key}" label={i18n.t("editor.tags")} readonly={viewing} />
                 </div>
 
-                {#if library.packs.length || !viewing}
-                  <!-- Toggles, each named after its pack; not a group, as each file of the add dialog is one. -->
-                  <div class="field">
-                    <span class="label">{i18n.t("editor.packs")}</span>
-                    {#if library.packs.length}
-                      <div class="packs">
-                        {#each library.packs as pack (pack.id)}
-                          {@const chosen = draft.packs.includes(pack.id)}
-                          <button
-                            class="segment"
-                            class:selected={chosen}
-                            type="button"
-                            aria-pressed={chosen}
-                            disabled={viewing}
-                            onclick={() => (draft.packs = toggled(draft.packs, pack.id))}
-                          >
-                            {pack.name}
-                          </button>
-                        {/each}
-                      </div>
-                    {:else}
-                      <p class="packs-hint">{i18n.t("editor.packsHint")}</p>
-                    {/if}
-                  </div>
-                {/if}
+                <div class="field">
+                  <label class="label" for="nf-packs-{draft.key}">{i18n.t("editor.packs")}</label>
+                  <TagInput bind:tags={draft.packs} available={library.packs} id="nf-packs-{draft.key}" label={i18n.t("editor.packs")} placeholder={i18n.t("editor.packsPlaceholder")} readonly={viewing} />
+                </div>
 
                 <label class="field">
                   <span class="label">{i18n.t("editor.description")}</span>
@@ -578,27 +556,6 @@
     padding: 4px;
     border-radius: var(--radius-sm, 8px);
     background-color: var(--input-background-default, rgb(0 0 0 / 8%));
-  }
-
-  /* Packs wrap onto more rows, each as wide as its name. */
-  .packs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 4px;
-    border-radius: var(--radius-sm, 8px);
-    background-color: var(--input-background-default, rgb(0 0 0 / 8%));
-  }
-
-  .packs .segment {
-    flex: none;
-  }
-
-  .packs-hint {
-    margin: 0;
-    color: var(--text-muted, var(--nf-muted, #949ba4));
-    font-size: 14px;
-    line-height: 18px;
   }
 
   .segment {

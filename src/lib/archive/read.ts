@@ -160,7 +160,13 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
     });
   }
 
-  return { kind: "nitfree", entries, tags: library.tags, packs: library.packs, settings, ignored: 0, totalSize };
+  // An icon that is not one of the pack's items is only cosmetic, so the pack keeps its newest instead.
+  const packs = library.packs.map(pack => ({
+    ...pack,
+    icon: entries.some(entry => entry.id === pack.icon && entry.packs.includes(pack.name)) ? pack.icon : null,
+  }));
+
+  return { kind: "nitfree", entries, tags: library.tags, packs, settings, ignored: 0, totalSize };
 }
 
 function titleOf(file: string): string {

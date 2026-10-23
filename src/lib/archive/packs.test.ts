@@ -34,6 +34,7 @@ async function profile() {
     clear: async () => handlers["library:clear"]!(undefined, sender),
     ensureTag: async tag => handlers["tags:ensure"]!(tag, sender),
     ensurePack: async pack => handlers["packs:ensure"]!(pack, sender),
+    setPackIcon: async (id, icon) => handlers["packs:update"]!({ id, patch: { icon } }, sender),
     importItem: async (item, skipDuplicates) => handlers["library:import"]!({ item, skipDuplicates }, sender),
   };
 
@@ -135,5 +136,68 @@ describe("packs in archives", () => {
     target.notify.mockClear();
     expect(await applyArchive(archive, "merge", target.target)).toEqual({ added: 0, skipped: 2, failed: 0 });
     expect(target.notify).not.toHaveBeenCalled();
+  });
+});
+
+describe("pack icons in archives", () => {
+  async function exportedWithIcon() {
+    const source = await profile();
+    const cats = await source.packs.add({ name: "Cats" });
+    const files = new Map<string, Uint8Array>();
+    const items: TItem[] = [];
+
+    for (const [title, size] of [["loaf", 2], ["beans", 3]] as const) {
+      const bytes = png(size, size);
+      const item = await source.library.add({ file: new Blob([bytes]), type: "emoji", title, packs: [cats.id] });
+
+      files.set(item.id, bytes);
+      items.push(item);
+    }
+
+    // The older one, so the icon is not what the pack would show anyway.
+    const pack = await source.packs.update(cats.id, { icon: items[0]!.id });
+
+    return readArchive(await writeArchive({ items, tags: [], packs: [pack], appVersion: "0.4.0", readFile: async item => files.get(item.id) ?? null }));
+  }
+
+  it("keeps the item that shows a pack, found again wherever it lands", async () => {
+    const archive = await exportedWithIcon();
+    const target = await profile();
+
+    // The icon's file is already there, outside the pack: it joins the pack and shows it.
+    const copy = await target.library.add({ file: new Blob([png(2, 2)]), type: "emoji", title: "loaf" });
+
+    await applyArchive(archive, "merge", target.target);
+
+    expect((await target.packs.list())[0]?.icon).toBe(copy.id);
+  });
+
+  it("leaves the icon of a pack already there alone, and drops one that is not among the pack's items", async () => {
+    const archive = await exportedWithIcon();
+    const target = await profile();
+    const existing = await target.packs.add({ name: "Cats" });
+    const own = await target.library.add({ file: new Blob([png(5, 5)]), type: "emoji", title: "own", packs: [existing.id] });
+
+    await target.packs.update(existing.id, { icon: own.id });
+    await applyArchive(archive, "merge", target.target);
+    expect((await target.packs.list())[0]?.icon).toBe(own.id);
+
+    const lost = { ...archive, packs: archive.packs.map(pack => ({ ...pack, icon: "elsewhere" })) };
+    const fresh = await profile();
+
+    await applyArchive(lost, "merge", fresh.target);
+    expect((await fresh.packs.list())[0]?.icon).toBeNull();
+  });
+
+  it("reads an icon that is not one of the pack's items as none", async () => {
+    const archive = await exportedWithIcon();
+    const files = unzipSync(await writeArchive({ items: [], tags: [], packs: [], appVersion: "0.4.0", readFile: async () => null }));
+    const json = JSON.parse(strFromU8(files["library.json"]!)) as { packs: unknown[] };
+
+    json.packs = [{ id: "p", name: "Cats", icon: "nowhere", createdAt: 0 }];
+    files["library.json"] = strToU8(JSON.stringify(json));
+
+    expect((await readArchive(zipSync(files))).packs).toEqual([{ id: "p", name: "Cats", icon: null, createdAt: 0 }]);
+    expect(archive.packs[0]?.icon).toBe(archive.entries[0]?.id);
   });
 });

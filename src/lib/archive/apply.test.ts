@@ -1,8 +1,5 @@
 import type { TImportTarget } from "./index";
 
-import type { TItem } from "~/lib/db";
-import type { TImportResult } from "~/lib/db/library";
-
 import { describe, expect, it } from "vitest";
 
 import { createLibrary } from "~/lib/db/library";
@@ -14,11 +11,6 @@ import { png } from "~/lib/media/fixtures";
 import { applyArchive, readArchive, writeArchive } from "./index";
 
 
-
-// What the background answers an import with: the item when it is new, as a duplicate counts as skipped.
-function added(result: TImportResult | null): TItem | null {
-  return result?.added ? result.item : null;
-}
 
 async function profile() {
   const db = await openTestDatabase();
@@ -34,7 +26,8 @@ async function profile() {
     },
     ensureTag: async tag => (await tags.ensure(tag)).tag,
     ensurePack: async pack => (await packs.ensure(pack)).pack,
-    importItem: async (item, skipDuplicates) => added(await library.import(item, skipDuplicates)),
+    setPackIcon: (id, icon) => packs.update(id, { icon }),
+    importItem: (item, skipDuplicates) => library.import(item, skipDuplicates),
   };
 
   return { library, tags, packs, target };
@@ -133,7 +126,7 @@ describe("applyArchive", () => {
           throw new Error("quota");
         }
 
-        return added(await fresh.library.import(item, skip));
+        return fresh.library.import(item, skip);
       },
     });
 

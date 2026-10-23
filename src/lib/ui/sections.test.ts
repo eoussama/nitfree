@@ -1,8 +1,8 @@
-import type { TItem, TTag } from "~/lib/db";
+import type { TItem, TPack, TTag } from "~/lib/db";
 
 import { describe, expect, it } from "vitest";
 
-import { buildSections, filterItems, foldText, RECENT_LIMIT } from "./sections";
+import { buildSections, filterItems, foldText, packIcon, RECENT_LIMIT } from "./sections";
 
 
 
@@ -120,5 +120,46 @@ describe("filterItems", () => {
 
   it("does not match across the end of one field and the start of the next", () => {
     expect(filterItems([item("ab", { description: "cd" })], "bc")).toEqual([]);
+  });
+});
+
+describe("packs", () => {
+  const cats: TPack = { id: "p1", name: "Cats", icon: null, createdAt: 0 };
+  const dogs: TPack = { id: "p2", name: "Dogs", icon: null, createdAt: 0 };
+  const empty: TPack = { id: "p3", name: "Empty", icon: null, createdAt: 0 };
+
+  it("gives each pack a section of its items, by pack, after Recent and before All files", () => {
+    const items = [
+      item("tabby", { packs: ["p1"], usedAt: 5 }),
+      item("pug", { packs: ["p2", "p1"] }),
+      item("logo", { favorite: true }),
+    ];
+
+    expect(buildSections(items, [cats, dogs, empty])).toEqual([
+      { id: "favorites", items: [items[2]] },
+      { id: "recent", items: [items[0]] },
+      { id: "pack:p1", pack: cats, items: [items[0], items[1]] },
+      { id: "pack:p2", pack: dogs, items: [items[1]] },
+      { id: "all", items },
+    ]);
+  });
+
+  it("finds the items in a pack by its name, and part of it", () => {
+    const items = [item("tabby", { packs: ["p1"] }), item("pug", { packs: ["p2"] }), item("logo")];
+
+    expect(filterItems(items, "cats", [], [cats, dogs]).map(found => found.id)).toEqual(["tabby"]);
+    expect(filterItems(items, "DO", [], [cats, dogs]).map(found => found.id)).toEqual(["pug"]);
+    expect(filterItems(items, "cats tabby", [], [cats, dogs]).map(found => found.id)).toEqual(["tabby"]);
+    expect(filterItems([item("a", { packs: ["gone"] })], "gone", [], [cats])).toEqual([]);
+  });
+
+  it("shows a pack with the item picked for it, else its newest, while it is in the pack", () => {
+    const items = [item("new", { packs: ["p1"] }), item("old", { packs: ["p1"] }), item("other")];
+
+    expect(packIcon(cats, items)).toBe(items[0]);
+    expect(packIcon({ ...cats, icon: "old" }, items)).toBe(items[1]);
+    // Picked, then taken out of the pack.
+    expect(packIcon({ ...cats, icon: "other" }, items)).toBe(items[0]);
+    expect(packIcon(empty, items)).toBeNull();
   });
 });

@@ -1,11 +1,11 @@
 <svelte:options css="injected" />
 
 <!--
-  Tag field: chosen tags as chips, a text field that suggests existing tags as you type, and Enter or a
-  comma to add one, new or existing. Read only, it just shows the chips.
+  Tag or pack field: the chosen names as chips, a text field that suggests existing ones as you type, and
+  Enter or a comma to add one, new or existing. Read only, it just shows the chips.
 -->
 <script lang="ts">
-  import type { TTag } from "~/lib/db";
+  import type { TNamed } from "~/lib/ui/drafts";
 
   import X from "@lucide/svelte/icons/x";
 
@@ -16,13 +16,14 @@
 
   type TProps = {
     tags: string[];
-    available: readonly TTag[];
+    available: readonly TNamed[];
     id: string;
     label: string;
+    placeholder?: string;
     readonly?: boolean;
   };
 
-  let { tags = $bindable(), available, id, label, readonly = false }: TProps = $props();
+  let { tags = $bindable(), available, id, label, placeholder = i18n.t("editor.tagsPlaceholder"), readonly = false }: TProps = $props();
 
   let text = $state("");
   let input: HTMLInputElement | undefined = $state();
@@ -108,7 +109,7 @@
     class="input"
     type="text"
     autocomplete="off"
-    placeholder={tags.length || readonly ? "" : i18n.t("editor.tagsPlaceholder")}
+    placeholder={tags.length || readonly ? "" : placeholder}
     {readonly}
     aria-label={label}
     role="combobox"

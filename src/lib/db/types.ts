@@ -58,6 +58,12 @@ export type TImportItem = TNewItem & {
   usageCount?: number;
 };
 
+/**
+ * What importing an item did: `added` it as a new item, or found its file already in the library, in an
+ * item that `joined` the packs the import is in or was `skipped` as it was.
+ */
+export type TImportResult = { item: TItem; status: "added" | "joined" | "skipped" };
+
 export type TItemPatch = Partial<Pick<TItem, "type" | "title" | "description" | "tags" | "packs" | "favorite">> & {
   file?: Blob;
 };
@@ -71,10 +77,13 @@ export type TTagPatch = Partial<TNewTag>;
 
 /**
  * A pack: a named group of items that can be shared as a file of its own. An item can be in several.
+ * `icon` is the item shown for the pack in the panel's sidebar; null, or an item no longer in the pack,
+ * means the pack's newest item.
  */
 export type TPack = {
   id: string;
   name: string;
+  icon: string | null;
   createdAt: number;
 };
 
@@ -82,7 +91,7 @@ export type TNewPack = {
   name: string;
 };
 
-export type TPackPatch = Partial<TNewPack>;
+export type TPackPatch = Partial<TNewPack & Pick<TPack, "icon">>;
 
 /**
  * What the sized copies take up: the bytes of every copy and how many there are.

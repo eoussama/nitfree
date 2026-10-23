@@ -1,6 +1,6 @@
 import type { NitfreeDatabase } from "./schema";
 
-import type { TCacheUsage, TDuplicateGroup, TImportItem, TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
+import type { TCacheUsage, TDuplicateGroup, TImportItem, TImportResult, TItem, TItemPatch, TItemRow, TItemType, TNewItem } from "./types";
 import type { TImageInfo } from "~/lib/media";
 
 import { inspectImage } from "~/lib/media";
@@ -19,12 +19,6 @@ type TInspectedFile = TImageInfo & { file: Blob; hash: string; size: number };
 export type TFingerprinter = (file: Blob) => Promise<string | null>;
 
 export type TLibrary = ReturnType<typeof createLibrary>;
-
-/**
- * What importing an item did: `added` when it is new, else the item already holding its file was
- * changed, by joining the packs the import is in.
- */
-export type TImportResult = { item: TItem; added: boolean };
 
 
 
@@ -240,10 +234,10 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
      *
      * @param input - The file and its details.
      * @param skipDuplicates - Leave out a file whose content is already in the library.
-     * @returns The new item; for a duplicate left out, the item already holding the file when it joined
-     * the packs the import is in, else null.
+     * @returns The new item; for a duplicate left out, the item already holding the file, which joins the
+     * packs the import is in.
      */
-    async import(input: TImportItem, skipDuplicates: boolean): Promise<TImportResult | null> {
+    async import(input: TImportItem, skipDuplicates: boolean): Promise<TImportResult> {
       checkType(input.type);
 
       const title = checkTitle(input.title);
@@ -251,7 +245,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
       const print = await fingerprintOf(inspected.file);
       const timestamp = now();
 
-      return db.transaction("rw", db.items, db.blobs, db.tags, db.packs, async (): Promise<TImportResult | null> => {
+      return db.transaction("rw", db.items, db.blobs, db.tags, db.packs, async (): Promise<TImportResult> => {
         const packs = await checkPacks(input.packs ?? []);
         const existing = skipDuplicates ? await db.items.where("hash").equals(inspected.hash).first() : undefined;
 
@@ -260,14 +254,14 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
           const joined = [...new Set([...existing.packs, ...packs])];
 
           if (joined.length === existing.packs.length) {
-            return null;
+            return { item: toItem(existing), status: "skipped" };
           }
 
           const row: TItemRow = { ...existing, packs: joined, updatedAt: timestamp };
 
           await db.items.put(row);
 
-          return { item: toItem(row), added: false };
+          return { item: toItem(row), status: "joined" };
         }
 
         // An id that is already taken belongs to a different item, so this one gets a fresh id.
@@ -298,7 +292,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
         await db.items.add(row);
         await db.blobs.add({ itemId: id, original: inspected.file, variants: {} });
 
-        return { item: toItem(row), added: true };
+        return { item: toItem(row), status: "added" };
       });
     },
 

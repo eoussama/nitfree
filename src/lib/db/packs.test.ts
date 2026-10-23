@@ -66,6 +66,21 @@ describe("packs", () => {
     expect(await packs.list()).toEqual([dogs]);
   });
 
+  it("sets the item that shows a pack, only from the pack's items, and goes back to none", async () => {
+    const cats = await packs.add({ name: "Cats" });
+    const inside = await library.add({ file: new Blob([png(2, 2)]), type: "emoji", title: "a", packs: [cats.id] });
+    const outside = await library.add({ file: new Blob([png(3, 3)]), type: "emoji", title: "b" });
+
+    expect(cats.icon).toBeNull();
+    expect(await packs.update(cats.id, { icon: inside.id })).toEqual({ ...cats, icon: inside.id });
+    await expect(packs.update(cats.id, { icon: outside.id })).rejects.toThrow(/not in the pack/);
+    await expect(packs.update(cats.id, { icon: "missing" })).rejects.toThrow(/not in the pack/);
+
+    // Renaming keeps the icon.
+    expect(await packs.update(cats.id, { name: "Kittens" })).toMatchObject({ name: "Kittens", icon: inside.id });
+    expect(await packs.update(cats.id, { icon: null })).toMatchObject({ icon: null });
+  });
+
   it("clears every pack", async () => {
     const cats = await packs.add({ name: "Cats" });
 
@@ -108,13 +123,13 @@ describe("items in packs", () => {
     const cats = await packs.add({ name: "Cats" });
     const existing = await library.add({ file: new Blob([bytes]), type: "emoji", title: "a" });
 
-    expect(await library.import({ file: new Blob([bytes]), type: "emoji", title: "a", packs: [cats.id] }, true)).toMatchObject({ added: false, item: { id: existing.id, packs: [cats.id] } });
+    expect(await library.import({ file: new Blob([bytes]), type: "emoji", title: "a", packs: [cats.id] }, true)).toMatchObject({ status: "joined", item: { id: existing.id, packs: [cats.id] } });
     expect(await library.get(existing.id)).toMatchObject({ packs: [cats.id] });
     expect(await library.list()).toHaveLength(1);
 
     // Already in the pack, or brought in without one, the duplicate changes nothing.
-    expect(await library.import({ file: new Blob([bytes]), type: "emoji", title: "a", packs: [cats.id] }, true)).toBeNull();
-    expect(await library.import({ file: new Blob([bytes]), type: "emoji", title: "a" }, true)).toBeNull();
+    expect(await library.import({ file: new Blob([bytes]), type: "emoji", title: "a", packs: [cats.id] }, true)).toMatchObject({ status: "skipped", item: { id: existing.id } });
+    expect((await library.import({ file: new Blob([bytes]), type: "emoji", title: "a" }, true)).status).toBe("skipped");
   });
 
   it("merges the packs of duplicates into the item kept", async () => {

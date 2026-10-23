@@ -12,7 +12,7 @@ import { png } from "./images";
 
 
 type TStoredItem = { id: string; title: string; packs: string[] };
-type TPack = { id: string; name: string };
+type TPack = { id: string; name: string; icon: string | null };
 
 const packsPage = (page: Page) => page.getByRole("region", { name: "Packs" });
 const backup = (page: Page) => page.getByRole("region", { name: "Backup" });
@@ -144,14 +144,23 @@ test.describe("packs", () => {
     await tile(page, "logo").click({ button: "right" });
     await page.getByRole("menu").getByRole("menuitem", { name: "Edit" }).click();
 
-    const join = editDialog(page).getByRole("button", { name: "Cats" });
+    // Packs are picked like tags: typing suggests the ones that match, and a new name makes a pack.
+    const field = editDialog(page).getByRole("combobox", { name: "Packs" });
 
-    await expect(join).toHaveAttribute("aria-pressed", "false");
-    await join.click();
-    await expect(join).toHaveAttribute("aria-pressed", "true");
+    await field.pressSequentially("ca");
+    await expect(editDialog(page).getByRole("option")).toHaveText(["Cats"]);
+    await field.press("ArrowDown");
+    await field.press("Enter");
+    await expect(editDialog(page).getByRole("button", { name: "Remove Cats" })).toBeVisible();
+    await field.pressSequentially("Party,");
+    await expect(editDialog(page).getByRole("button", { name: "Remove Party" })).toBeVisible();
     await editDialog(page).getByRole("button", { name: "Save" }).click();
     await expect(editDialog(page)).toHaveCount(0);
-    await expect.poll(async () => (await items(popup)).find(item => item.title === "logo")?.packs).toEqual([cats.id]);
+
+    const party = (await packs(popup)).find(pack => pack.name === "Party");
+
+    expect(party).toBeDefined();
+    await expect.poll(async () => (await items(popup)).find(item => item.title === "logo")?.packs).toEqual([cats.id, party!.id]);
 
     // Packs are alternatives: either one shows its items.
     await filterButton(page).click();
@@ -173,7 +182,7 @@ test.describe("packs", () => {
     // Leaving the pack takes the item out of the filtered panel.
     await tile(page, "logo").click({ button: "right" });
     await page.getByRole("menu").getByRole("menuitem", { name: "Edit" }).click();
-    await editDialog(page).getByRole("button", { name: "Cats" }).click();
+    await editDialog(page).getByRole("button", { name: "Remove Cats" }).click();
     await editDialog(page).getByRole("button", { name: "Save" }).click();
     await expect(editDialog(page)).toHaveCount(0);
     await expect.poll(() => shown(page)).toEqual(["tabby"]);
@@ -182,6 +191,56 @@ test.describe("packs", () => {
     await request(popup, "packs:remove", { id: cats.id });
     await expect(chips(page)).toHaveCount(0);
     await expect.poll(() => shown(page)).toEqual(["logo", "pug", "tabby"]);
+  });
+
+  test("each pack is a section of the panel before All files, in the sidebar by its icon, and searching its name finds its items", async ({ page }) => {
+    const cats = await addPack(popup, "Cats");
+
+    await addItem(popup, "tabby", 32, [cats]);
+    await addItem(popup, "loaf", 40, [cats]);
+    await addItem(popup, "logo", 48);
+
+    await openDiscord(page);
+    await page.getByRole("button", { name: "Open Nitfree" }).click();
+    await expect(panel(page)).toBeVisible();
+
+    const sidebar = panel(page).getByRole("navigation", { name: "Sections" });
+    const section = panel(page).getByRole("region", { name: "Cats" });
+    const titles = (region: typeof section) => region.locator("[data-tile]").evaluateAll(tiles => tiles.map(element => element.getAttribute("aria-label")));
+    const picture = (title: string) => tile(page, title).locator("img").getAttribute("src");
+
+    await expect(panel(page).locator(".section-label")).toHaveText(["Cats", "All files"]);
+    await expect(sidebar.getByRole("button")).toHaveCount(2);
+    await expect(sidebar.getByRole("button").first()).toHaveAccessibleName("Cats");
+    await expect(sidebar.getByRole("button").last()).toHaveAccessibleName("All files");
+    expect(await titles(section)).toEqual(["loaf", "tabby"]);
+
+    // The pack shows as its newest item until another is picked.
+    const icon = sidebar.getByRole("button", { name: "Cats" }).locator("img");
+
+    await expect(icon).toHaveAttribute("src", /^blob:/);
+    await expect.poll(async () => (await icon.getAttribute("src")) === (await picture("loaf"))).toBe(true);
+
+    await openPopupPage(popup, "Packs");
+    await expect(packsPage(popup).getByRole("radio", { name: "loaf" })).toBeChecked();
+    await packsPage(popup).getByRole("radio", { name: "tabby" }).check();
+    await expect.poll(async () => (await packs(popup))[0]?.icon).toBe((await items(popup)).find(item => item.title === "tabby")?.id);
+    await expect.poll(async () => (await icon.getAttribute("src")) === (await picture("tabby"))).toBe(true);
+
+    // The pack's name finds what is in it, in its section and in All files.
+    await panel(page).getByRole("searchbox", { name: "Search Nitfree" }).fill("cats");
+    await expect.poll(() => shown(page)).toEqual(["loaf", "tabby"]);
+    expect(await titles(section)).toEqual(["loaf", "tabby"]);
+
+    // Jumping to the pack from the sidebar highlights it.
+    await panel(page).getByRole("searchbox", { name: "Search Nitfree" }).fill("");
+    await sidebar.getByRole("button", { name: "Cats" }).click();
+    await expect(sidebar.getByRole("button", { name: "Cats" })).toHaveClass(/active/);
+
+    // A pack left empty has no section.
+    await request(popup, "library:update", { id: (await items(popup)).find(item => item.title === "tabby")!.id, patch: { packs: [] } });
+    await request(popup, "library:update", { id: (await items(popup)).find(item => item.title === "loaf")!.id, patch: { packs: [] } });
+    await expect(panel(page).locator(".section-label")).toHaveText(["All files"]);
   });
 
   test("a pack exported on one browser imports with the same items and name on another", async () => {

@@ -35,7 +35,7 @@ function tag(id: string, name = id): TTag {
 }
 
 function pack(id: string, name = id): TPack {
-  return { id, name, createdAt: 0 };
+  return { id, name, icon: null, createdAt: 0 };
 }
 
 describe("applyFilters", () => {

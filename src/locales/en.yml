@@ -54,7 +54,7 @@ popup:
     merged: "Kept “{title}” and deleted {items}."
   packs:
     new: New pack
-    hint: Group items into packs to filter by them and share them as one .nitfree file each. An item can be in several packs.
+    hint: Group items into packs, each a section of the panel that its name also finds, and share them as one .nitfree file each. An item can be in several packs.
     create: Create pack
     created: "Created “{name}”."
     list: Your packs
@@ -66,6 +66,8 @@ popup:
     confirmTitle: "Delete “{name}”"
     confirm: The pack is deleted, and its items stay in your library.
     confirmDelete: Delete pack
+    icon: Icon
+    iconHint: Shows the pack in the panel's sidebar. Until you pick one, it is the pack's newest item.
   add: Quick add
   drop: Drop or paste images here, or pick them.
   settings: Settings
@@ -157,7 +159,7 @@ editor:
   tags: Tags
   tagsPlaceholder: Add tags, separated by commas
   packs: Packs
-  packsHint: Make packs from Nitfree's toolbar button, on its Packs page, to group items.
+  packsPlaceholder: Add packs, separated by commas
   description: Description
   optional: Optional
   replace: Replace file

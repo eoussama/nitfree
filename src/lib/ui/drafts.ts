@@ -67,7 +67,12 @@ export function guessItemType(info: Pick<TImageInfo, "width" | "height" | "anima
 }
 
 /**
- * Splits what was typed in a tag field into tag names.
+ * A tag or a pack: what a name field picks from.
+ */
+export type TNamed = Pick<TTag, "id" | "name">;
+
+/**
+ * Splits what was typed in a tag or pack field into names.
  *
  * @param input - Names separated by commas.
  * @returns The trimmed, non-empty names, without duplicates (regardless of case).
@@ -90,13 +95,13 @@ export function parseTagNames(input: string): string[] {
 }
 
 /**
- * Matches tag names against the existing tags.
+ * Matches tag or pack names against the existing ones.
  *
  * @param names - The names chosen for an item.
- * @param tags - The library's tags.
+ * @param tags - The library's tags, or its packs.
  * @returns The ids of names that already exist, and the names that need creating.
  */
-export function resolveTagNames(names: readonly string[], tags: readonly TTag[]): { ids: string[]; missing: string[] } {
+export function resolveTagNames(names: readonly string[], tags: readonly TNamed[]): { ids: string[]; missing: string[] } {
   const byKey = new Map(tags.map(tag => [tag.name.toLocaleLowerCase(), tag.id]));
   const ids: string[] = [];
   const missing: string[] = [];
@@ -116,15 +121,15 @@ export function resolveTagNames(names: readonly string[], tags: readonly TTag[])
 }
 
 /**
- * Suggests existing tags for what is being typed, those starting with it first.
+ * Suggests existing tags or packs for what is being typed, those starting with it first.
  *
  * @param query - What has been typed so far.
- * @param tags - The library's tags.
+ * @param tags - The library's tags, or its packs.
  * @param chosen - Names already chosen, left out of the suggestions.
  * @param limit - How many to suggest.
- * @returns The suggested tags.
+ * @returns The suggestions.
  */
-export function suggestTags(query: string, tags: readonly TTag[], chosen: readonly string[], limit = 6): TTag[] {
+export function suggestTags<T extends TNamed>(query: string, tags: readonly T[], chosen: readonly string[], limit = 6): T[] {
   const needle = query.trim().toLocaleLowerCase();
   const taken = new Set(chosen.map(name => name.toLocaleLowerCase()));
   const available = tags.filter(tag => !taken.has(tag.name.toLocaleLowerCase()));

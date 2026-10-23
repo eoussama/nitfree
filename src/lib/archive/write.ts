@@ -107,7 +107,13 @@ export async function writeArchive(source: TArchiveSource): Promise<Uint8Array> 
   const library: TArchiveLibrary = {
     items: archived,
     tags: tags.map(({ id, name, color, createdAt }) => ({ id, name, color, createdAt })),
-    packs: packs.map(({ id, name, createdAt }) => ({ id, name, createdAt })),
+    // An icon is kept only when its item is in the archive and in the pack.
+    packs: packs.map(({ id, name, icon, createdAt }) => ({
+      id,
+      name,
+      icon: archived.some(item => item.id === icon && item.packs.includes(id)) ? icon : null,
+      createdAt,
+    })),
   };
 
   entries["manifest.json"] = [json(manifest), { level: 6 }];

@@ -82,13 +82,13 @@ describe("library handlers", () => {
     expect(await handlers["tags:ensure"]!({ name: "cats" }, sender)).toEqual(tag);
     expect(notify).toHaveBeenCalledTimes(1);
 
-    const item = await handlers["library:import"]!({ item: { id: "kept", file: new Blob([png(2, 2)]), type: "emoji", title: "a", tags: [tag.id] }, skipDuplicates: true }, sender);
+    const { item, status } = await handlers["library:import"]!({ item: { id: "kept", file: new Blob([png(2, 2)]), type: "emoji", title: "a", tags: [tag.id] }, skipDuplicates: true }, sender);
 
-    expect(item?.id).toBe("kept");
+    expect([item.id, status]).toEqual(["kept", "added"]);
     expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "added", ids: ["kept"] });
 
     // A duplicate is skipped, silently.
-    expect(await handlers["library:import"]!({ item: { file: new Blob([png(2, 2)]), type: "emoji", title: "b" }, skipDuplicates: true }, sender)).toBeNull();
+    expect(await handlers["library:import"]!({ item: { file: new Blob([png(2, 2)]), type: "emoji", title: "b" }, skipDuplicates: true }, sender)).toMatchObject({ status: "skipped", item: { id: "kept" } });
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
@@ -159,12 +159,12 @@ describe("library handlers", () => {
     expect((await handlers["library:get"]!({ id: item.id }, sender))?.packs).toEqual([]);
   });
 
-  it("announce a duplicate import that joins a pack as an update, and still answer it as skipped", async () => {
+  it("announce a duplicate import that joins a pack as an update, and answer with the item it joined", async () => {
     const pack = await handlers["packs:add"]!({ name: "cats" }, sender);
     const item = await handlers["library:add"]!({ file: new Blob([png(4, 4)]), type: "emoji", title: "a" }, sender);
 
     notify.mockClear();
-    expect(await handlers["library:import"]!({ item: { file: new Blob([png(4, 4)]), type: "emoji", title: "a", packs: [pack.id] }, skipDuplicates: true }, sender)).toBeNull();
+    expect(await handlers["library:import"]!({ item: { file: new Blob([png(4, 4)]), type: "emoji", title: "a", packs: [pack.id] }, skipDuplicates: true }, sender)).toMatchObject({ status: "joined", item: { id: item.id } });
     expect(notify).toHaveBeenCalledExactlyOnceWith("library:changed", { change: "updated", ids: [item.id] });
     expect((await handlers["library:get"]!({ id: item.id }, sender))?.packs).toEqual([pack.id]);
   });

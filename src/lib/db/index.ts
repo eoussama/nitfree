@@ -4,4 +4,4 @@ export { LEGACY_DATABASE_NAME, MIGRATED_KEY, migrateLegacyDatabase, type TMigrat
 export { createPacks, type TPacks } from "./packs";
 export { DATABASE_NAME, NitfreeDatabase } from "./schema";
 export { createTags, type TTags } from "./tags";
-export { ITEM_TYPES, type TCacheUsage, type TDuplicateGroup, type TImportItem, type TItem, type TItemPatch, type TItemType, type TNewItem, type TNewPack, type TNewTag, type TPack, type TPackPatch, type TTag, type TTagPatch } from "./types";
+export { ITEM_TYPES, type TCacheUsage, type TDuplicateGroup, type TImportItem, type TImportResult, type TItem, type TItemPatch, type TItemType, type TNewItem, type TNewPack, type TNewTag, type TPack, type TPackPatch, type TTag, type TTagPatch } from "./types";

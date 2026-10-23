@@ -12,7 +12,7 @@
 <script lang="ts">
   import type { TItem } from "~/lib/db";
   import type { TGridKey } from "~/lib/ui/grid";
-  import type { TSectionId } from "~/lib/ui/sections";
+  import type { TFixedSectionId, TSection, TSectionId } from "~/lib/ui/sections";
 
   import Archive from "@lucide/svelte/icons/archive";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
@@ -36,7 +36,8 @@
   import { openMenu } from "~/lib/ui/menu.svelte";
   import { motion } from "~/lib/ui/motion.svelte";
   import { preferences } from "~/lib/ui/preferences.svelte";
-  import { buildSections, filterItems } from "~/lib/ui/sections";
+  import { buildSections, filterItems, packIcon } from "~/lib/ui/sections";
+  import { still } from "~/lib/ui/thumbnails";
   import { focusAfterRemoval } from "~/lib/ui/tiles";
   import { tooltip } from "~/lib/ui/tooltip.svelte";
   import { deleteWithUndo, trash } from "~/lib/ui/trash.svelte";
@@ -54,7 +55,7 @@
 
   const { onpick = () => undefined }: TProps = $props();
 
-  const ICONS: Record<TSectionId, typeof Star> = {
+  const ICONS: Record<TFixedSectionId, typeof Star> = {
     favorites: Star,
     recent: Clock,
     all: LayoutGrid,
@@ -74,6 +75,7 @@
   let jumping = false;
   let search: HTMLInputElement | undefined = $state();
   let body: HTMLElement | undefined = $state();
+  let categories: HTMLElement | undefined = $state();
   let root: HTMLElement | undefined = $state();
   let fileInput: HTMLInputElement | undefined = $state();
   let filters = $state(noFilters());
@@ -89,7 +91,8 @@
   // Items deleted in this tab disappear at once, while their deletion can still be undone.
   const items = $derived(library.items.filter(item => !trash.pending.some(pending => pending.item.id === item.id)));
   const filtering = $derived(filterCount(filters) > 0);
-  const sections = $derived(buildSections(applyFilters(filterItems(items, query, library.tags), filters)));
+  const sections = $derived(buildSections(applyFilters(filterItems(items, query, library.tags, library.packs), filters), library.packs));
+  const labelOf = (section: TSection): string => (section.pack ? section.pack.name : i18n.t(`panel.sections.${section.id}`));
   // While searching or filtering, every match shows, whatever the user collapsed; their choice comes back after.
   const narrowed = $derived(query.trim() !== "" || filtering);
   const isCollapsed = (id: TSectionId): boolean => !narrowed && collapsed[id] === true;
@@ -148,6 +151,28 @@
   // Every item the search and filters show, once each, whichever sections they appear in.
   const results = $derived([...new Map(sections.flatMap(section => section.items).map(item => [item.id, item])).values()]);
   const highlighted = $derived(sections.some(section => section.id === activeSection) ? activeSection : (sections[0]?.id ?? null));
+
+  // With more packs than fit, the sidebar scrolls, keeping the highlighted category in sight as Discord's
+  // does. Only the sidebar moves, never Discord's page.
+  $effect(() => {
+    void highlighted;
+
+    const active = categories?.querySelector<HTMLElement>(".category.active");
+
+    if (!categories || !active) {
+      return;
+    }
+
+    const box = categories.getBoundingClientRect();
+    const item = active.getBoundingClientRect();
+
+    if (item.top < box.top) {
+      categories.scrollTop -= box.top - item.top;
+    }
+    else if (item.bottom > box.bottom) {
+      categories.scrollTop += item.bottom - box.bottom;
+    }
+  });
 
   function tiles(): HTMLElement[] {
     return body ? [...body.querySelectorAll<HTMLElement>("[data-tile]")] : [];
@@ -481,19 +506,35 @@
     <div class="drop" aria-hidden="true">{i18n.t("editor.drop")}</div>
   {/if}
 
+  <!-- A section's icon: a fixed one's glyph, or the picture of the item that shows a pack, as Discord shows a server's icon. -->
+  {#snippet sectionIcon(section: TSection, size: number)}
+    {#if section.pack}
+      {@const icon = packIcon(section.pack, items)}
+      <span class="pack-icon" style:width="{size}px" style:height="{size}px" aria-hidden="true">
+        {#if icon}
+          {#await still(icon) then url}
+            {#if url}<img src={url} alt="" draggable="false" />{/if}
+          {/await}
+        {/if}
+      </span>
+    {:else}
+      {@const Icon = ICONS[section.id]}
+      <Icon {size} aria-hidden="true" />
+    {/if}
+  {/snippet}
+
   <nav class="sidebar" aria-label={i18n.t("panel.sectionsLabel")}>
-    <div class="categories">
+    <div bind:this={categories} class="categories">
       {#each sections as section (section.id)}
-        {@const Icon = ICONS[section.id]}
         <button
           class="category"
           class:active={highlighted === section.id}
           type="button"
-          aria-label={i18n.t(`panel.sections.${section.id}`)}
+          aria-label={labelOf(section)}
           onclick={() => void jumpTo(section.id)}
-          {@attach tooltip(i18n.t(`panel.sections.${section.id}`), "right")}
+          {@attach tooltip(labelOf(section), "right")}
         >
-          <Icon size={20} aria-hidden="true" />
+          {@render sectionIcon(section, section.pack ? 24 : 20)}
         </button>
       {/each}
     </div>
@@ -537,7 +578,6 @@
       <p class="message">{i18n.t("panel.noResults", { query: query.trim() })}</p>
     {:else}
       {#each sections as section (section.id)}
-        {@const SectionIcon = ICONS[section.id]}
         <section class="section" aria-labelledby="nf-section-{section.id}">
           <h3 class="section-header" data-section={section.id}>
             <button
@@ -550,8 +590,8 @@
                 collapsed[section.id] = !collapsed[section.id];
               }}
             >
-              <span class="section-icon" aria-hidden="true"><SectionIcon size={16} /></span>
-              <span class="section-label">{i18n.t(`panel.sections.${section.id}`)}</span>
+              <span class="section-icon" aria-hidden="true">{@render sectionIcon(section, 16)}</span>
+              <span class="section-label">{labelOf(section)}</span>
               <span class="chevron" aria-hidden="true"><ChevronDown size={16} /></span>
             </button>
           </h3>
@@ -928,7 +968,37 @@
     gap: 4px;
     min-height: 0;
     padding: 1px 0 8px;
+    overflow: hidden auto;
+    scrollbar-width: none;
+  }
+
+  /* Like Discord's, the sidebar scrolls without showing a scrollbar. */
+  .categories::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* A pack's icon: its item's picture, round like a server's icon in Discord's picker. */
+  .pack-icon {
+    display: flex;
+    flex: none;
     overflow: hidden;
+    border-radius: 50%;
+  }
+
+  .pack-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .category .pack-icon {
+    opacity: 0.8;
+    transition: opacity 0.1s ease-in-out;
+  }
+
+  .category:hover .pack-icon,
+  .category.active .pack-icon {
+    opacity: 1;
   }
 
   .sidebar-footer {
@@ -940,6 +1010,7 @@
   .category {
     position: relative;
     display: flex;
+    flex: none;
     align-items: center;
     justify-content: center;
     width: 32px;
@@ -1094,6 +1165,7 @@
 
   .reduced .chevron,
   .reduced .category,
+  .reduced .category .pack-icon,
   .reduced .category::before,
   .reduced .section-toggle {
     transition: none;

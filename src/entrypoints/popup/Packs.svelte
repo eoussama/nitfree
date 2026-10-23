@@ -1,10 +1,11 @@
 <!--
-  The popup's packs page: named groups of items. Make a pack, then pick one to rename, delete or export
-  it as a .nitfree file of its own, which imports on another browser with the same items and name.
-  Items join packs from their edit dialog.
+  The popup's packs page: named groups of items, each a section of the panel. Make a pack, then pick one
+  to rename, delete or export it as a .nitfree file of its own, which imports on another browser with
+  the same items and name, or to choose which of its items is its icon in the panel's sidebar. Items join
+  packs from their edit dialog.
 -->
 <script lang="ts">
-  import type { TPack } from "~/lib/db";
+  import type { TItem, TPack } from "~/lib/db";
 
   import { toError, tryCatch } from "@eoussama/core";
 
@@ -14,12 +15,15 @@
   import { buildExport } from "~/lib/ui/export";
   import { library } from "~/lib/ui/library.svelte";
   import { archiveProblem } from "~/lib/ui/problems";
+  import { packIcon } from "~/lib/ui/sections";
+  import { still } from "~/lib/ui/thumbnails";
+  import { tooltip } from "~/lib/ui/tooltip.svelte";
 
   import Confirm from "./Confirm.svelte";
 
 
 
-  type TSection = "create" | "packs";
+  type TSection = "create" | "packs" | "icon";
   type TMessage = { section: TSection; text: string; error: boolean };
 
   let name = $state("");
@@ -82,6 +86,13 @@
   async function remove(pack: TPack): Promise<void> {
     confirming = false;
     await run("packs", () => sendMessage("packs:remove", { id: pack.id }), () => i18n.t("popup.packs.deleted", { name: pack.name }));
+  }
+
+  // Saved at once, as the settings are; only a failure is said.
+  async function setIcon(pack: TPack, item: TItem): Promise<void> {
+    const [error] = await tryCatch(sendMessage("packs:update", { id: pack.id, patch: { icon: item.id } }));
+
+    message = error ? { section: "icon", text: i18n.t("popup.failed", { error: toError(error).message }), error: true } : null;
   }
 
   // The pack's items go into an archive of their own, with only that pack, saved under its name.
@@ -165,6 +176,33 @@
   {@render feedback("packs")}
 </div>
 
+{#if chosen && itemsOf(chosen).length}
+  {@const icon = packIcon(chosen, library.items)}
+  <div class="form-section">
+    <h2 id="nf-pack-icon" class="form-title">{i18n.t("popup.packs.icon")}</h2>
+    <p class="form-description">{i18n.t("popup.packs.iconHint")}</p>
+    <div class="icons" role="radiogroup" aria-labelledby="nf-pack-icon">
+      {#each itemsOf(chosen) as item (item.id)}
+        <label class="icon" {@attach tooltip(item.title)}>
+          <input
+            type="radio"
+            name="nf-pack-icon"
+            value={item.id}
+            checked={item.id === icon?.id}
+            disabled={busy}
+            aria-label={item.title}
+            onchange={() => void setIcon(chosen, item)}
+          />
+          {#await still(item) then url}
+            {#if url}<img src={url} alt="" draggable="false" />{/if}
+          {/await}
+        </label>
+      {/each}
+    </div>
+    {@render feedback("icon")}
+  </div>
+{/if}
+
 <Confirm
   open={confirming && chosen !== null}
   title={i18n.t("popup.packs.confirmTitle", { name: chosen?.name ?? "" })}
@@ -186,5 +224,61 @@
 
   .name {
     overflow-wrap: anywhere;
+  }
+
+  /* The pack's items as Discord's emoji grid, the chosen one ringed; many scroll within three rows. */
+  .icons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 40px);
+    gap: 8px;
+    max-height: 136px;
+    padding: 2px;
+    overflow-y: auto;
+  }
+
+  .icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm, 8px);
+    background-color: var(--background-mod-subtle, var(--nf-mod-subtle));
+    cursor: pointer;
+  }
+
+  .icon:hover {
+    background-color: var(--background-mod-normal, var(--nf-mod-normal));
+  }
+
+  .icon:has(:checked) {
+    outline: 2px solid var(--control-brand-foreground-new, var(--nf-accent));
+    outline-offset: -2px;
+  }
+
+  .icon:has(:focus-visible) {
+    outline: 2px solid var(--border-focus, var(--nf-accent));
+    outline-offset: 2px;
+  }
+
+  .icon:has(:disabled) {
+    cursor: not-allowed;
+  }
+
+  /* The real radio stays for keyboards and screen readers; the picture is what shows. */
+  .icon input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .icon img {
+    max-width: 32px;
+    max-height: 32px;
+    object-fit: contain;
+    pointer-events: none;
   }
 </style>

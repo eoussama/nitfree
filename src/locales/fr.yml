@@ -54,7 +54,7 @@ popup:
     merged: "« {title} » gardé, {items} supprimés."
   packs:
     new: Nouveau pack
-    hint: Regroupez les éléments en packs pour filtrer par pack et partager chacun dans un fichier .nitfree. Un élément peut appartenir à plusieurs packs.
+    hint: Regroupez les éléments en packs, chacun une section du panneau que son nom retrouve aussi, et partagez chacun dans un fichier .nitfree. Un élément peut appartenir à plusieurs packs.
     create: Créer le pack
     created: "Pack « {name} » créé."
     list: Vos packs
@@ -66,6 +66,8 @@ popup:
     confirmTitle: "Supprimer « {name} »"
     confirm: Le pack est supprimé, et ses éléments restent dans votre bibliothèque.
     confirmDelete: Supprimer le pack
+    icon: Icône
+    iconHint: Représente le pack dans la barre latérale du panneau. Tant que vous n'en choisissez pas, c'est l'élément le plus récent du pack.
   add: Ajout rapide
   drop: Déposez ou collez des images ici, ou choisissez-les.
   settings: Paramètres
@@ -157,7 +159,7 @@ editor:
   tags: Tags
   tagsPlaceholder: Ajoutez des tags, séparés par des virgules
   packs: Packs
-  packsHint: Créez des packs depuis le bouton Nitfree de la barre d'outils, sur sa page Packs, pour regrouper les éléments.
+  packsPlaceholder: Ajoutez des packs, séparés par des virgules
   description: Description
   optional: Facultatif
   replace: Remplacer le fichier

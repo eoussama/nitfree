@@ -8,7 +8,7 @@ import { tagKey } from "./tags";
 export type TPacks = ReturnType<typeof createPacks>;
 
 function toPack({ key: _, ...row }: TPackRow): TPack {
-  return row;
+  return { ...row, icon: row.icon ?? null };
 }
 
 function checkName(name: string): string {
@@ -62,7 +62,7 @@ export function createPacks(db: NitfreeDatabase, now: () => number = Date.now) {
       return db.transaction("rw", db.packs, async () => {
         await checkFree(key);
 
-        const row: TPackRow = { id: crypto.randomUUID(), name, key, createdAt: now() };
+        const row: TPackRow = { id: crypto.randomUUID(), name, key, icon: null, createdAt: now() };
 
         await db.packs.add(row);
 
@@ -88,7 +88,7 @@ export function createPacks(db: NitfreeDatabase, now: () => number = Date.now) {
           return { pack: toPack(existing), created: false };
         }
 
-        const row: TPackRow = { id: crypto.randomUUID(), name, key, createdAt: now() };
+        const row: TPackRow = { id: crypto.randomUUID(), name, key, icon: null, createdAt: now() };
 
         await db.packs.add(row);
 
@@ -97,25 +97,30 @@ export function createPacks(db: NitfreeDatabase, now: () => number = Date.now) {
     },
 
     /**
-     * Renames a pack.
+     * Renames a pack, or sets the item that shows it in the panel's sidebar.
      *
      * @param id - The pack's id.
-     * @param patch - The fields to change.
+     * @param patch - The fields to change; an icon of null goes back to the pack's newest item.
      * @returns The updated pack.
      */
     async update(id: string, patch: TPackPatch): Promise<TPack> {
       const name = patch.name === undefined ? undefined : checkName(patch.name);
 
-      return db.transaction("rw", db.packs, async () => {
+      return db.transaction("rw", db.packs, db.items, async () => {
         const current = await db.packs.get(id);
 
         if (!current) {
           throw new Error(`No pack "${id}"`);
         }
 
+        if (patch.icon && !(await db.items.get(patch.icon))?.packs.includes(id)) {
+          throw new Error(`Item "${patch.icon}" is not in the pack`);
+        }
+
         const row: TPackRow = {
           ...current,
           ...(name !== undefined && { name, key: tagKey(name) }),
+          ...(patch.icon !== undefined && { icon: patch.icon }),
         };
 
         await checkFree(row.key, id);

@@ -31,6 +31,8 @@ export const ArchiveTagSchema = v.object({
 export const ArchivePackSchema = v.object({
   id: v.pipe(v.string(), v.minLength(1)),
   name: v.pipe(v.string(), v.trim(), v.minLength(1)),
+  // The id of the item in the archive that shows the pack, or null for its newest.
+  icon: v.optional(v.nullable(v.string()), null),
   createdAt: Timestamp,
 });
 

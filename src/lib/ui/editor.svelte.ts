@@ -1,14 +1,16 @@
+import type { TNamed } from "./drafts";
 import type { TItem, TItemType } from "~/lib/db";
 import type { TImageInfo } from "~/lib/media";
+
 import type { TEdits } from "~/lib/media/edit";
 
 import { toError, tryCatch } from "@eoussama/core";
-
 import { areSimilar } from "~/lib/db/duplicates";
 import { hashBytes } from "~/lib/db/library";
 import { inspectImage } from "~/lib/media";
 import { applyEdits, editedFileName } from "~/lib/media/edit";
 import { imageFingerprint } from "~/lib/media/fingerprint";
+
 import { sendMessage } from "~/lib/messaging";
 
 import { guessItemType, isAcceptedFile, resolveTagNames, titleFromFileName } from "./drafts";
@@ -37,7 +39,7 @@ export type TDraft = {
   type: TItemType;
   description: string;
   tags: string[];
-  // The ids of the packs the item is in.
+  // The names of the packs the item is in, as tags are named; new ones are made on saving.
   packs: string[];
   // The file before quick edits, kept to edit again from or to go back to, and the edits made to it;
   // both null when the image is not edited.
@@ -313,7 +315,7 @@ function itemDraft(item: TItem): TDraft {
     type: item.type,
     description: item.description,
     tags: item.tags.flatMap(id => library.tags.find(tag => tag.id === id)?.name ?? []),
-    packs: [...item.packs],
+    packs: item.packs.flatMap(id => library.packs.find(pack => pack.id === id)?.name ?? []),
     source: null,
     edits: null,
     copyOf: null,
@@ -566,16 +568,19 @@ export function resetEditor(): void {
 }
 
 /**
- * Turns tag names into tag ids, creating the tags that do not exist yet.
+ * Turns tag or pack names into ids, creating the ones that do not exist yet.
  *
  * @param names - The names chosen for an item.
+ * @param known - The library's tags, or its packs.
+ * @param create - Creates one by name.
+ * @param list - Lists them all again.
  * @returns The ids.
  */
-async function tagIds(names: readonly string[]): Promise<string[]> {
-  const { ids, missing } = resolveTagNames(names, library.tags);
+async function namedIds(names: readonly string[], known: readonly TNamed[], create: (name: string) => Promise<TNamed>, list: () => Promise<TNamed[]>): Promise<string[]> {
+  const { ids, missing } = resolveTagNames(names, known);
 
   for (const name of missing) {
-    const [error, created] = await tryCatch(sendMessage("tags:add", { name }));
+    const [error, created] = await tryCatch(create(name));
 
     if (created) {
       ids.push(created.id);
@@ -583,7 +588,7 @@ async function tagIds(names: readonly string[]): Promise<string[]> {
     }
 
     // Another tab may have created it meanwhile.
-    const existing = (await sendMessage("tags:list")).find(tag => tag.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    const existing = (await list()).find(named => named.name.toLocaleLowerCase() === name.toLocaleLowerCase());
 
     if (!existing) {
       throw toError(error);
@@ -593,6 +598,15 @@ async function tagIds(names: readonly string[]): Promise<string[]> {
   }
 
   return ids;
+}
+
+function tagIds(names: readonly string[]): Promise<string[]> {
+  return namedIds(names, library.tags, name => sendMessage("tags:add", { name }), () => sendMessage("tags:list"));
+}
+
+// A pack deleted while the dialog was open, such as from another tab, is made again, as a tag would be.
+function packIds(names: readonly string[]): Promise<string[]> {
+  return namedIds(names, library.packs, name => sendMessage("packs:add", { name }), () => sendMessage("packs:list"));
 }
 
 /**
@@ -627,8 +641,7 @@ export async function saveEditor(): Promise<boolean> {
 
     const [error] = await tryCatch(async () => {
       const tags = await tagIds(draft.tags);
-      // A pack deleted while the dialog was open, such as from another tab, is left out rather than failing the save.
-      const packs = draft.packs.filter(id => library.packs.some(pack => pack.id === id));
+      const packs = await packIds(draft.packs);
       const details = { title: draft.title.trim(), type: draft.type, description: draft.description.trim(), tags, packs };
 
       if (mode === "edit" && item) {

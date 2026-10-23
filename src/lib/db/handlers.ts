@@ -44,12 +44,11 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, packs: TPa
     "library:import": async ({ item, skipDuplicates }) => {
       const result = await library.import(item, skipDuplicates);
 
-      if (result) {
-        announce("library:changed", { change: result.added ? "added" : "updated", ids: [result.item.id] });
+      if (result.status !== "skipped") {
+        announce("library:changed", { change: result.status === "added" ? "added" : "updated", ids: [result.item.id] });
       }
 
-      // A duplicate that only joined packs still counts as skipped.
-      return result?.added ? result.item : null;
+      return result;
     },
 
     "library:clear": async () => {
