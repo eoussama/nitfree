@@ -71,8 +71,6 @@
     display: block;
     width: 20px;
     height: 20px;
-    overflow: hidden;
-    border-radius: 5px;
     filter: grayscale(1) brightness(1.15);
     opacity: 0.85;
     transform: scale(1);

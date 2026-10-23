@@ -284,8 +284,6 @@
     flex: none;
     width: 40px;
     height: 40px;
-    overflow: hidden;
-    border-radius: 8px;
   }
 
   .title {

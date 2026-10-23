@@ -71,8 +71,6 @@
   .logo {
     display: block;
     flex: none;
-    overflow: hidden;
-    border-radius: 4px;
     filter: grayscale(1) brightness(1.15);
     opacity: 0.85;
     transition: filter 0.2s ease-out, opacity 0.2s ease-out;

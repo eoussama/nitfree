@@ -97,7 +97,8 @@
 </script>
 
 <svg bind:this={svg} class="logo" class:blinking viewBox="0 0 1080 1080" aria-hidden="true">
-  <rect width="1080" height="1080" fill="#6990ff" />
+  <!-- Corners a fifth of its size, as in the popup's header and the extension's icons. -->
+  <rect width="1080" height="1080" rx="216" fill="#6990ff" />
   <g class="look" style:transform="translate({look.x}px, {look.y}px)">
     <ellipse class="eye" cx="145" cy="476" rx="55.5" ry="58.5" />
     <ellipse class="eye" cx="934.5" cy="476" rx="55.5" ry="58.5" />
