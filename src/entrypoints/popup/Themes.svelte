@@ -1,13 +1,18 @@
 <!--
-  The popup's themes page: Discord's own look, changed in every Discord tab at once. An accent color
-  replaces Discord's blurple, and CSS snippets add styles on top of Discord's, each turned on or off
-  on its own. Changes are saved as they are made, and the panel follows the colors that result.
+  The popup's themes page: Discord's own look, changed in every Discord tab at once. A color theme
+  puts a gradient behind Discord, as Nitro's do, an accent color replaces Discord's blurple, and CSS
+  snippets add styles on top of Discord's, each turned on or off on its own. Changes are saved as
+  they are made, and the panel follows the colors that result.
 -->
 <script lang="ts">
-  import type { TSnippet } from "~/lib/theme";
+  import type { TColorTheme, TSnippet } from "~/lib/theme";
 
-  import { accentColor, cssSnippets } from "~/lib/settings";
-  import { ACCENT_PATTERN, SNIPPET_CSS_MAX, SNIPPET_NAME_MAX } from "~/lib/theme";
+  import Ban from "@lucide/svelte/icons/ban";
+  import Check from "@lucide/svelte/icons/check";
+
+  import { accentColor, colorTheme, cssSnippets } from "~/lib/settings";
+  import { ACCENT_PATTERN, COLOR_THEMES, findColorTheme, SNIPPET_CSS_MAX, SNIPPET_NAME_MAX } from "~/lib/theme";
+  import { tooltip } from "~/lib/ui/tooltip.svelte";
 
   import Confirm from "./Confirm.svelte";
 
@@ -20,6 +25,7 @@
    */
   const SAVE_DELAY = 300;
 
+  let themeId: string | null = $state(null);
   let accent: string | null = $state(null);
   // The color last picked, kept while the override is off so turning it on again brings it back.
   let picked = $state(DISCORD_ACCENT);
@@ -48,10 +54,16 @@
       }
     };
 
+    const showTheme = (value: string | null): void => {
+      themeId = findColorTheme(value)?.id ?? null;
+    };
+
+    void colorTheme.getValue().then(showTheme);
     void accentColor.getValue().then(showAccent);
     void cssSnippets.getValue().then(showSnippets);
 
     const stops = [
+      colorTheme.watch(value => showTheme(value ?? null)),
       accentColor.watch(value => showAccent(value ?? null)),
       cssSnippets.watch(value => showSnippets(value ?? [])),
     ];
@@ -61,6 +73,15 @@
       flush();
     };
   });
+
+  function saveTheme(value: TColorTheme | null): void {
+    themeId = value?.id ?? null;
+    void colorTheme.setValue(themeId);
+  }
+
+  function gradientOf(theme: TColorTheme): string {
+    return `linear-gradient(${theme.angle}deg, ${theme.colors.join(", ")})`;
+  }
 
   function saveAccent(value: string | null): void {
     accent = value;
@@ -129,6 +150,26 @@
     return snippet.name.trim() || i18n.t("popup.themes.untitled");
   }
 </script>
+
+<div class="form-section">
+  <h2 id="nf-color-themes" class="form-title">{i18n.t("popup.themes.colors")}</h2>
+  <p class="form-description">{i18n.t("popup.themes.colorsHint")}</p>
+  <div class="swatches" role="radiogroup" aria-labelledby="nf-color-themes">
+    {@render swatch(null, i18n.t("popup.themes.default"))}
+    {#each COLOR_THEMES as theme (theme.id)}
+      {@render swatch(theme, i18n.t(`popup.themes.names.${theme.id}`))}
+    {/each}
+  </div>
+</div>
+
+{#snippet swatch(theme: TColorTheme | null, name: string)}
+  {@const selected = (theme?.id ?? null) === themeId}
+  <label class="theme" class:default={!theme} style:background-image={theme ? gradientOf(theme) : null} {@attach tooltip(name)}>
+    <input type="radio" name="nf-color-theme" value={theme?.id ?? ""} checked={selected} aria-label={name} onchange={() => saveTheme(theme)} />
+    {#if !theme}<Ban size={24} aria-hidden="true" />{/if}
+    {#if selected}<span class="badge" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>{/if}
+  </label>
+{/snippet}
 
 <div class="form-section">
   <label class="toggle">
@@ -205,6 +246,63 @@
 />
 
 <style>
+  /* Discord's theme picker: rounded squares of each gradient, the chosen one ringed and ticked. */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 48px);
+    gap: 10px;
+    padding: 4px 2px;
+  }
+
+  .theme {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    box-sizing: border-box;
+    border: 1px solid var(--border-subtle, var(--nf-border));
+    border-radius: var(--radius-sm, 8px);
+    background-color: var(--background-base-lower, var(--nf-bg));
+    color: var(--interactive-icon-default, var(--nf-muted));
+    cursor: pointer;
+  }
+
+  .theme:has(:checked) {
+    outline: 2px solid var(--control-brand-foreground-new, var(--nf-accent));
+    outline-offset: 2px;
+  }
+
+  .theme:has(:focus-visible) {
+    outline: 2px solid var(--border-focus, var(--nf-accent));
+    outline-offset: 2px;
+  }
+
+  /* The real radio stays for keyboards and screen readers; the gradient is what shows. */
+  .theme input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--control-brand-foreground-new, var(--nf-accent));
+    color: #fff;
+    pointer-events: none;
+  }
+
   .color {
     display: flex;
     align-items: flex-end;

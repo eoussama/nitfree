@@ -22,7 +22,7 @@ All of this is kept in your browser's storage for the extension, on your device 
 **Your settings and extension state** (in the extension's local storage):
 
 - Your settings: emoji and sticker sending sizes, what a click on an item does, whether animated items play on hover, and whether items from your library are suggested while you type, and where.
-- Your Discord theme: the accent color you picked, and your CSS snippets, with their names and whether each is on. Snippets are added to Discord's page in your browser only; what a snippet loads is up to the CSS you write.
+- Your Discord theme: the color theme and accent color you picked, and your CSS snippets, with their names and whether each is on. Snippets are added to Discord's page in your browser only; what a snippet loads is up to the CSS you write.
 - Discord's current theme colors and your reduced-motion preference, so the popup can match Discord's look.
 - A copy of Discord's font files (gg sans), so the popup can use Discord's typeface.
 - The date Nitfree was installed.

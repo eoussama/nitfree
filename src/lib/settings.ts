@@ -63,6 +63,11 @@ export const shortcut = storage.defineItem<boolean>("local:shortcut", { fallback
 export const shortcutKeys = storage.defineItem<TShortcut>("local:shortcutKeys", { fallback: DEFAULT_SHORTCUT });
 
 /**
+ * The id of the color theme put on Discord; null for none.
+ */
+export const colorTheme = storage.defineItem<string | null>("local:colorTheme", { fallback: null });
+
+/**
  * The color Discord's blurple is replaced with, as `#rrggbb`; null keeps Discord's.
  */
 export const accentColor = storage.defineItem<string | null>("local:accentColor", { fallback: null });

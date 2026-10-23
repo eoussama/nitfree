@@ -70,6 +70,24 @@ popup:
     iconHint: Shows the pack in the panel's sidebar. Until you pick one, it is the pack's newest item.
   themes:
     heading: Themes
+    colors: Color themes
+    colorsHint: A gradient behind Discord, with its colors blended into Discord's surfaces and text, as Nitro's color themes do. The light ones suit Discord's light theme, the dark ones its dark themes.
+    default: Discord's default
+    names:
+      peach: Peach Fizz
+      mint: Mint Breeze
+      lavender: Lavender Haze
+      lemon: Lemon Sorbet
+      cotton: Cotton Sky
+      seaglass: Sea Glass
+      ocean: Deep Ocean
+      ember: Ember
+      nebula: Nebula
+      aurora: Aurora
+      rose: Midnight Rose
+      forest: Forest Floor
+      synthwave: Synthwave
+      graphite: Graphite Gold
     accent: Use my own accent color
     accentHint: Replaces Discord's blurple on its buttons, switches and highlights, in every Discord tab. Nitfree's panel follows it.
     accentColor: Accent color

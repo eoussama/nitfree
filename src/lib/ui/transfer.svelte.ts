@@ -5,9 +5,10 @@ import { tryCatch } from "@eoussama/core";
 
 import { applyArchive, ARCHIVE_EXTENSION, ArchiveError, readArchive, readImages } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
-import { accentColor, autocomplete, clickAction, cssSnippets, fitSendSizes, playAnimations, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
+import { accentColor, autocomplete, clickAction, colorTheme, cssSnippets, fitSendSizes, playAnimations, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
 import { isUsableShortcut } from "~/lib/shortcut";
 import { mergeSnippets } from "~/lib/theme/custom";
+import { findColorTheme } from "~/lib/theme/gradients";
 
 import { download, exportName } from "./download";
 import { buildExport } from "./export";
@@ -200,6 +201,8 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
         archive.settings.shortcut === undefined ? undefined : shortcut.setValue(archive.settings.shortcut),
         // One that could not open the panel without taking typing is left out.
         archive.settings.shortcutKeys && isUsableShortcut(archive.settings.shortcutKeys) ? shortcutKeys.setValue(archive.settings.shortcutKeys) : undefined,
+        // A theme this version does not have is left out.
+        archive.settings.colorTheme === undefined || (archive.settings.colorTheme !== null && !findColorTheme(archive.settings.colorTheme)) ? undefined : colorTheme.setValue(archive.settings.colorTheme),
         archive.settings.accentColor === undefined ? undefined : accentColor.setValue(archive.settings.accentColor),
         // Added to the snippets kept, so a backup from another browser never deletes any.
         archive.settings.snippets === undefined ? undefined : cssSnippets.setValue(mergeSnippets(await cssSnippets.getValue(), archive.settings.snippets)),

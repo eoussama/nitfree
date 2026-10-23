@@ -76,6 +76,7 @@ export const ArchiveSettingsSchema = v.object({
   shortcut: v.optional(v.boolean()),
   shortcutKeys: v.optional(v.object({ key: v.pipe(v.string(), v.minLength(1), v.maxLength(32)), ctrl: v.boolean(), alt: v.boolean(), shift: v.boolean(), meta: v.boolean() })),
   // Added in 0.4.0.
+  colorTheme: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(64)))),
   accentColor: v.optional(v.nullable(v.pipe(v.string(), v.regex(ACCENT_PATTERN)))),
   snippets: v.optional(v.array(v.object({
     id: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),

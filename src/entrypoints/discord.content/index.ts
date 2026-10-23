@@ -1,8 +1,8 @@
-import type { TSnippet } from "~/lib/theme";
+import type { TCustomTheme } from "~/lib/theme";
 
 import { DISCORD_MATCHES } from "~/lib/discord";
-import { accentColor, cssSnippets } from "~/lib/settings";
-import { applyPalette, captureDiscordFont, themeSnapshot, themeStyles, watchTheme } from "~/lib/theme";
+import { accentColor, colorTheme, cssSnippets } from "~/lib/settings";
+import { applyPalette, captureDiscordFont, findColorTheme, themeSnapshot, themeStyles, watchTheme } from "~/lib/theme";
 import { startContent } from "~/lib/ui/content";
 
 
@@ -40,35 +40,37 @@ export default defineContentScript({
 });
 
 /**
- * Gives Discord the accent color and CSS snippets set in the popup, following every change at once.
+ * Gives Discord the color theme, accent color and CSS snippets set in the popup, following every change at once.
  *
  * @returns A function that stops, putting Discord back as it was.
  */
 function followCustomTheme(): () => void {
   const styles = themeStyles(document);
-  let accent: string | null = null;
-  let snippets: TSnippet[] = [];
+  const theme: TCustomTheme = { colorTheme: null, accent: null, snippets: [] };
   let stopped = false;
 
   const render = (): void => {
     if (!stopped) {
-      styles.render(accent, snippets);
+      styles.render(theme);
     }
   };
 
-  void Promise.all([accentColor.getValue(), cssSnippets.getValue()]).then(([color, list]) => {
-    accent = color;
-    snippets = list;
+  void Promise.all([colorTheme.getValue(), accentColor.getValue(), cssSnippets.getValue()]).then(([id, color, list]) => {
+    Object.assign(theme, { colorTheme: findColorTheme(id), accent: color, snippets: list });
     render();
   });
 
   const stops = [
+    colorTheme.watch((id) => {
+      theme.colorTheme = findColorTheme(id);
+      render();
+    }),
     accentColor.watch((color) => {
-      accent = color;
+      theme.accent = color;
       render();
     }),
     cssSnippets.watch((list) => {
-      snippets = list ?? [];
+      theme.snippets = list ?? [];
       render();
     }),
   ];

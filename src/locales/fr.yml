@@ -70,6 +70,24 @@ popup:
     iconHint: Représente le pack dans la barre latérale du panneau. Tant que vous n'en choisissez pas, c'est l'élément le plus récent du pack.
   themes:
     heading: Thèmes
+    colors: Thèmes de couleur
+    colorsHint: Un dégradé derrière Discord, dont les couleurs se fondent dans ses surfaces et ses textes, comme les thèmes de couleur de Nitro. Les clairs vont avec le thème clair de Discord, les sombres avec ses thèmes sombres.
+    default: Discord par défaut
+    names:
+      peach: Pêche pétillante
+      mint: Brise de menthe
+      lavender: Brume de lavande
+      lemon: Sorbet citron
+      cotton: Ciel de coton
+      seaglass: Verre de mer
+      ocean: Océan profond
+      ember: Braise
+      nebula: Nébuleuse
+      aurora: Aurore
+      rose: Rose de minuit
+      forest: Sous-bois
+      synthwave: Synthwave
+      graphite: Graphite doré
     accent: Utiliser ma propre couleur d'accent
     accentHint: Remplace le blurple de Discord sur ses boutons, interrupteurs et surbrillances, dans chaque onglet Discord. Le panneau de Nitfree la suit.
     accentColor: Couleur d'accent

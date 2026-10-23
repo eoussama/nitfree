@@ -1,4 +1,8 @@
+import type { TColorTheme } from "./gradients";
+
 import { BLURPLE_BASE, BLURPLE_SCALE } from "./blurple";
+import { hexToRgb, rgbToHsl } from "./color";
+import { colorThemeCss, THEME_CLASS } from "./gradients";
 
 
 
@@ -31,24 +35,15 @@ function round(value: number): number {
  * @returns Hue in degrees, saturation and lightness in percent; null for anything else.
  */
 export function hexToHsl(hex: string): [number, number, number] | null {
-  if (!ACCENT_PATTERN.test(hex)) {
+  const rgb = hexToRgb(hex);
+
+  if (!rgb) {
     return null;
   }
 
-  const [r, g, b] = [1, 3, 5].map(at => Number.parseInt(hex.slice(at, at + 2), 16) / 255) as [number, number, number];
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const lightness = (max + min) / 2;
-  const delta = max - min;
+  const [hue, saturation, lightness] = rgbToHsl(rgb);
 
-  if (delta === 0) {
-    return [0, 0, round(lightness * 100)];
-  }
-
-  const saturation = delta / (1 - Math.abs(2 * lightness - 1));
-  const hue = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
-
-  return [round((hue * 60 + 360) % 360), round(Math.min(saturation, 1) * 100), round(lightness * 100)];
+  return [round(hue), round(saturation * 100), round(lightness * 100)];
 }
 
 /**
@@ -100,15 +95,27 @@ export function accentCss(hex: string): string {
 }
 
 /**
- * Adds what styles Discord from Nitfree, the accent color then each snippet that is on, and keeps
- * them after Discord's own styles, which it keeps adding as it loads parts of the app. Disabling
- * one removes its style, which puts Discord back as it was.
+ * How Discord is styled from Nitfree: a color theme, an accent color and CSS snippets, each null or
+ * empty when not used.
+ */
+export type TCustomTheme = { colorTheme: TColorTheme | null; accent: string | null; snippets: readonly TSnippet[] };
+
+/**
+ * Adds what styles Discord from Nitfree, the color theme, then the accent color, then each snippet
+ * that is on, and keeps them after Discord's own styles, which it keeps adding as it loads parts of
+ * the app. A color theme also needs the class Discord's stylesheet styles color themes by on its
+ * root: it is put back as soon as Discord resets the root's classes. Turning one off removes its
+ * style, which puts Discord back as it was.
  *
  * @param document - Discord's document.
  * @returns The styles: render them, and remove them all once done.
  */
-export function themeStyles(document: Document): { render: (accent: string | null, snippets: readonly TSnippet[]) => void; stop: () => void } {
+export function themeStyles(document: Document): { render: (theme: TCustomTheme) => void; stop: () => void } {
+  const root = document.documentElement;
   let styles: HTMLStyleElement[] = [];
+  let themed = false;
+  // Whether the class is Nitfree's to take off again, rather than a Nitro theme's.
+  let added = false;
 
   const sheet = (key: string, css: string): HTMLStyleElement => {
     const style = styles.find(found => found.getAttribute(STYLE_ATTRIBUTE) === key) ?? document.createElement("style");
@@ -134,13 +141,28 @@ export function themeStyles(document: Document): { render: (accent: string | nul
     document.head.append(...styles);
   };
 
+  // Run before the page is drawn again, so a reset class never shows.
+  const mark = (): void => {
+    if (themed && !root.classList.contains(THEME_CLASS)) {
+      root.classList.add(THEME_CLASS);
+      added = true;
+    }
+    else if (!themed && added) {
+      root.classList.remove(THEME_CLASS);
+      added = false;
+    }
+  };
+
   const observer = new MutationObserver(place);
+  const classes = new MutationObserver(mark);
 
   observer.observe(document.head, { childList: true });
+  classes.observe(root, { attributes: true, attributeFilter: ["class"] });
 
   return {
-    render(accent, snippets) {
+    render({ colorTheme, accent, snippets }) {
       const next = [
+        ...(colorTheme ? [sheet("colors", colorThemeCss(colorTheme))] : []),
         ...(accent && ACCENT_PATTERN.test(accent) ? [sheet("accent", accentCss(accent))] : []),
         ...snippets.filter(snippet => snippet.enabled).map(snippet => sheet(`snippet-${snippet.id}`, snippet.css)),
       ];
@@ -152,10 +174,15 @@ export function themeStyles(document: Document): { render: (accent: string | nul
       }
 
       styles = next;
+      themed = colorTheme !== null;
       place();
+      mark();
     },
     stop() {
       observer.disconnect();
+      classes.disconnect();
+      themed = false;
+      mark();
 
       for (const style of styles) {
         style.remove();

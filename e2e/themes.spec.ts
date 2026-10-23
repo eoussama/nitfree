@@ -64,6 +64,34 @@ test.describe("Discord themes", () => {
     await openPopupPage(popup, "Themes");
   });
 
+  test("a color theme gives Discord the look of Nitro's, and stays on when Discord resets its root's classes", async ({ page }) => {
+    await openDiscord(page);
+
+    const root = page.locator("html");
+    const gradient = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--custom-theme-background").trim());
+
+    await expect(themes(popup).getByRole("radio", { name: "Discord's default" })).toBeChecked();
+    await themes(popup).getByRole("radio", { name: "Deep Ocean" }).check();
+    await expect(root).toHaveClass(/custom-theme-background/);
+    await expect.poll(gradient).toBe("linear-gradient(160deg, #0f2027, #203a43, #2c5364)");
+    expect(await stored(popup, "colorTheme")).toBe("ocean");
+
+    // Discord sets its root's classes anew as it renders.
+    await page.evaluate(() => {
+      document.documentElement.className = "theme-light";
+    });
+    await expect(root).toHaveClass(/custom-theme-background/);
+
+    await themes(popup).getByRole("radio", { name: "Nebula" }).check();
+    await expect.poll(gradient).toBe("linear-gradient(135deg, #120c2c, #3a1c71, #6b2a8a)");
+
+    await themes(popup).getByRole("radio", { name: "Discord's default" }).check();
+    await expect(root).not.toHaveClass(/custom-theme-background/);
+    await expect(page.locator("style[data-nitfree-theme]")).toHaveCount(0);
+    // None is no value at all.
+    expect(await stored(popup, "colorTheme")).toBeUndefined();
+  });
+
   test("an accent color replaces Discord's blurple at once, and Nitfree's palette follows it", async ({ page }) => {
     await openDiscord(page);
     await page.addStyleTag({ content: DISCORD_CSS });
@@ -138,8 +166,9 @@ test.describe("Discord themes", () => {
     await expect(other.locator("#chat")).toHaveCSS("opacity", "0.5");
   });
 
-  test("the accent color and snippets travel with a backup's settings, adding to the snippets kept", async () => {
+  test("the color theme, accent color and snippets travel with a backup's settings, adding to the snippets kept", async () => {
     await request(popup, "library:add", { file: png(32, 32), type: "emoji", title: "wave" });
+    await themes(popup).getByRole("radio", { name: "Aurora" }).check();
     await themes(popup).getByRole("switch", { name: "Use my own accent color" }).check();
     await themes(popup).getByRole("textbox", { name: "Accent color" }).fill("#00ff88");
     await themes(popup).getByRole("textbox", { name: "Accent color" }).press("Enter");
@@ -164,7 +193,7 @@ test.describe("Discord themes", () => {
     await popup.evaluate(async () => {
       const { chrome } = globalThis as unknown as { chrome: { storage: { local: { set: (items: object) => Promise<void> } } } };
 
-      await chrome.storage.local.set({ accentColor: null, cssSnippets: [{ id: "local", name: "Local", css: "", enabled: false }] });
+      await chrome.storage.local.set({ colorTheme: null, accentColor: null, cssSnippets: [{ id: "local", name: "Local", css: "", enabled: false }] });
     });
 
     const chooser = popup.waitForEvent("filechooser");
@@ -176,6 +205,7 @@ test.describe("Discord themes", () => {
     await expect(backup(popup).getByRole("status")).toHaveText("Added 0, skipped 1 already in your library.");
     fs.rmSync(file);
 
+    expect(await stored(popup, "colorTheme")).toBe("aurora");
     expect(await stored(popup, "accentColor")).toBe("#00ff88");
     expect((await stored<TSnippet[]>(popup, "cssSnippets"))?.map(snippet => snippet.name)).toEqual(["Local", "Exported"]);
   });
