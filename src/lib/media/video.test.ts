@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { clipFrameSize, clipTimes, defaultClip, MAX_CLIP, MIN_CLIP, moveClip } from "./video";
+import { clipFrameSize, clipTimes, defaultClip, loadVideo, MAX_CLIP, MIN_CLIP, moveClip, seekVideo } from "./video";
 
 
 
@@ -43,5 +43,143 @@ describe("clips", () => {
   it("make frames at the clip's size, never larger than the video", () => {
     expect(clipFrameSize({ width: 1920, height: 1080 }, { size: 320 })).toEqual({ width: 320, height: 180 });
     expect(clipFrameSize({ width: 200, height: 300 }, { size: 480 })).toEqual({ width: 200, height: 300 });
+  });
+});
+
+/**
+ * A video element that loads and seeks when told to: a length of null is one that does not say how
+ * long it is until it is seeked past its end, as videos recorded in a browser do.
+ */
+class FakeVideo extends EventTarget {
+  readyState = 4;
+  seeking = false;
+  muted = false;
+  preload = "";
+  videoWidth = 640;
+  videoHeight = 360;
+  error: { message: string } | null = null;
+  duration = Number.NaN;
+  seeks: number[] = [];
+  private time = 0;
+
+  constructor(private readonly length: number | null, private readonly loads = true) {
+    super();
+  }
+
+  get currentTime(): number {
+    return this.time;
+  }
+
+  set currentTime(value: number) {
+    this.seeks.push(value);
+    this.time = Math.min(value, this.length ?? Math.min(value, 12));
+    queueMicrotask(() => {
+      if (this.length === null && value > 1e6) {
+        this.duration = 12;
+      }
+
+      this.dispatchEvent(new Event("seeked"));
+    });
+  }
+
+  private url = "";
+
+  get src(): string {
+    return this.url;
+  }
+
+  set src(url: string) {
+    this.url = url;
+    queueMicrotask(() => {
+      if (!this.loads) {
+        this.error = { message: "Unsupported." };
+        this.dispatchEvent(new Event("error"));
+
+        return;
+      }
+
+      this.duration = this.length ?? Number.NaN;
+      this.dispatchEvent(new Event("loadeddata"));
+    });
+  }
+}
+
+const asVideo = (video: FakeVideo) => video as unknown as HTMLVideoElement;
+
+describe("video loading", () => {
+  beforeEach(() => {
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("loads a video silently and gives its length, ready at its first frame", async () => {
+    const video = new FakeVideo(8);
+
+    expect(await loadVideo(asVideo(video), "blob:video")).toBe(8);
+    expect(video.muted).toBe(true);
+    expect(video.preload).toBe("auto");
+    // Already showing its first frame, it is not seeked there.
+    expect(video.seeks).toEqual([]);
+  });
+
+  it("finds the length of a video that does not say it by seeking past its end", async () => {
+    const video = new FakeVideo(null);
+
+    expect(await loadVideo(asVideo(video), "blob:video")).toBe(12);
+    expect(video.seeks[0]).toBeGreaterThan(1e6);
+    expect(video.seeks.at(-1)).toBe(0);
+  });
+
+  it("refuses a video with no picture", async () => {
+    const video = new FakeVideo(5);
+
+    video.videoWidth = 0;
+
+    await expect(loadVideo(asVideo(video), "blob:video")).rejects.toThrow("The video has no picture.");
+  });
+
+  it("fails with the browser's reason when the video cannot be played", async () => {
+    await expect(loadVideo(asVideo(new FakeVideo(5, false)), "blob:video")).rejects.toThrow("Unsupported.");
+  });
+
+  it("stops waiting once told to", async () => {
+    const controller = new AbortController();
+    const loading = loadVideo(asVideo(new FakeVideo(5)), "blob:video", controller.signal);
+
+    controller.abort(new Error("Closed."));
+    await expect(loading).rejects.toThrow("Closed.");
+    await expect(loadVideo(asVideo(new FakeVideo(5)), "blob:video", controller.signal)).rejects.toThrow("Closed.");
+  });
+});
+
+describe("seekVideo", () => {
+  beforeEach(() => {
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("waits for the frame to be drawn", async () => {
+    const video = new FakeVideo(10);
+
+    await seekVideo(asVideo(video), 2.5);
+    expect(video.currentTime).toBe(2.5);
+    expect(video.seeks).toEqual([2.5]);
+  });
+
+  it("does nothing where the video already shows that frame", async () => {
+    const video = new FakeVideo(10);
+
+    await seekVideo(asVideo(video), 0);
+    expect(video.seeks).toEqual([]);
+
+    video.seeking = true;
+    await seekVideo(asVideo(video), 0);
+    expect(video.seeks).toEqual([0]);
   });
 });
