@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fileOf, installCanvas, paintedCanvas } from "~/test/canvas";
 
+import { png } from "~/test/fixtures";
 import { fingerprintBands, fingerprintPixels, hashDistance, imageFingerprint, isSimilar } from "./fingerprint";
-import { png } from "./fixtures";
 
 
 

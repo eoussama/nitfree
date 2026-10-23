@@ -4,7 +4,7 @@ import type { THandlers } from "~/lib/messaging";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { png } from "~/lib/media/fixtures";
+import { png } from "~/test/fixtures";
 
 import { createLibraryHandlers } from "./handlers";
 import { createLibrary } from "./library";

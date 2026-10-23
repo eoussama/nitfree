@@ -38,5 +38,6 @@ export function tileAfterUnfavorite(tile: HTMLElement): HTMLElement {
   const root = tile.getRootNode() as Document | ShadowRoot;
   const inFavorites = Boolean(tile.closest("section")?.querySelector("[data-section=\"favorites\"]"));
 
-  return inFavorites ? ([...root.querySelectorAll<HTMLElement>(`[data-tile="${tile.dataset.tile}"]`)].at(-1) ?? tile) : tile;
+  // The tile itself is one of the item's tiles, so there is always a last one.
+  return inFavorites ? [...root.querySelectorAll<HTMLElement>(`[data-tile="${tile.dataset.tile}"]`)].at(-1)! : tile;
 }

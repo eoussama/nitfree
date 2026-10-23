@@ -1,7 +1,7 @@
 import Dexie from "dexie";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { png } from "~/lib/media/fixtures";
+import { png } from "~/test/fixtures";
 
 import { createLibrary } from "./library";
 import { createPacks } from "./packs";

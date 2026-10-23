@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { createLibrary } from "~/lib/db/library";
 import { createTags } from "~/lib/db/tags";
 import { openTestDatabase, steppingClock } from "~/lib/db/testing";
-import { png } from "~/lib/media/fixtures";
+import { png } from "~/test/fixtures";
 
 import { ArchiveError, readArchive, tagsOf, writeArchive } from "./index";
 

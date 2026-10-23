@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installCanvas } from "~/test/canvas";
 import { stubDecoder } from "~/test/decoder";
 
-import { gif, png, webpExtended } from "./fixtures";
+import { gif, png, webpExtended } from "~/test/fixtures";
 import { readFrames } from "./frames";
 import { inspectImage } from "./inspect";
 

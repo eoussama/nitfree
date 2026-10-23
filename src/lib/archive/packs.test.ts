@@ -10,7 +10,7 @@ import { createLibrary } from "~/lib/db/library";
 import { createPacks } from "~/lib/db/packs";
 import { createTags } from "~/lib/db/tags";
 import { openTestDatabase, steppingClock } from "~/lib/db/testing";
-import { png } from "~/lib/media/fixtures";
+import { png } from "~/test/fixtures";
 
 import { applyArchive, readArchive, writeArchive } from "./index";
 

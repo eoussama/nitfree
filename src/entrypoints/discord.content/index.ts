@@ -70,7 +70,7 @@ function followCustomTheme(): () => void {
       render();
     }),
     cssSnippets.watch((list) => {
-      theme.snippets = list ?? [];
+      theme.snippets = list;
       render();
     }),
   ];

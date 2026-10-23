@@ -319,7 +319,8 @@ export function pickSuggestion(item: TItem, primary: boolean): void {
  */
 export function highlightSuggestion(index: number): void {
   if (suggest.mode === "inline" && suggest.highlighted === null && suggest.box) {
-    const options = rows ? discordOptions(rows.list) : [];
+    // Inline, Nitfree's rows are in Discord's list.
+    const options = discordOptions(rows!.list);
 
     entered = options[0]?.id === suggest.box.getAttribute("aria-activedescendant") ? "start" : "end";
   }
@@ -337,7 +338,7 @@ export function highlightSuggestion(index: number): void {
  */
 function moveInline(down: boolean): boolean {
   const { box, items, highlighted } = suggest;
-  const options = rows ? discordOptions(rows.list) : [];
+  const options = discordOptions(rows!.list);
   const active = box?.getAttribute("aria-activedescendant");
 
   if (highlighted === null) {

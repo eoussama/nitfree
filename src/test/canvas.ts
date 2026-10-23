@@ -164,7 +164,7 @@ export class FakeCanvas {
 }
 
 async function headerFor(width: number, height: number): Promise<Uint8Array<ArrayBuffer>> {
-  const { png } = await import("~/lib/media/fixtures");
+  const { png } = await import("./fixtures");
 
   return png(width, height);
 }

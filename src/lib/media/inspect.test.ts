@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gif, jpeg, png, webpExtended, webpLossless, webpLossy } from "./fixtures";
+import { gif, jpeg, png, webpExtended, webpLossless, webpLossy } from "~/test/fixtures";
 import { inspectImage } from "./inspect";
 
 

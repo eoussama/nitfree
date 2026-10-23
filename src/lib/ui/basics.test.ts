@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ArchiveError } from "~/lib/archive";
-import { stubMessages } from "~/test/i18n";
 
 import { download } from "./download";
 import { escapeTop, hasEscapeLayer, onEscape } from "./escape";
@@ -16,7 +15,6 @@ import { focusAfterRemoval, neighborTile, tileAfterUnfavorite } from "./tiles";
 
 beforeEach(() => {
   document.body.innerHTML = "";
-  stubMessages();
 });
 
 afterEach(() => {
@@ -146,8 +144,8 @@ describe("archiveProblem", () => {
     const reasons = ["notZip", "unreadable", "invalid", "newer", "noLibrary", "duplicate", "missingFile", "mismatch", "unknownTag", "unknownPack", "empty", "notInLibrary"] as const;
 
     for (const reason of reasons) {
-      expect(archiveProblem(new ArchiveError(reason, "log message", { name: "n", problem: "p", title: "t" }))).toContain(`archive_${reason}`);
-      expect(archiveProblem(new ArchiveError(reason, "log message"))).toContain(`archive_${reason}`);
+      expect(archiveProblem(new ArchiveError(reason, "log message", { name: "n", problem: "p", title: "t" }))).not.toContain("log message");
+      expect(archiveProblem(new ArchiveError(reason, "log message"))).not.toContain("log message");
     }
 
     expect(archiveProblem(new Error("plain"))).toBe("plain");

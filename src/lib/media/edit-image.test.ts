@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { canvasOf, fileOf, installCanvas, paintedCanvas, pixelAt } from "~/test/canvas";
 import { stubDecoder } from "~/test/decoder";
 
+import { gif } from "~/test/fixtures";
 import { applyEdits, fullRect, NO_EDITS, previewFrames } from "./edit";
-import { gif } from "./fixtures";
 import { inspectImage } from "./inspect";
 import { splitGif } from "./split";
 

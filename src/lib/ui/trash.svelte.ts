@@ -11,7 +11,7 @@ export const UNDO_DELAY = 6000;
 
 type TPending = {
   item: TItem;
-  timer: ReturnType<typeof setTimeout> | null;
+  timer: ReturnType<typeof setTimeout>;
   // Sent to the background: no longer undoable, and hidden until the library no longer lists it.
   committing: boolean;
 };
@@ -33,8 +33,7 @@ function commit(id: string): void {
     return;
   }
 
-  clearTimeout(entry.timer ?? undefined);
-  entry.timer = null;
+  clearTimeout(entry.timer);
   entry.committing = true;
 
   // If the background could not remove it, it shows again.
@@ -65,7 +64,7 @@ export function undoDelete(id: string): void {
   const entry = trash.pending.find(pending => pending.item.id === id && !pending.committing);
 
   if (entry) {
-    clearTimeout(entry.timer ?? undefined);
+    clearTimeout(entry.timer);
     trash.pending = trash.pending.filter(pending => pending !== entry);
   }
 }

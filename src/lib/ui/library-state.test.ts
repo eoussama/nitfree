@@ -3,10 +3,10 @@ import type { TItem } from "~/lib/db";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
-import { png } from "~/lib/media/fixtures";
 import { sendMessage } from "~/lib/messaging";
 import { startBackground } from "~/test/background";
 import { installCanvas } from "~/test/canvas";
+import { png } from "~/test/fixtures";
 
 import { followLibrary, library } from "./library.svelte";
 import { forgetThumbnails, still, STILL_SIZE, thumbnail } from "./thumbnails";
@@ -71,6 +71,38 @@ describe("followLibrary", () => {
     await add("late");
     await wait(150);
     expect(library.items.map(item => item.title)).not.toContain("late");
+  });
+
+  it("loads once more when a change comes in the middle of a load, also after one that fails", async () => {
+    await add("wave");
+
+    const list = background.library.list.bind(background.library);
+    const slow = vi.spyOn(background.library, "list").mockImplementation(async () => {
+      await wait(120);
+
+      return list();
+    });
+    const stop = followLibrary();
+
+    // The settle delay ends while the first load is still going.
+    await sendMessage("tags:add", { name: "Cats" });
+    await wait(400);
+    expect(slow.mock.calls.length).toBe(2);
+    expect(library.tags).toHaveLength(1);
+
+    // A failed load with another to come leaves it to that one.
+    slow.mockImplementationOnce(async () => {
+      await wait(120);
+      throw new Error("Restarting.");
+    });
+    await wait(20);
+    await sendMessage("tags:add", { name: "Dogs" });
+    await wait(80);
+    await sendMessage("tags:add", { name: "Birds" });
+    await wait(500);
+    expect(library).toMatchObject({ loaded: true, error: null });
+    expect(library.tags).toHaveLength(3);
+    stop();
   });
 
   it("loads once more when a change comes while it loads", async () => {
@@ -216,6 +248,25 @@ describe("thumbnails", () => {
     expect(create).toHaveBeenCalledTimes(2);
   });
 
+  it("drops a failed look only if it is still the latest for that item", async () => {
+    const item = await add("wave");
+
+    let fail!: (error: Error) => void;
+
+    vi.spyOn(background.library, "file").mockImplementationOnce(() => new Promise((_, reject) => (fail = reject)));
+
+    const first = thumbnail(item);
+
+    // The file changes while the first look is under way.
+    const second = thumbnail({ ...item, hash: "new" });
+
+    await wait(20);
+    fail(new Error("Gone."));
+    expect(await first).toBeNull();
+    expect(await second).toMatch(/^blob:/);
+    expect(await thumbnail({ ...item, hash: "new" })).toBe(await second);
+  });
+
   it("has none for an item whose file is missing, and tries again at the next look", async () => {
     const item = await add("wave");
 
@@ -265,6 +316,16 @@ describe("thumbnails", () => {
     expect(made).not.toHaveBeenCalled();
   });
 
+  it("still shows a still it could not keep in the library", async () => {
+    installCanvas();
+
+    const large = await add("large", STILL_SIZE * 2);
+
+    vi.spyOn(background.library, "storeVariant").mockRejectedValue(new Error("Full."));
+    expect(await still(large)).toMatch(/^blob:/);
+    await wait(20);
+  });
+
   it("has no still for an item with no file", async () => {
     installCanvas();
 
@@ -276,6 +337,15 @@ describe("thumbnails", () => {
 
   it("makes a few stills at a time, the rest waiting their turn", async () => {
     installCanvas();
+
+    // Each still takes a while, so the ones after the first few have to wait.
+    const decode = globalThis.createImageBitmap;
+
+    vi.stubGlobal("createImageBitmap", async (...args: Parameters<typeof createImageBitmap>) => {
+      await wait(30);
+
+      return decode(...args);
+    });
 
     const items = await Promise.all(Array.from({ length: 6 }, (_, i) => add(`big${i}`, STILL_SIZE * 2 + i)));
     const urls = await Promise.all(items.map(item => still(item)));

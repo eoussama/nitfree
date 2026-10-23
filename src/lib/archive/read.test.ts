@@ -2,7 +2,7 @@ import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 
 import { hashBytes } from "~/lib/db/library";
-import { png } from "~/lib/media/fixtures";
+import { png } from "~/test/fixtures";
 
 import { ArchiveError, readArchive } from "./index";
 import { packsOf, writeArchive } from "./write";

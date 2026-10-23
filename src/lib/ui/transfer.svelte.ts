@@ -149,7 +149,8 @@ export async function pickFolder(files: readonly File[]): Promise<void> {
   }
 
   transfer.busy = null;
-  transfer.pending = { name: files[0]?.webkitRelativePath.split("/")[0] ?? "", archive };
+  // A folder with no images was refused above, so there is a first file.
+  transfer.pending = { name: files[0]!.webkitRelativePath.split("/")[0]!, archive };
 }
 
 /**

@@ -3,7 +3,7 @@ import type { NitfreeDatabase } from "./schema";
 import Dexie from "dexie";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { gif, png } from "~/lib/media/fixtures";
+import { gif, png } from "~/test/fixtures";
 
 import { createLibrary, hashBytes } from "./library";
 import { LEGACY_DATABASE_NAME, MIGRATED_KEY, migrateLegacyDatabase } from "./migrate";

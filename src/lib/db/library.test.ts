@@ -2,7 +2,7 @@ import type { NitfreeDatabase } from "./schema";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { gif, png, webpExtended } from "~/lib/media/fixtures";
+import { gif, png, webpExtended } from "~/test/fixtures";
 
 import { createLibrary, hashBytes } from "./library";
 import { createTags } from "./tags";
