@@ -1,3 +1,4 @@
+export { ACCENT_PATTERN, accentCss, mergeSnippets, SNIPPET_CSS_MAX, SNIPPET_NAME_MAX, themeStyles, type TSnippet } from "./custom";
 export { followStoredTheme } from "./follow";
 export { captureDiscordFont, DISCORD_FONT, discordFont, findFontFaces, loadDiscordFont, pickFontUrl, type TFontFace, type TStoredFont } from "./font";
 export { applyPalette, detectTheme, isReducedMotion, readPalette, schemeOf } from "./palette";

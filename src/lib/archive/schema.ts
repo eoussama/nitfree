@@ -1,6 +1,7 @@
 import * as v from "valibot";
 
 import { ITEM_TYPES } from "~/lib/db/types";
+import { ACCENT_PATTERN, SNIPPET_CSS_MAX, SNIPPET_NAME_MAX } from "~/lib/theme/custom";
 
 
 
@@ -74,6 +75,14 @@ export const ArchiveSettingsSchema = v.object({
   suggestionsAt: v.optional(v.picklist(["end", "start"])),
   shortcut: v.optional(v.boolean()),
   shortcutKeys: v.optional(v.object({ key: v.pipe(v.string(), v.minLength(1), v.maxLength(32)), ctrl: v.boolean(), alt: v.boolean(), shift: v.boolean(), meta: v.boolean() })),
+  // Added in 0.4.0.
+  accentColor: v.optional(v.nullable(v.pipe(v.string(), v.regex(ACCENT_PATTERN)))),
+  snippets: v.optional(v.array(v.object({
+    id: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
+    name: v.pipe(v.string(), v.maxLength(SNIPPET_NAME_MAX)),
+    css: v.pipe(v.string(), v.maxLength(SNIPPET_CSS_MAX)),
+    enabled: v.boolean(),
+  }))),
 });
 
 export type TManifest = v.InferOutput<typeof ManifestSchema>;

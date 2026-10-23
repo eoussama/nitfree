@@ -68,6 +68,24 @@ popup:
     confirmDelete: Delete pack
     icon: Icon
     iconHint: Shows the pack in the panel's sidebar. Until you pick one, it is the pack's newest item.
+  themes:
+    heading: Themes
+    accent: Use my own accent color
+    accentHint: Replaces Discord's blurple on its buttons, switches and highlights, in every Discord tab. Nitfree's panel follows it.
+    accentColor: Accent color
+    pickColor: Pick a color
+    snippets: CSS snippets
+    snippetsHint: CSS added on top of Discord's own styles, in every Discord tab. Turn each one on or off; changes apply at once.
+    none: No snippets yet.
+    new: New snippet
+    untitled: Untitled snippet
+    edit: "Edit {name}"
+    css: CSS
+    cssHint: Applies as you type. Add !important where Discord's own rules still win.
+    done: Done
+    confirmTitle: "Delete the snippet “{name}”"
+    confirm: Its CSS is taken out of Discord and the snippet is deleted. This cannot be undone.
+    confirmDelete: Delete snippet
   add: Quick add
   drop: Drop or paste images here, or pick them.
   settings: Settings

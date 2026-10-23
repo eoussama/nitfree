@@ -68,6 +68,24 @@ popup:
     confirmDelete: Supprimer le pack
     icon: Icône
     iconHint: Représente le pack dans la barre latérale du panneau. Tant que vous n'en choisissez pas, c'est l'élément le plus récent du pack.
+  themes:
+    heading: Thèmes
+    accent: Utiliser ma propre couleur d'accent
+    accentHint: Remplace le blurple de Discord sur ses boutons, interrupteurs et surbrillances, dans chaque onglet Discord. Le panneau de Nitfree la suit.
+    accentColor: Couleur d'accent
+    pickColor: Choisir une couleur
+    snippets: Extraits CSS
+    snippetsHint: Du CSS ajouté par-dessus les styles de Discord, dans chaque onglet Discord. Activez ou désactivez chacun ; les changements s'appliquent aussitôt.
+    none: Aucun extrait pour l'instant.
+    new: Nouvel extrait
+    untitled: Extrait sans nom
+    edit: "Modifier {name}"
+    css: CSS
+    cssHint: S'applique pendant la saisie. Ajoutez !important là où les règles de Discord l'emportent encore.
+    done: Terminé
+    confirmTitle: "Supprimer l'extrait « {name} »"
+    confirm: Son CSS est retiré de Discord et l'extrait est supprimé. Cette action est irréversible.
+    confirmDelete: Supprimer l'extrait
   add: Ajout rapide
   drop: Déposez ou collez des images ici, ou choisissez-les.
   settings: Paramètres

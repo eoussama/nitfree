@@ -1,6 +1,6 @@
 <!--
   The extension popup: the library at a glance, live as it changes in Discord tabs, a place to add
-  files through the same dialog as in Discord, and links to the backup, packs, storage, duplicates and settings pages,
+  files through the same dialog as in Discord, and links to the backup, packs, storage, duplicates, themes and settings pages,
   each opened in place like a page of Discord's settings. Styled with the last palette seen on
   Discord, or the OS light or dark one before any.
 -->
@@ -13,6 +13,7 @@
   import Copy from "@lucide/svelte/icons/copy";
   import HardDrive from "@lucide/svelte/icons/hard-drive";
   import Package from "@lucide/svelte/icons/package";
+  import Palette from "@lucide/svelte/icons/palette";
   import Cog from "@lucide/svelte/icons/settings";
   import { tick } from "svelte";
 
@@ -29,11 +30,12 @@
   import Packs from "./Packs.svelte";
   import Settings from "./Settings.svelte";
   import Storage from "./Storage.svelte";
+  import Themes from "./Themes.svelte";
   import Transfer from "./Transfer.svelte";
 
 
 
-  type TPage = "backup" | "packs" | "storage" | "duplicates" | "settings";
+  type TPage = "backup" | "packs" | "storage" | "duplicates" | "themes" | "settings";
 
   const { version } = browser.runtime.getManifest();
   const REPOSITORY = "https://github.com/eoussama/nitfree";
@@ -44,6 +46,7 @@
     { page: "packs", title: i18n.t("editor.packs"), icon: Package, content: Packs },
     { page: "storage", title: i18n.t("popup.storage.heading"), icon: HardDrive, content: Storage },
     { page: "duplicates", title: i18n.t("popup.duplicates.heading"), icon: Copy, content: Duplicates },
+    { page: "themes", title: i18n.t("popup.themes.heading"), icon: Palette, content: Themes },
     { page: "settings", title: i18n.t("popup.settings"), icon: Cog, content: Settings },
   ];
 

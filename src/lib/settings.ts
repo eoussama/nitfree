@@ -1,4 +1,5 @@
 import type { TShortcut } from "./shortcut";
+import type { TSnippet } from "./theme/custom";
 
 import { DEFAULT_SHORTCUT } from "./shortcut";
 
@@ -60,6 +61,16 @@ export const suggestionsAt = storage.defineItem<TSuggestionsAt>("local:suggestio
 export const shortcut = storage.defineItem<boolean>("local:shortcut", { fallback: true });
 
 export const shortcutKeys = storage.defineItem<TShortcut>("local:shortcutKeys", { fallback: DEFAULT_SHORTCUT });
+
+/**
+ * The color Discord's blurple is replaced with, as `#rrggbb`; null keeps Discord's.
+ */
+export const accentColor = storage.defineItem<string | null>("local:accentColor", { fallback: null });
+
+/**
+ * CSS added to Discord, each piece on or off, in the order it applies.
+ */
+export const cssSnippets = storage.defineItem<TSnippet[]>("local:cssSnippets", { fallback: [] });
 
 /**
  * Whether a pick sends the item, given how it was made and what a plain click is set to do.

@@ -5,8 +5,9 @@ import { tryCatch } from "@eoussama/core";
 
 import { applyArchive, ARCHIVE_EXTENSION, ArchiveError, readArchive, readImages } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
-import { autocomplete, clickAction, fitSendSizes, playAnimations, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
+import { accentColor, autocomplete, clickAction, cssSnippets, fitSendSizes, playAnimations, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
 import { isUsableShortcut } from "~/lib/shortcut";
+import { mergeSnippets } from "~/lib/theme/custom";
 
 import { download, exportName } from "./download";
 import { buildExport } from "./export";
@@ -199,6 +200,9 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
         archive.settings.shortcut === undefined ? undefined : shortcut.setValue(archive.settings.shortcut),
         // One that could not open the panel without taking typing is left out.
         archive.settings.shortcutKeys && isUsableShortcut(archive.settings.shortcutKeys) ? shortcutKeys.setValue(archive.settings.shortcutKeys) : undefined,
+        archive.settings.accentColor === undefined ? undefined : accentColor.setValue(archive.settings.accentColor),
+        // Added to the snippets kept, so a backup from another browser never deletes any.
+        archive.settings.snippets === undefined ? undefined : cssSnippets.setValue(mergeSnippets(await cssSnippets.getValue(), archive.settings.snippets)),
       ]);
     }
 
