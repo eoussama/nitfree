@@ -1,6 +1,6 @@
 import type { EntityTable } from "dexie";
 
-import type { TBlobRow, TItemRow, TMetaRow, TTagRow } from "./types";
+import type { TBlobRow, TItemRow, TMetaRow, TPackRow, TTagRow } from "./types";
 
 import Dexie from "dexie";
 
@@ -16,6 +16,7 @@ export class NitfreeDatabase extends Dexie {
   items!: EntityTable<TItemRow, "id">;
   blobs!: EntityTable<TBlobRow, "itemId">;
   tags!: EntityTable<TTagRow, "id">;
+  packs!: EntityTable<TPackRow, "id">;
   meta!: EntityTable<TMetaRow, "key">;
 
   /**
@@ -32,5 +33,13 @@ export class NitfreeDatabase extends Dexie {
       tags: "id, &key",
       meta: "key",
     });
+
+    // Items added before packs existed get an empty list, so every item carries one.
+    this.version(2).stores({
+      items: "id, title, *tags, *packs, type, favorite, usedAt, hash, createdAt",
+      packs: "id, &key",
+    }).upgrade(tx => tx.table("items").toCollection().modify((item: { packs?: string[] }) => {
+      item.packs ??= [];
+    }));
   }
 }

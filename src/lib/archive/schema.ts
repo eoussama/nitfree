@@ -28,12 +28,20 @@ export const ArchiveTagSchema = v.object({
   createdAt: Timestamp,
 });
 
+export const ArchivePackSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+  name: v.pipe(v.string(), v.trim(), v.minLength(1)),
+  createdAt: Timestamp,
+});
+
 export const ArchiveItemSchema = v.object({
   id: v.pipe(v.string(), v.minLength(1)),
   type: v.picklist(ITEM_TYPES),
   title: v.pipe(v.string(), v.trim(), v.minLength(1)),
   description: v.string(),
   tags: v.array(v.string()),
+  // Added in 0.4.0; archives made before it hold no packs.
+  packs: v.optional(v.array(v.string()), []),
   favorite: v.boolean(),
   hash: v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/)),
   size: Count,
@@ -52,6 +60,7 @@ export const ArchiveItemSchema = v.object({
 export const LibrarySchema = v.object({
   items: v.array(ArchiveItemSchema),
   tags: v.array(ArchiveTagSchema),
+  packs: v.optional(v.array(ArchivePackSchema), []),
 });
 
 export const ArchiveSettingsSchema = v.object({
@@ -67,6 +76,7 @@ export const ArchiveSettingsSchema = v.object({
 
 export type TManifest = v.InferOutput<typeof ManifestSchema>;
 export type TArchiveTag = v.InferOutput<typeof ArchiveTagSchema>;
+export type TArchivePack = v.InferOutput<typeof ArchivePackSchema>;
 export type TArchiveItem = v.InferOutput<typeof ArchiveItemSchema>;
 export type TArchiveLibrary = v.InferOutput<typeof LibrarySchema>;
 export type TArchiveSettings = v.InferOutput<typeof ArchiveSettingsSchema>;

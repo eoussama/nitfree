@@ -20,6 +20,12 @@ export type TFingerprinter = (file: Blob) => Promise<string | null>;
 
 export type TLibrary = ReturnType<typeof createLibrary>;
 
+/**
+ * What importing an item did: `added` when it is new, else the item already holding its file was
+ * changed, by joining the packs the import is in.
+ */
+export type TImportResult = { item: TItem; added: boolean };
+
 
 
 /**
@@ -127,6 +133,18 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
     return unique;
   }
 
+  async function checkPacks(ids: readonly string[]): Promise<string[]> {
+    const unique = [...new Set(ids)];
+    const found = await db.packs.bulkGet(unique);
+    const missing = unique.filter((_, i) => !found[i]);
+
+    if (missing.length) {
+      throw new Error(`Unknown pack ${missing.map(id => `"${id}"`).join(", ")}`);
+    }
+
+    return unique;
+  }
+
   async function getRow(id: string): Promise<TItemRow> {
     const row = await db.items.get(id);
 
@@ -187,13 +205,14 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
       const print = await fingerprintOf(inspected.file);
       const timestamp = now();
 
-      return db.transaction("rw", db.items, db.blobs, db.tags, async () => {
+      return db.transaction("rw", db.items, db.blobs, db.tags, db.packs, async () => {
         const row: TItemRow = {
           id: crypto.randomUUID(),
           type: input.type,
           title,
           description: input.description?.trim() ?? "",
           tags: await checkTags(input.tags ?? []),
+          packs: await checkPacks(input.packs ?? []),
           favorite: input.favorite ? 1 : 0,
           hash: inspected.hash,
           size: inspected.size,
@@ -221,9 +240,10 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
      *
      * @param input - The file and its details.
      * @param skipDuplicates - Leave out a file whose content is already in the library.
-     * @returns The new item, or null when it was skipped as a duplicate.
+     * @returns The new item; for a duplicate left out, the item already holding the file when it joined
+     * the packs the import is in, else null.
      */
-    async import(input: TImportItem, skipDuplicates: boolean): Promise<TItem | null> {
+    async import(input: TImportItem, skipDuplicates: boolean): Promise<TImportResult | null> {
       checkType(input.type);
 
       const title = checkTitle(input.title);
@@ -231,9 +251,23 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
       const print = await fingerprintOf(inspected.file);
       const timestamp = now();
 
-      return db.transaction("rw", db.items, db.blobs, db.tags, async () => {
-        if (skipDuplicates && await db.items.where("hash").equals(inspected.hash).count()) {
-          return null;
+      return db.transaction("rw", db.items, db.blobs, db.tags, db.packs, async (): Promise<TImportResult | null> => {
+        const packs = await checkPacks(input.packs ?? []);
+        const existing = skipDuplicates ? await db.items.where("hash").equals(inspected.hash).first() : undefined;
+
+        if (existing) {
+          // The copy already there joins the packs, so a pack imports whole even where some of it was.
+          const joined = [...new Set([...existing.packs, ...packs])];
+
+          if (joined.length === existing.packs.length) {
+            return null;
+          }
+
+          const row: TItemRow = { ...existing, packs: joined, updatedAt: timestamp };
+
+          await db.items.put(row);
+
+          return { item: toItem(row), added: false };
         }
 
         // An id that is already taken belongs to a different item, so this one gets a fresh id.
@@ -245,6 +279,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
           title,
           description: input.description?.trim() ?? "",
           tags: await checkTags(input.tags ?? []),
+          packs,
           favorite: input.favorite ? 1 : 0,
           hash: inspected.hash,
           size: inspected.size,
@@ -263,7 +298,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
         await db.items.add(row);
         await db.blobs.add({ itemId: id, original: inspected.file, variants: {} });
 
-        return toItem(row);
+        return { item: toItem(row), added: true };
       });
     },
 
@@ -299,7 +334,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
       const inspected = patch.file ? await inspectFile(patch.file) : null;
       const print = inspected ? await fingerprintOf(inspected.file) : null;
 
-      return db.transaction("rw", db.items, db.blobs, db.tags, async () => {
+      return db.transaction("rw", db.items, db.blobs, db.tags, db.packs, async () => {
         const current = await getRow(id);
         const row: TItemRow = {
           ...current,
@@ -307,6 +342,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
           ...(title !== undefined && { title }),
           ...(patch.description !== undefined && { description: patch.description.trim() }),
           ...(patch.tags !== undefined && { tags: await checkTags(patch.tags) }),
+          ...(patch.packs !== undefined && { packs: await checkPacks(patch.packs) }),
           ...(patch.favorite !== undefined && { favorite: patch.favorite ? 1 : 0 }),
           ...(inspected && {
             hash: inspected.hash,
@@ -399,8 +435,8 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
     },
 
     /**
-     * Keeps one of several duplicates: it takes the others' tags, favorite and sends, then the others
-     * are deleted.
+     * Keeps one of several duplicates: it takes the others' tags, packs, favorite and sends, then the
+     * others are deleted.
      *
      * @param keep - The item to keep.
      * @param remove - The duplicates to delete.
@@ -417,6 +453,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
           ...kept,
           description: kept.description || (rows.find(other => other.description)?.description ?? ""),
           tags: [...new Set([kept, ...rows].flatMap(other => other.tags))],
+          packs: [...new Set([kept, ...rows].flatMap(other => other.packs))],
           favorite: [kept, ...rows].some(other => other.favorite) ? 1 : 0,
           usedAt: used.length ? Math.max(...used) : null,
           usageCount: [kept, ...rows].reduce((sum, other) => sum + other.usageCount, 0),

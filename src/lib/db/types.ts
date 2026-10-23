@@ -15,6 +15,7 @@ export type TItem = {
   title: string;
   description: string;
   tags: string[];
+  packs: string[];
   favorite: boolean;
   hash: string;
   size: number;
@@ -42,6 +43,7 @@ export type TNewItem = {
   title: string;
   description?: string;
   tags?: string[];
+  packs?: string[];
   favorite?: boolean;
 };
 
@@ -56,7 +58,7 @@ export type TImportItem = TNewItem & {
   usageCount?: number;
 };
 
-export type TItemPatch = Partial<Pick<TItem, "type" | "title" | "description" | "tags" | "favorite">> & {
+export type TItemPatch = Partial<Pick<TItem, "type" | "title" | "description" | "tags" | "packs" | "favorite">> & {
   file?: Blob;
 };
 
@@ -66,6 +68,21 @@ export type TNewTag = {
 };
 
 export type TTagPatch = Partial<TNewTag>;
+
+/**
+ * A pack: a named group of items that can be shared as a file of its own. An item can be in several.
+ */
+export type TPack = {
+  id: string;
+  name: string;
+  createdAt: number;
+};
+
+export type TNewPack = {
+  name: string;
+};
+
+export type TPackPatch = Partial<TNewPack>;
 
 /**
  * What the sized copies take up: the bytes of every copy and how many there are.
@@ -105,6 +122,11 @@ export type TBlobRow = {
  * How tags are stored: `key` is the normalized name that keeps names unique regardless of case.
  */
 export type TTagRow = TTag & { key: string };
+
+/**
+ * How packs are stored, with the same normalized `key` tags have, so pack names are unique too.
+ */
+export type TPackRow = TPack & { key: string };
 
 /**
  * Bookkeeping for the database itself, such as whether the previous version's library was moved over.

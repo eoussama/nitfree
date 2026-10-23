@@ -1,6 +1,6 @@
 import type { TArchiveItem, TArchiveLibrary, TArchiveSettings, TManifest } from "./schema";
 
-import type { TItem, TTag } from "~/lib/db";
+import type { TItem, TPack, TTag } from "~/lib/db";
 
 import { strToU8, zipSync } from "fflate";
 
@@ -12,6 +12,12 @@ import { ARCHIVE_VERSION } from "./schema";
 export type TArchiveSource = {
   items: readonly TItem[];
   tags: readonly TTag[];
+
+  /**
+   * The packs to include. An item keeps only the packs listed here, so a part of the library exports
+   * with the packs it needs and nothing else.
+   */
+  packs?: readonly TPack[];
   settings?: TArchiveSettings;
   appVersion: string;
 
@@ -52,22 +58,36 @@ export function tagsOf(items: readonly TItem[], tags: readonly TTag[]): TTag[] {
   return tags.filter(tag => used.has(tag.id));
 }
 
+/**
+ * Keeps the packs that at least one of the items is in.
+ *
+ * @param items - The items.
+ * @param packs - Every pack.
+ * @returns The packs in use.
+ */
+export function packsOf(items: readonly TItem[], packs: readonly TPack[]): TPack[] {
+  const used = new Set(items.flatMap(item => item.packs));
+
+  return packs.filter(pack => used.has(pack.id));
+}
+
 function json(value: unknown): Uint8Array {
   return strToU8(JSON.stringify(value, null, 2));
 }
 
 /**
- * Packs items, their tags and their original files into a `.nitfree` archive: a zip holding
+ * Packs items, their tags, packs and original files into a `.nitfree` archive: a zip holding
  * `manifest.json`, `library.json`, the files under `files/`, and optionally `settings.json`.
  *
  * @param source - What to pack and how to read the files.
  * @returns The archive's bytes.
  */
 export async function writeArchive(source: TArchiveSource): Promise<Uint8Array> {
-  const { items, tags, settings, appVersion, readFile, onProgress, now = Date.now } = source;
+  const { items, tags, packs = [], settings, appVersion, readFile, onProgress, now = Date.now } = source;
   // Images are already compressed, so the files are stored as they are and only the JSON is deflated.
   const entries: Record<string, [Uint8Array, { level: 0 | 6 }]> = {};
   const archived: TArchiveItem[] = [];
+  const packIds = new Set(packs.map(pack => pack.id));
 
   for (const [index, item] of items.entries()) {
     const bytes = await readFile(item);
@@ -79,7 +99,7 @@ export async function writeArchive(source: TArchiveSource): Promise<Uint8Array> 
     const file = archivePath(item);
 
     entries[file] = [bytes, { level: 0 }];
-    archived.push({ ...item, file });
+    archived.push({ ...item, packs: item.packs.filter(id => packIds.has(id)), file });
     onProgress?.(index + 1, items.length);
   }
 
@@ -87,6 +107,7 @@ export async function writeArchive(source: TArchiveSource): Promise<Uint8Array> 
   const library: TArchiveLibrary = {
     items: archived,
     tags: tags.map(({ id, name, color, createdAt }) => ({ id, name, color, createdAt })),
+    packs: packs.map(({ id, name, createdAt }) => ({ id, name, createdAt })),
   };
 
   entries["manifest.json"] = [json(manifest), { level: 6 }];

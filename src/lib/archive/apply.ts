@@ -1,6 +1,6 @@
 import type { TParsedArchive } from "./read";
 
-import type { TImportItem, TItem, TNewTag, TTag } from "~/lib/db";
+import type { TImportItem, TItem, TNewPack, TNewTag, TPack, TTag } from "~/lib/db";
 
 
 
@@ -12,6 +12,7 @@ export type TImportMode = "merge" | "replace";
 export type TImportTarget = {
   clear: () => Promise<void>;
   ensureTag: (tag: TNewTag) => Promise<Pick<TTag, "id">>;
+  ensurePack: (pack: TNewPack) => Promise<Pick<TPack, "id">>;
 
   /**
    * Adds one item; resolves to null when it was skipped as a duplicate.
@@ -48,9 +49,15 @@ export async function applyArchive(
   }
 
   const tagIds: Record<string, string> = Object.create(null) as Record<string, string>;
+  const packIds: Record<string, string> = Object.create(null) as Record<string, string>;
 
   for (const tag of archive.tags) {
     tagIds[tag.name] = (await target.ensureTag({ name: tag.name, color: tag.color })).id;
+  }
+
+  // A pack already in the library takes the imported items, rather than a copy of it being made.
+  for (const pack of archive.packs) {
+    packIds[pack.name] = (await target.ensurePack({ name: pack.name })).id;
   }
 
   const counts: TImportCounts = { added: 0, skipped: 0, failed: 0 };
@@ -64,6 +71,7 @@ export async function applyArchive(
         title: entry.title,
         description: entry.description,
         tags: entry.tags.map(name => tagIds[name]).filter((id): id is string => id !== undefined),
+        packs: entry.packs.map(name => packIds[name]).filter((id): id is string => id !== undefined),
         favorite: entry.favorite,
         createdAt: entry.createdAt ?? undefined,
         updatedAt: entry.updatedAt ?? undefined,

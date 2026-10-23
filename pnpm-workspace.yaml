@@ -9,3 +9,13 @@ trustPolicyExclude:
   - chokidar@4.0.3
 
 shellEmulator: true
+
+# KaTeX is only reached through the linter's Markdown support; 0.18.2 fixes its prototype pollution.
+overrides:
+  katex: ">=0.18.2"
+
+auditConfig:
+  ignoreGhsas:
+    # node-forge has no patched release. It is only reached through web-ext's Android debugging
+    # (adbkit), a build-time tool that never ships in the extension and never verifies RSA signatures.
+    - GHSA-86w9-cpqp-85rv

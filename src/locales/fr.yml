@@ -35,7 +35,7 @@ popup:
     persisted: Le navigateur gardera votre bibliothèque, même quand le disque manque d'espace.
   duplicates:
     heading: Doublons
-    hint: Des éléments qui montrent la même image, en fichier identique ou en copie redimensionnée ou convertie. Gardez-en un de chaque, il reprend les tags, le favori et les envois des autres avant leur suppression.
+    hint: Des éléments qui montrent la même image, en fichier identique ou en copie redimensionnée ou convertie. Gardez-en un de chaque, il reprend les tags, les packs, le favori et les envois des autres avant leur suppression.
     searching: Recherche des doublons…
     none: Aucun doublon dans votre bibliothèque.
     exact:
@@ -48,10 +48,24 @@ popup:
     keep: Garder la sélection
     confirmTitle: "Garder « {title} »"
     confirm:
-      1: L'autre élément est définitivement supprimé de votre bibliothèque, une fois ses tags, son favori et ses envois repris. Cette action est irréversible.
-      n: Les $1 autres éléments sont définitivement supprimés de votre bibliothèque, une fois leurs tags, favoris et envois repris. Cette action est irréversible.
+      1: L'autre élément est définitivement supprimé de votre bibliothèque, une fois ses tags, ses packs, son favori et ses envois repris. Cette action est irréversible.
+      n: Les $1 autres éléments sont définitivement supprimés de votre bibliothèque, une fois leurs tags, packs, favoris et envois repris. Cette action est irréversible.
     confirmMerge: Garder et supprimer les autres
     merged: "« {title} » gardé, {items} supprimés."
+  packs:
+    new: Nouveau pack
+    hint: Regroupez les éléments en packs pour filtrer par pack et partager chacun dans un fichier .nitfree. Un élément peut appartenir à plusieurs packs.
+    create: Créer le pack
+    created: "Pack « {name} » créé."
+    list: Vos packs
+    listHint: Choisissez un pack pour le renommer, le supprimer ou l'exporter. Les éléments rejoignent les packs depuis leur fenêtre de modification.
+    none: Aucun pack pour le moment.
+    rename: Renommer
+    renamed: "Pack renommé en « {name} »."
+    deleted: "Pack « {name} » supprimé."
+    confirmTitle: "Supprimer « {name} »"
+    confirm: Le pack est supprimé, et ses éléments restent dans votre bibliothèque.
+    confirmDelete: Supprimer le pack
   add: Ajout rapide
   drop: Déposez ou collez des images ici, ou choisissez-les.
   settings: Paramètres
@@ -80,7 +94,7 @@ popup:
     exportTitle: Exporter
     export: Exporter la bibliothèque
     exportSettings: Inclure les paramètres
-    exportHint: Enregistre tous les éléments, étiquettes et favoris dans un fichier .nitfree.
+    exportHint: Enregistre tous les éléments, étiquettes, packs et favoris dans un fichier .nitfree.
     import: Importer un fichier
     importFolder: Importer un dossier
     importHint: Une sauvegarde .nitfree, ou un zip ou dossier d'images, dont les noms de dossiers deviennent des étiquettes.
@@ -90,6 +104,7 @@ popup:
       1: 1 étiquette
       n: $1 étiquettes
     summary: "{items}, {tags}, {size}"
+    packs: "Packs : {names}"
     images: Des images simples. Les noms de dossiers deviennent des étiquettes et les noms de fichiers des titres.
     ignored:
       1: 1 fichier qui n'est pas une image prise en charge est ignoré.
@@ -110,7 +125,7 @@ panel:
   placeholder: Vos emojis, stickers et GIF apparaîtront ici.
   emptyHint: Ajoutez des images depuis votre ordinateur, ou déposez-les ou collez-les ici.
   search: Rechercher dans Nitfree
-  filter: Filtrer par type ou tag
+  filter: Filtrer par type, pack ou tag
   add: Ajouter
   error: Impossible de charger votre bibliothèque.
   noResults: Aucun résultat pour « {query} ».
@@ -141,6 +156,8 @@ editor:
   type: Type
   tags: Tags
   tagsPlaceholder: Ajoutez des tags, séparés par des virgules
+  packs: Packs
+  packsHint: Créez des packs depuis le bouton Nitfree de la barre d'outils, sur sa page Packs, pour regrouper les éléments.
   description: Description
   optional: Facultatif
   replace: Remplacer le fichier
@@ -227,6 +244,7 @@ archive:
   missingFile: "Le fichier de « {title} » manque dans cette sauvegarde."
   mismatch: "Le fichier de « {title} » a été modifié ou endommagé après l'export."
   unknownTag: "« {title} » a une étiquette que cette sauvegarde ne contient pas."
+  unknownPack: "« {title} » est dans un pack que cette sauvegarde ne contient pas."
   empty: Aucune image prise en charge par Nitfree (PNG, APNG, GIF, WebP et JPEG).
   notInLibrary: "Le fichier de « {title} » manque dans votre bibliothèque."
   unreadableFile: Ce fichier n'a pas pu être lu.

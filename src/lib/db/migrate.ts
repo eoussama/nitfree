@@ -101,6 +101,7 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
       title: (typeof metadata.title === "string" && metadata.title.trim()) || "Untitled",
       description: typeof metadata.description === "string" ? metadata.description.trim() : "",
       tags: typeof metadata.tagId === "string" ? [metadata.tagId] : [],
+      packs: [],
       favorite: metadata.favorite ? 1 : 0,
       hash: inspected.hash,
       size: inspected.size,

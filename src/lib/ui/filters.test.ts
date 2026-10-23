@@ -1,8 +1,8 @@
-import type { TItem, TTag } from "~/lib/db/types";
+import type { TItem, TPack, TTag } from "~/lib/db/types";
 
 import { describe, expect, it } from "vitest";
 
-import { applyFilters, filterCount, findTagOptions, noFilters, tagOptions, toggled, typeOptions, withoutMissingTags } from "./filters";
+import { applyFilters, filterCount, findTagOptions, noFilters, packOptions, tagOptions, toggled, typeOptions, withoutMissingPacks, withoutMissingTags } from "./filters";
 
 
 
@@ -13,6 +13,7 @@ function item(id: string, patch: Partial<TItem> = {}): TItem {
     title: id,
     description: "",
     tags: [],
+    packs: [],
     favorite: false,
     hash: id,
     size: 1,
@@ -33,6 +34,10 @@ function tag(id: string, name = id): TTag {
   return { id, name, color: null, createdAt: 0 };
 }
 
+function pack(id: string, name = id): TPack {
+  return { id, name, createdAt: 0 };
+}
+
 describe("applyFilters", () => {
   const items = [
     item("a", { type: "emoji", tags: ["cat", "happy"] }),
@@ -50,19 +55,37 @@ describe("applyFilters", () => {
   });
 
   it("keeps only items carrying all the chosen tags", () => {
-    expect(applyFilters(items, { types: [], tags: ["cat"] }).map(found => found.id)).toEqual(["a", "b"]);
-    expect(applyFilters(items, { types: [], tags: ["cat", "happy"] }).map(found => found.id)).toEqual(["a"]);
-    expect(applyFilters(items, { types: [], tags: ["cat", "missing"] })).toEqual([]);
+    expect(applyFilters(items, { types: [], tags: ["cat"], packs: [] }).map(found => found.id)).toEqual(["a", "b"]);
+    expect(applyFilters(items, { types: [], tags: ["cat", "happy"], packs: [] }).map(found => found.id)).toEqual(["a"]);
+    expect(applyFilters(items, { types: [], tags: ["cat", "missing"], packs: [] })).toEqual([]);
   });
 
   it("keeps items of any of the chosen types", () => {
-    expect(applyFilters(items, { types: ["gif"], tags: [] }).map(found => found.id)).toEqual(["b", "d"]);
-    expect(applyFilters(items, { types: ["gif", "sticker"], tags: [] }).map(found => found.id)).toEqual(["b", "c", "d"]);
+    expect(applyFilters(items, { types: ["gif"], tags: [], packs: [] }).map(found => found.id)).toEqual(["b", "d"]);
+    expect(applyFilters(items, { types: ["gif", "sticker"], tags: [], packs: [] }).map(found => found.id)).toEqual(["b", "c", "d"]);
   });
 
   it("combines types and tags", () => {
-    expect(applyFilters(items, { types: ["gif"], tags: ["cat"] }).map(found => found.id)).toEqual(["b"]);
-    expect(applyFilters(items, { types: ["sticker"], tags: ["cat"] })).toEqual([]);
+    expect(applyFilters(items, { types: ["gif"], tags: ["cat"], packs: [] }).map(found => found.id)).toEqual(["b"]);
+    expect(applyFilters(items, { types: ["sticker"], tags: ["cat"], packs: [] })).toEqual([]);
+  });
+
+  it("keeps items in any of the chosen packs, as an item can be in several", () => {
+    const packed = [
+      item("a", { packs: ["cats"] }),
+      item("b", { packs: ["dogs", "cats"] }),
+      item("c", { packs: ["dogs"] }),
+      item("d", { packs: [] }),
+    ];
+
+    expect(applyFilters(packed, { types: [], tags: [], packs: ["cats"] }).map(found => found.id)).toEqual(["a", "b"]);
+    expect(applyFilters(packed, { types: [], tags: [], packs: ["cats", "dogs"] }).map(found => found.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("combines packs with types and tags", () => {
+    const packed = [item("a", { type: "gif", tags: ["cat"], packs: ["cats"] }), item("b", { type: "emoji", tags: ["cat"], packs: ["cats"] })];
+
+    expect(applyFilters(packed, { types: ["gif"], tags: ["cat"], packs: ["cats"] }).map(found => found.id)).toEqual(["a"]);
   });
 });
 
@@ -77,9 +100,9 @@ describe("toggled", () => {
 });
 
 describe("filterCount", () => {
-  it("counts types and tags together", () => {
+  it("counts types, tags and packs together", () => {
     expect(filterCount(noFilters())).toBe(0);
-    expect(filterCount({ types: ["gif"], tags: ["a", "b"] })).toBe(3);
+    expect(filterCount({ types: ["gif"], tags: ["a", "b"], packs: ["p"] })).toBe(4);
   });
 });
 
@@ -100,6 +123,18 @@ describe("tagOptions", () => {
   });
 });
 
+describe("packOptions", () => {
+  it("counts the items in each pack, in the order given, and keeps empty packs", () => {
+    const items = [item("a", { packs: ["cats"] }), item("b", { packs: ["cats", "dogs"] })];
+
+    expect(packOptions(items, [pack("dogs"), pack("cats"), pack("new")])).toEqual([
+      { value: "dogs", count: 1 },
+      { value: "cats", count: 2 },
+      { value: "new", count: 0 },
+    ]);
+  });
+});
+
 describe("typeOptions", () => {
   it("counts the items of each type, in the order given", () => {
     const items = [item("a", { type: "gif" }), item("b", { type: "gif" }), item("c", { type: "image" })];
@@ -114,13 +149,25 @@ describe("typeOptions", () => {
 
 describe("withoutMissingTags", () => {
   it("drops tags that no longer exist", () => {
-    expect(withoutMissingTags({ types: ["gif"], tags: ["cat", "gone"] }, [tag("cat")])).toEqual({ types: ["gif"], tags: ["cat"] });
+    expect(withoutMissingTags({ types: ["gif"], tags: ["cat", "gone"], packs: [] }, [tag("cat")])).toEqual({ types: ["gif"], tags: ["cat"], packs: [] });
   });
 
   it("returns the same filter when nothing is missing, so nothing re-renders", () => {
-    const filters = { types: [], tags: ["cat"] };
+    const filters = { types: [], tags: ["cat"], packs: [] };
 
     expect(withoutMissingTags(filters, [tag("cat")])).toBe(filters);
+  });
+});
+
+describe("withoutMissingPacks", () => {
+  it("drops packs that no longer exist", () => {
+    expect(withoutMissingPacks({ types: [], tags: [], packs: ["cats", "gone"] }, [pack("cats")])).toEqual({ types: [], tags: [], packs: ["cats"] });
+  });
+
+  it("returns the same filter when nothing is missing, so nothing re-renders", () => {
+    const filters = { types: [], tags: [], packs: ["cats"] };
+
+    expect(withoutMissingPacks(filters, [pack("cats")])).toBe(filters);
   });
 });
 

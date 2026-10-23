@@ -110,6 +110,9 @@
         })}
       </p>
       <p class="note name">{pending.name}</p>
+      {#if pending.archive.packs.length}
+        <p class="note name">{i18n.t("popup.transfer.packs", { names: pending.archive.packs.map(pack => pack.name).join(", ") })}</p>
+      {/if}
       {#if pending.archive.kind === "images"}
         <p class="note">{i18n.t("popup.transfer.images")}</p>
       {/if}

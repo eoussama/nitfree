@@ -13,6 +13,7 @@ function item(id: string, patch: Partial<TItem> = {}): TItem {
     title: id,
     description: "",
     tags: [],
+    packs: [],
     favorite: false,
     hash: id,
     size: 1,

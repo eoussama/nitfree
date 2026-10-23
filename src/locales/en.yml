@@ -35,7 +35,7 @@ popup:
     persisted: The browser will keep your library, even when the disk runs low on space.
   duplicates:
     heading: Duplicates
-    hint: Items that show the same picture, as the same file or a resized or converted copy. Keep one of each, and it takes the others' tags, favorite and sends before they are deleted.
+    hint: Items that show the same picture, as the same file or a resized or converted copy. Keep one of each, and it takes the others' tags, packs, favorite and sends before they are deleted.
     searching: Looking for duplicates…
     none: No duplicates in your library.
     exact:
@@ -48,10 +48,24 @@ popup:
     keep: Keep selected
     confirmTitle: "Keep “{title}”"
     confirm:
-      1: The other item is deleted from your library for good, once its tags, favorite and sends are moved over. This cannot be undone.
-      n: The $1 other items are deleted from your library for good, once their tags, favorite and sends are moved over. This cannot be undone.
+      1: The other item is deleted from your library for good, once its tags, packs, favorite and sends are moved over. This cannot be undone.
+      n: The $1 other items are deleted from your library for good, once their tags, packs, favorite and sends are moved over. This cannot be undone.
     confirmMerge: Keep and delete others
     merged: "Kept “{title}” and deleted {items}."
+  packs:
+    new: New pack
+    hint: Group items into packs to filter by them and share them as one .nitfree file each. An item can be in several packs.
+    create: Create pack
+    created: "Created “{name}”."
+    list: Your packs
+    listHint: Pick a pack to rename, delete or export it. Items join packs from their edit dialog.
+    none: No packs yet.
+    rename: Rename
+    renamed: "Renamed to “{name}”."
+    deleted: "Deleted “{name}”."
+    confirmTitle: "Delete “{name}”"
+    confirm: The pack is deleted, and its items stay in your library.
+    confirmDelete: Delete pack
   add: Quick add
   drop: Drop or paste images here, or pick them.
   settings: Settings
@@ -80,7 +94,7 @@ popup:
     exportTitle: Export
     export: Export library
     exportSettings: Include settings
-    exportHint: Saves every item, tag and favorite as one .nitfree file.
+    exportHint: Saves every item, tag, pack and favorite as one .nitfree file.
     import: Import file
     importFolder: Import folder
     importHint: A .nitfree backup, or a zip or folder of images, where folder names become tags.
@@ -90,6 +104,7 @@ popup:
       1: 1 tag
       n: $1 tags
     summary: "{items}, {tags}, {size}"
+    packs: "Packs: {names}"
     images: Plain images. Folder names become tags and file names become titles.
     ignored:
       1: 1 file that is not a supported image is left out.
@@ -110,7 +125,7 @@ panel:
   placeholder: Your emojis, stickers and GIFs will show up here.
   emptyHint: Add images from your computer, or drop or paste them here.
   search: Search Nitfree
-  filter: Filter by type or tag
+  filter: Filter by type, pack or tag
   add: Add Files
   error: Your library could not be loaded.
   noResults: Nothing matches “{query}”.
@@ -141,6 +156,8 @@ editor:
   type: Type
   tags: Tags
   tagsPlaceholder: Add tags, separated by commas
+  packs: Packs
+  packsHint: Make packs from Nitfree's toolbar button, on its Packs page, to group items.
   description: Description
   optional: Optional
   replace: Replace file
@@ -227,6 +244,7 @@ archive:
   missingFile: "The file of “{title}” is missing from this backup."
   mismatch: "The file of “{title}” was changed or damaged after it was exported."
   unknownTag: "“{title}” has a tag this backup does not list."
+  unknownPack: "“{title}” is in a pack this backup does not list."
   empty: This has no images Nitfree accepts (PNG, APNG, GIF, WebP and JPEG).
   notInLibrary: "The file of “{title}” is missing from your library."
   unreadableFile: This file could not be read.

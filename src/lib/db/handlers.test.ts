@@ -8,6 +8,7 @@ import { png } from "~/lib/media/fixtures";
 
 import { createLibraryHandlers } from "./handlers";
 import { createLibrary } from "./library";
+import { createPacks } from "./packs";
 import { createTags } from "./tags";
 import { openTestDatabase, steppingClock } from "./testing";
 
@@ -23,7 +24,7 @@ beforeEach(async () => {
 
   notify = vi.fn<TNotify>(async () => undefined);
   // A clock that moves on each read, so items added one after the other are never the same age.
-  handlers = createLibraryHandlers(createLibrary(db, steppingClock()), createTags(db), notify);
+  handlers = createLibraryHandlers(createLibrary(db, steppingClock()), createTags(db), createPacks(db), notify);
 });
 
 describe("library handlers", () => {
@@ -137,6 +138,45 @@ describe("library handlers", () => {
     expect(notify).toHaveBeenCalledWith("library:changed", { change: "updated", ids: [kept.id] });
     expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "removed", ids: [copy.id] });
     expect(await handlers["library:list"]!(undefined, sender)).toHaveLength(1);
+  });
+
+  it("create, rename and remove packs, announcing each change and the items a removed pack leaves", async () => {
+    const pack = await handlers["packs:add"]!({ name: "cats" }, sender);
+
+    expect(notify).toHaveBeenLastCalledWith("packs:changed", { change: "added", ids: [pack.id] });
+    expect(await handlers["packs:ensure"]!({ name: "CATS" }, sender)).toEqual(pack);
+    expect(await handlers["packs:update"]!({ id: pack.id, patch: { name: "wave" } }, sender)).toEqual({ ...pack, name: "wave" });
+    expect(notify).toHaveBeenLastCalledWith("packs:changed", { change: "updated", ids: [pack.id] });
+
+    const item = await handlers["library:add"]!({ file: new Blob([png(4, 4)]), type: "emoji", title: "a", packs: [pack.id] }, sender);
+
+    notify.mockClear();
+    await handlers["packs:remove"]!({ id: pack.id }, sender);
+
+    expect(notify).toHaveBeenCalledWith("packs:changed", { change: "removed", ids: [pack.id] });
+    expect(notify).toHaveBeenLastCalledWith("library:changed", { change: "updated", ids: [item.id] });
+    expect(await handlers["packs:list"]!(undefined, sender)).toEqual([]);
+    expect((await handlers["library:get"]!({ id: item.id }, sender))?.packs).toEqual([]);
+  });
+
+  it("announce a duplicate import that joins a pack as an update, and still answer it as skipped", async () => {
+    const pack = await handlers["packs:add"]!({ name: "cats" }, sender);
+    const item = await handlers["library:add"]!({ file: new Blob([png(4, 4)]), type: "emoji", title: "a" }, sender);
+
+    notify.mockClear();
+    expect(await handlers["library:import"]!({ item: { file: new Blob([png(4, 4)]), type: "emoji", title: "a", packs: [pack.id] }, skipDuplicates: true }, sender)).toBeNull();
+    expect(notify).toHaveBeenCalledExactlyOnceWith("library:changed", { change: "updated", ids: [item.id] });
+    expect((await handlers["library:get"]!({ id: item.id }, sender))?.packs).toEqual([pack.id]);
+  });
+
+  it("empties the packs with the library", async () => {
+    const pack = await handlers["packs:add"]!({ name: "cats" }, sender);
+
+    notify.mockClear();
+    await handlers["library:clear"]!(undefined, sender);
+
+    expect(notify).toHaveBeenCalledWith("packs:changed", { change: "removed", ids: [pack.id] });
+    expect(await handlers["packs:list"]!(undefined, sender)).toEqual([]);
   });
 
   it("still answers when an announcement fails", async () => {

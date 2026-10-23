@@ -37,6 +37,8 @@ export type TDraft = {
   type: TItemType;
   description: string;
   tags: string[];
+  // The ids of the packs the item is in.
+  packs: string[];
   // The file before quick edits, kept to edit again from or to go back to, and the edits made to it;
   // both null when the image is not edited.
   source: File | null;
@@ -228,6 +230,7 @@ async function readDrafts(files: readonly File[], preset: TDraftPreset): Promise
       type: preset.type ?? guessItemType(read.info),
       description: "",
       tags: [],
+      packs: [],
       source: null,
       edits: null,
       copyOf: null,
@@ -310,6 +313,7 @@ function itemDraft(item: TItem): TDraft {
     type: item.type,
     description: item.description,
     tags: item.tags.flatMap(id => library.tags.find(tag => tag.id === id)?.name ?? []),
+    packs: [...item.packs],
     source: null,
     edits: null,
     copyOf: null,
@@ -497,7 +501,7 @@ export async function revertDraft(draft: TDraft): Promise<void> {
 
   if (item) {
     release([current]);
-    Object.assign(current, itemDraft(item), { key: current.key, title: current.title, type: current.type, description: current.description, tags: current.tags });
+    Object.assign(current, itemDraft(item), { key: current.key, title: current.title, type: current.type, description: current.description, tags: current.tags, packs: current.packs });
     editor.item = item;
     editor.mode = "edit";
     showThumbnail(current, item);
@@ -623,7 +627,9 @@ export async function saveEditor(): Promise<boolean> {
 
     const [error] = await tryCatch(async () => {
       const tags = await tagIds(draft.tags);
-      const details = { title: draft.title.trim(), type: draft.type, description: draft.description.trim(), tags };
+      // A pack deleted while the dialog was open, such as from another tab, is left out rather than failing the save.
+      const packs = draft.packs.filter(id => library.packs.some(pack => pack.id === id));
+      const details = { title: draft.title.trim(), type: draft.type, description: draft.description.trim(), tags, packs };
 
       if (mode === "edit" && item) {
         await sendMessage("library:update", { id: item.id, patch: { ...details, ...(draft.file && { file: draft.file }) } });

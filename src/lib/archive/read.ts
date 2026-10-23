@@ -1,4 +1,4 @@
-import type { TArchiveSettings, TArchiveTag } from "./schema";
+import type { TArchivePack, TArchiveSettings, TArchiveTag } from "./schema";
 
 import type { TItemType } from "~/lib/db";
 
@@ -14,7 +14,7 @@ import { ARCHIVE_VERSION, ArchiveSettingsSchema, LibrarySchema, ManifestSchema }
 
 
 /**
- * An item read from an archive, ready to be imported. Tags are named rather than identified,
+ * An item read from an archive, ready to be imported. Tags and packs are named rather than identified,
  * since ids only mean something inside the library that was exported.
  */
 export type TImportEntry = {
@@ -26,6 +26,7 @@ export type TImportEntry = {
   title: string;
   description: string;
   tags: string[];
+  packs: string[];
   favorite: boolean;
   createdAt: number | null;
   updatedAt: number | null;
@@ -43,6 +44,7 @@ export type TParsedArchive = {
   kind: "nitfree" | "images";
   entries: TImportEntry[];
   tags: TArchiveTag[];
+  packs: TArchivePack[];
   settings: TArchiveSettings | null;
 
   /**
@@ -99,6 +101,7 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
 
   const settings = files["settings.json"] ? parseJson(ArchiveSettingsSchema, files["settings.json"], "settings.json") : null;
   const tagNames = new Map(library.tags.map(tag => [tag.id, tag.name]));
+  const packNames = new Map(library.packs.map(pack => [pack.id, pack.name]));
   const ids = new Set<string>();
   const entries: TImportEntry[] = [];
   let totalSize = 0;
@@ -129,6 +132,15 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
 
       return name;
     });
+    const packs = item.packs.map((id) => {
+      const name = packNames.get(id);
+
+      if (name === undefined) {
+        throw new ArchiveError("unknownPack", `"${item.title}" is in a pack that the archive does not list`, { title: item.title });
+      }
+
+      return name;
+    });
 
     totalSize += bytes.length;
     entries.push({
@@ -137,6 +149,7 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
       title: item.title.trim(),
       description: item.description,
       tags: names,
+      packs,
       favorite: item.favorite,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
@@ -147,7 +160,7 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
     });
   }
 
-  return { kind: "nitfree", entries, tags: library.tags, settings, ignored: 0, totalSize };
+  return { kind: "nitfree", entries, tags: library.tags, packs: library.packs, settings, ignored: 0, totalSize };
 }
 
 function titleOf(file: string): string {
@@ -198,6 +211,7 @@ export async function readImages(files: Record<string, Uint8Array>): Promise<TPa
       title: titleOf(file) || file,
       description: "",
       tags: names,
+      packs: [],
       favorite: false,
       createdAt: null,
       updatedAt: null,
@@ -212,7 +226,7 @@ export async function readImages(files: Record<string, Uint8Array>): Promise<TPa
     throw new ArchiveError("empty", "This file has no images Nitfree accepts (PNG, APNG, GIF, WebP and JPEG)");
   }
 
-  return { kind: "images", entries, tags: [...tags.values()], settings: null, ignored, totalSize };
+  return { kind: "images", entries, tags: [...tags.values()], packs: [], settings: null, ignored, totalSize };
 }
 
 /**

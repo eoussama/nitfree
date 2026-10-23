@@ -1,12 +1,12 @@
 <svelte:options css="injected" />
 
 <!--
-  The panel's filter menu, dropped from the filter button: toggles for the four types, then the tags
-  that items carry, as a checklist with a field to find one when there are many. Choices apply at once;
-  Escape or a click elsewhere closes it, and the panel shows what is chosen as chips.
+  The panel's filter menu, dropped from the filter button: toggles for the four types, then toggles for
+  the packs, then the tags that items carry, as a checklist with a field to find one when there are many.
+  Choices apply at once; Escape or a click elsewhere closes it, and the panel shows what is chosen as chips.
 -->
 <script lang="ts">
-  import type { TItemType, TTag } from "~/lib/db/types";
+  import type { TItemType, TPack, TTag } from "~/lib/db/types";
   import type { TFilterOption, TFilters } from "~/lib/ui/filters";
 
   import Check from "@lucide/svelte/icons/check";
@@ -21,14 +21,17 @@
     types: TFilterOption<TItemType>[];
     tags: TFilterOption<string>[];
     names: readonly TTag[];
+    packs: TFilterOption<string>[];
+    packNames: readonly TPack[];
     filters: TFilters;
     ontype: (type: TItemType) => void;
     ontag: (id: string) => void;
+    onpack: (id: string) => void;
     onclear: () => void;
     onclose: (refocus: boolean) => void;
   };
 
-  const { types, tags, names, filters, ontype, ontag, onclear, onclose }: TProps = $props();
+  const { types, tags, names, packs, packNames, filters, ontype, ontag, onpack, onclear, onclose }: TProps = $props();
 
   /**
    * Past this many tags, the menu offers a field to find one by name.
@@ -39,6 +42,7 @@
   let find = $state("");
 
   const nameOf = (id: string): string => names.find(tag => tag.id === id)?.name ?? id;
+  const packNameOf = (id: string): string => packNames.find(pack => pack.id === id)?.name ?? id;
   const shown = $derived(findTagOptions(tags, names, find));
 
   // Escape closes the menu before anything else sees it.
@@ -101,6 +105,28 @@
       {/each}
     </div>
   </div>
+
+  {#if packs.length}
+    <div class="group" role="group" aria-labelledby="nf-filter-packs">
+      <h4 id="nf-filter-packs" class="heading">{i18n.t("editor.packs")}</h4>
+      <div class="types packs">
+        {#each packs as option (option.value)}
+          {@const chosen = filters.packs.includes(option.value)}
+          <button
+            class="type"
+            class:chosen
+            class:empty={option.count === 0 && !chosen}
+            type="button"
+            aria-pressed={chosen}
+            onclick={() => onpack(option.value)}
+          >
+            {packNameOf(option.value)}
+            <span class="count">{option.count}</span>
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <div class="group tags" role="group" aria-labelledby="nf-filter-tags">
     <h4 id="nf-filter-tags" class="heading">{i18n.t("editor.tags")}</h4>
@@ -184,6 +210,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+  }
+
+  /* Many packs scroll within three rows, leaving the rest of the menu to the tags. */
+  .packs {
+    max-height: 92px;
+    overflow-y: auto;
   }
 
   .type {

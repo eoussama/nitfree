@@ -1,13 +1,15 @@
-import type { TItem, TItemType, TTag } from "~/lib/db/types";
+import type { TItem, TItemType, TPack, TTag } from "~/lib/db/types";
 
 
 
 /**
- * What the panel's filter keeps: items of any of the chosen types, carrying every chosen tag.
+ * What the panel's filter keeps: items of any of the chosen types, in any of the chosen packs, carrying
+ * every chosen tag.
  */
 export type TFilters = {
   types: TItemType[];
   tags: string[];
+  packs: string[];
 };
 
 /**
@@ -24,17 +26,17 @@ export type TFilterOption<T extends string> = {
  * @returns A fresh, empty filter.
  */
 export function noFilters(): TFilters {
-  return { types: [], tags: [] };
+  return { types: [], tags: [], packs: [] };
 }
 
 /**
  * How many filters are set.
  *
  * @param filters - The filter.
- * @returns The number of chosen types and tags together.
+ * @returns The number of chosen types, tags and packs together.
  */
 export function filterCount(filters: TFilters): number {
-  return filters.types.length + filters.tags.length;
+  return filters.types.length + filters.tags.length + filters.packs.length;
 }
 
 /**
@@ -50,20 +52,35 @@ export function toggled<T>(list: readonly T[], value: T): T[] {
 
 /**
  * Keeps the items that pass the filter. Types are alternatives, as an item has just one: Emoji and GIF
- * shows both kinds. Tags add up: an item must carry all of them.
+ * shows both kinds. Packs are alternatives too, as an item can be in several and each is a group of its
+ * own. Tags add up: an item must carry all of them.
  *
  * @param items - The library.
  * @param filters - The filter.
  * @returns The matching items, in their original order.
  */
 export function applyFilters(items: readonly TItem[], filters: TFilters): TItem[] {
-  const { types, tags } = filters;
+  const { types, tags, packs } = filters;
 
-  if (!types.length && !tags.length) {
+  if (!types.length && !tags.length && !packs.length) {
     return [...items];
   }
 
-  return items.filter(item => (!types.length || types.includes(item.type)) && tags.every(tag => item.tags.includes(tag)));
+  return items.filter(item => (!types.length || types.includes(item.type))
+    && (!packs.length || packs.some(pack => item.packs.includes(pack)))
+    && tags.every(tag => item.tags.includes(tag)));
+}
+
+/**
+ * How many items are in each pack, for the packs to choose from. Every pack is offered, even empty
+ * ones, so a new pack can be found before anything is in it.
+ *
+ * @param items - The library.
+ * @param packs - Every pack, in the order to offer them.
+ * @returns One option per pack.
+ */
+export function packOptions(items: readonly TItem[], packs: readonly TPack[]): TFilterOption<string>[] {
+  return packs.map(pack => ({ value: pack.id, count: items.filter(item => item.packs.includes(pack.id)).length }));
 }
 
 /**
@@ -111,6 +128,19 @@ export function withoutMissingTags(filters: TFilters, tags: readonly TTag[]): TF
   const kept = filters.tags.filter(id => tags.some(tag => tag.id === id));
 
   return kept.length === filters.tags.length ? filters : { ...filters, tags: kept };
+}
+
+/**
+ * Drops chosen packs that no longer exist, such as after one is deleted.
+ *
+ * @param filters - The filter.
+ * @param packs - The packs that exist.
+ * @returns The same filter when nothing was dropped, else a new one.
+ */
+export function withoutMissingPacks(filters: TFilters, packs: readonly TPack[]): TFilters {
+  const kept = filters.packs.filter(id => packs.some(pack => pack.id === id));
+
+  return kept.length === filters.packs.length ? filters : { ...filters, packs: kept };
 }
 
 /**

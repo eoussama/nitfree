@@ -1,5 +1,6 @@
 import type { TLibrary } from "./library";
 
+import type { TPacks } from "./packs";
 import type { TTags } from "./tags";
 import type { TEventName, TEvents, THandlers } from "~/lib/messaging";
 
@@ -8,14 +9,15 @@ import type { TEventName, TEvents, THandlers } from "~/lib/messaging";
 export type TNotify = <K extends TEventName>(name: K, data: TEvents[K]) => Promise<void>;
 
 /**
- * Answers library and tag requests, announcing every change so open panels and the popup refresh.
+ * Answers library, tag and pack requests, announcing every change so open panels and the popup refresh.
  *
  * @param library - The library service.
  * @param tags - The tag service.
+ * @param packs - The pack service.
  * @param notify - Broadcasts an event; announcements never delay or fail a request.
  * @returns The request handlers.
  */
-export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TNotify): Partial<THandlers> {
+export function createLibraryHandlers(library: TLibrary, tags: TTags, packs: TPacks, notify: TNotify): Partial<THandlers> {
   function announce<K extends TEventName>(name: K, data: TEvents[K]): void {
     notify(name, data).catch(() => undefined);
   }
@@ -40,18 +42,20 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
     },
 
     "library:import": async ({ item, skipDuplicates }) => {
-      const imported = await library.import(item, skipDuplicates);
+      const result = await library.import(item, skipDuplicates);
 
-      if (imported) {
-        announce("library:changed", { change: "added", ids: [imported.id] });
+      if (result) {
+        announce("library:changed", { change: result.added ? "added" : "updated", ids: [result.item.id] });
       }
 
-      return imported;
+      // A duplicate that only joined packs still counts as skipped.
+      return result?.added ? result.item : null;
     },
 
     "library:clear": async () => {
       const ids = await library.clear();
       const tagIds = await tags.clear();
+      const packIds = await packs.clear();
 
       if (ids.length) {
         announce("library:changed", { change: "removed", ids });
@@ -59,6 +63,10 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
 
       if (tagIds.length) {
         announce("tags:changed", { change: "removed", ids: tagIds });
+      }
+
+      if (packIds.length) {
+        announce("packs:changed", { change: "removed", ids: packIds });
       }
     },
 
@@ -147,6 +155,44 @@ export function createLibraryHandlers(library: TLibrary, tags: TTags, notify: TN
       const items = await tags.remove(id);
 
       announce("tags:changed", { change: "removed", ids: [id] });
+
+      if (items.length) {
+        announce("library:changed", { change: "updated", ids: items });
+      }
+    },
+
+    "packs:list": () => packs.list(),
+
+    "packs:add": async (input) => {
+      const pack = await packs.add(input);
+
+      announce("packs:changed", { change: "added", ids: [pack.id] });
+
+      return pack;
+    },
+
+    "packs:ensure": async (input) => {
+      const { pack, created } = await packs.ensure(input);
+
+      if (created) {
+        announce("packs:changed", { change: "added", ids: [pack.id] });
+      }
+
+      return pack;
+    },
+
+    "packs:update": async ({ id, patch }) => {
+      const pack = await packs.update(id, patch);
+
+      announce("packs:changed", { change: "updated", ids: [id] });
+
+      return pack;
+    },
+
+    "packs:remove": async ({ id }) => {
+      const items = await packs.remove(id);
+
+      announce("packs:changed", { change: "removed", ids: [id] });
 
       if (items.length) {
         announce("library:changed", { change: "updated", ids: items });

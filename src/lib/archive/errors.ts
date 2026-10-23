@@ -13,6 +13,7 @@ export type TArchiveErrorReason
     | "missingFile"
     | "mismatch"
     | "unknownTag"
+    | "unknownPack"
     | "empty"
     | "notInLibrary";
 
@@ -26,6 +27,7 @@ const CODES: Record<TArchiveErrorReason, TArchiveErrorCode> = {
   missingFile: "corrupt",
   mismatch: "corrupt",
   unknownTag: "invalid",
+  unknownPack: "invalid",
   empty: "empty",
   notInLibrary: "corrupt",
 };

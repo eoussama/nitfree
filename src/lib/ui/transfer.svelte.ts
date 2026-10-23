@@ -181,6 +181,7 @@ export async function importPending(mode: TImportMode, withSettings: boolean): P
     const counts = await applyArchive(archive, mode, {
       clear: () => sendMessage("library:clear"),
       ensureTag: tag => sendMessage("tags:ensure", tag),
+      ensurePack: pack => sendMessage("packs:ensure", pack),
       importItem: (item, skipDuplicates) => sendMessage("library:import", { item, skipDuplicates }),
     }, (done) => {
       transfer.done = done;

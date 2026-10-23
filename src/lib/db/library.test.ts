@@ -272,7 +272,7 @@ describe("duplicates", () => {
 
 describe("import and clear", () => {
   it("keeps the id, dates and usage of an imported item", async () => {
-    const item = await library.import({
+    const result = await library.import({
       id: "kept",
       file: file(png(2, 2)),
       type: "gif",
@@ -283,7 +283,7 @@ describe("import and clear", () => {
       usageCount: 3,
     }, false);
 
-    expect(item).toMatchObject({ id: "kept", createdAt: 5, updatedAt: 6, usedAt: 7, usageCount: 3 });
+    expect(result).toMatchObject({ added: true, item: { id: "kept", createdAt: 5, updatedAt: 6, usedAt: 7, usageCount: 3 } });
     expect((await library.file("kept"))?.size).toBe(png(2, 2).length);
   });
 
@@ -291,7 +291,7 @@ describe("import and clear", () => {
     const first = await library.add({ file: file(png(2, 2)), type: "image", title: "a" });
     const other = await library.import({ id: first.id, file: file(png(3, 3)), type: "image", title: "b" }, true);
 
-    expect(other?.id).not.toBe(first.id);
+    expect(other?.item.id).not.toBe(first.id);
     expect(await library.import({ file: file(png(2, 2)), type: "image", title: "again" }, true)).toBeNull();
     expect(await library.import({ file: file(png(2, 2)), type: "image", title: "again" }, false)).not.toBeNull();
     expect(await library.list()).toHaveLength(3);

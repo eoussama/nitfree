@@ -1,9 +1,9 @@
 import type { TArchiveSettings } from "~/lib/archive";
-import type { TItem } from "~/lib/db";
+import type { TItem, TPack } from "~/lib/db";
 
 import { toError, tryCatch } from "@eoussama/core";
 
-import { ARCHIVE_EXTENSION, tagsOf, writeArchive } from "~/lib/archive";
+import { ARCHIVE_EXTENSION, packsOf, tagsOf, writeArchive } from "~/lib/archive";
 import { sendMessage } from "~/lib/messaging";
 import { autocomplete, clickAction, playAnimations, sendSizes, shortcut, shortcutKeys, suggestionsAt } from "~/lib/settings";
 
@@ -20,6 +20,12 @@ export type TExportOptions = {
    * Whether the archive also holds the popup's settings.
    */
   withSettings?: boolean;
+
+  /**
+   * The packs to include. By default, the library's packs when exporting the library, else the packs
+   * the items are in. A pack is exported on its own by passing just that pack, empty or not.
+   */
+  packs?: readonly TPack[];
   onProgress?: (done: number, total: number) => void;
 };
 
@@ -36,17 +42,18 @@ async function readFile(item: TItem): Promise<Uint8Array | null> {
 }
 
 /**
- * Packs items into a `.nitfree` archive. Exporting the library itself keeps every tag, even unused
- * ones; exporting a part of it keeps only the tags that part needs.
+ * Packs items into a `.nitfree` archive. Exporting the library itself keeps every tag and pack, even
+ * unused ones; exporting a part of it keeps only the tags and packs that part needs.
  *
  * @param items - The items to pack.
- * @param options - Settings and progress reporting.
+ * @param options - Settings, packs and progress reporting.
  * @returns The archive.
  */
 export async function buildExport(items: readonly TItem[], options: TExportOptions = {}): Promise<Blob> {
   const bytes = await writeArchive({
     items,
     tags: items === library.items ? library.tags : tagsOf(items, library.tags),
+    packs: options.packs ?? (items === library.items ? library.packs : packsOf(items, library.packs)),
     settings: options.withSettings ? await readSettings() : undefined,
     appVersion: browser.runtime.getManifest().version,
     readFile,

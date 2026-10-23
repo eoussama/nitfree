@@ -1,4 +1,4 @@
-import type { TCacheUsage, TDuplicateGroup, TImportItem, TItem, TItemPatch, TNewItem, TNewTag, TTag, TTagPatch } from "~/lib/db";
+import type { TCacheUsage, TDuplicateGroup, TImportItem, TItem, TItemPatch, TNewItem, TNewPack, TNewTag, TPack, TPackPatch, TTag, TTagPatch } from "~/lib/db";
 
 
 
@@ -32,6 +32,12 @@ export interface TProtocol {
   "tags:ensure": { request: TNewTag; response: TTag };
   "tags:update": { request: { id: string; patch: TTagPatch }; response: TTag };
   "tags:remove": { request: { id: string }; response: void };
+
+  "packs:list": { request: void; response: TPack[] };
+  "packs:add": { request: TNewPack; response: TPack };
+  "packs:ensure": { request: TNewPack; response: TPack };
+  "packs:update": { request: { id: string; patch: TPackPatch }; response: TPack };
+  "packs:remove": { request: { id: string }; response: void };
 }
 
 export type TChange = "added" | "updated" | "removed";
@@ -42,6 +48,7 @@ export type TChange = "added" | "updated" | "removed";
 export type TEvents = {
   "library:changed": { change: TChange; ids: string[] };
   "tags:changed": { change: TChange; ids: string[] };
+  "packs:changed": { change: TChange; ids: string[] };
 };
 
 export type TRequestName = keyof TProtocol;

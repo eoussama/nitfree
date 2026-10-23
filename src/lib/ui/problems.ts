@@ -19,6 +19,7 @@ const MESSAGES: Record<TArchiveErrorReason, (params: TParams) => string> = {
   missingFile: ({ title = "" }) => i18n.t("archive.missingFile", { title }),
   mismatch: ({ title = "" }) => i18n.t("archive.mismatch", { title }),
   unknownTag: ({ title = "" }) => i18n.t("archive.unknownTag", { title }),
+  unknownPack: ({ title = "" }) => i18n.t("archive.unknownPack", { title }),
   empty: () => i18n.t("archive.empty"),
   notInLibrary: ({ title = "" }) => i18n.t("archive.notInLibrary", { title }),
 };

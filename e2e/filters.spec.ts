@@ -9,8 +9,8 @@ import { png } from "./images";
 const panel = (page: Page) => page.getByRole("dialog", { name: "Nitfree library" });
 const allFiles = (page: Page) => panel(page).getByRole("region", { name: "All files" });
 const tile = (page: Page, title: string) => allFiles(page).locator(`[data-tile][aria-label="${title}"]`);
-const filterButton = (page: Page) => panel(page).getByRole("button", { name: "Filter by type or tag" });
-const menu = (page: Page) => page.getByRole("dialog", { name: "Filter by type or tag" });
+const filterButton = (page: Page) => panel(page).getByRole("button", { name: "Filter by type, pack or tag" });
+const menu = (page: Page) => page.getByRole("dialog", { name: "Filter by type, pack or tag" });
 const chips = (page: Page) => panel(page).getByRole("list", { name: "Active filters" });
 const search = (page: Page) => panel(page).getByRole("searchbox", { name: "Search Nitfree" });
 const pickerPanel = (page: Page) => page.locator("#nitfree-picker-tab-panel");
@@ -292,7 +292,7 @@ test.describe("filtering in Discord's picker", () => {
     await openDiscord(page, { picker: true });
     await page.getByRole("button", { name: "Open Nitfree" }).click();
 
-    const button = pickerPanel(page).getByRole("button", { name: "Filter by type or tag" });
+    const button = pickerPanel(page).getByRole("button", { name: "Filter by type, pack or tag" });
 
     await button.click();
     await expect(menu(page)).toBeVisible();

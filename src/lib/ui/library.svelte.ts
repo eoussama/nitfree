@@ -1,4 +1,4 @@
-import type { TItem, TTag } from "~/lib/db";
+import type { TItem, TPack, TTag } from "~/lib/db";
 
 import { toError, tryCatch } from "@eoussama/core";
 
@@ -12,6 +12,7 @@ import { pruneTrash } from "./trash.svelte";
 type TLibraryState = {
   items: TItem[];
   tags: TTag[];
+  packs: TPack[];
   loaded: boolean;
   error: string | null;
 };
@@ -31,7 +32,7 @@ const SETTLE_DELAY = 50;
  * The library as the Discord tab sees it, kept in step with the background worker.
  * `error` is only set while nothing has ever loaded; a failed reload keeps showing the last library.
  */
-export const library: TLibraryState = $state({ items: [], tags: [], loaded: false, error: null });
+export const library: TLibraryState = $state({ items: [], tags: [], packs: [], loaded: false, error: null });
 
 /**
  * Loads the library and reloads it whenever the background announces a change,
@@ -59,7 +60,7 @@ export function followLibrary(): () => void {
 
     loading = true;
 
-    const [error, result] = await tryCatch(Promise.all([sendMessage("library:list"), sendMessage("tags:list")]));
+    const [error, result] = await tryCatch(Promise.all([sendMessage("library:list"), sendMessage("tags:list"), sendMessage("packs:list")]));
 
     loading = false;
 
@@ -90,11 +91,12 @@ export function followLibrary(): () => void {
       return;
     }
 
-    const [items, tags] = result;
+    const [items, tags, packs] = result;
 
     attempt = 0;
     library.items = items;
     library.tags = tags;
+    library.packs = packs;
     library.loaded = true;
     library.error = null;
     forgetThumbnails(items);
@@ -108,7 +110,7 @@ export function followLibrary(): () => void {
 
   void load();
 
-  const stops = [onEvent("library:changed", reload), onEvent("tags:changed", reload)];
+  const stops = [onEvent("library:changed", reload), onEvent("tags:changed", reload), onEvent("packs:changed", reload)];
 
   return () => {
     stopped = true;

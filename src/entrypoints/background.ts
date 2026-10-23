@@ -1,4 +1,4 @@
-import { createLibrary, createLibraryHandlers, createTags, migrateLegacyDatabase, NitfreeDatabase } from "~/lib/db";
+import { createLibrary, createLibraryHandlers, createPacks, createTags, migrateLegacyDatabase, NitfreeDatabase } from "~/lib/db";
 import { broadcast, handleMessages } from "~/lib/messaging";
 
 
@@ -14,7 +14,7 @@ export default defineBackground(() => {
 
   handleMessages({
     "runtime:ping": () => ({ version: browser.runtime.getManifest().version }),
-    ...createLibraryHandlers(createLibrary(db), createTags(db), broadcast),
+    ...createLibraryHandlers(createLibrary(db), createTags(db), createPacks(db), broadcast),
   });
 
   // Pages that loaded the library while the migration ran refresh on these announcements.

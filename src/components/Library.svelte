@@ -18,6 +18,7 @@
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import Clock from "@lucide/svelte/icons/clock";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import Package from "@lucide/svelte/icons/package";
   import Search from "@lucide/svelte/icons/search";
   import Star from "@lucide/svelte/icons/star";
   import Tag from "@lucide/svelte/icons/tag";
@@ -29,7 +30,7 @@
   import { ACCEPTED_FILES } from "~/lib/ui/drafts";
   import { startAdd } from "~/lib/ui/editor.svelte";
   import { saveItems } from "~/lib/ui/export";
-  import { applyFilters, filterCount, noFilters, tagOptions, toggled, typeOptions, withoutMissingTags } from "~/lib/ui/filters";
+  import { applyFilters, filterCount, noFilters, packOptions, tagOptions, toggled, typeOptions, withoutMissingPacks, withoutMissingTags } from "~/lib/ui/filters";
   import { GRID_KEYS, nextTile } from "~/lib/ui/grid";
   import { library } from "~/lib/ui/library.svelte";
   import { openMenu } from "~/lib/ui/menu.svelte";
@@ -93,9 +94,11 @@
   const narrowed = $derived(query.trim() !== "" || filtering);
   const isCollapsed = (id: TSectionId): boolean => !narrowed && collapsed[id] === true;
   const tagName = (id: string): string => library.tags.find(tag => tag.id === id)?.name ?? id;
+  const packName = (id: string): string => library.packs.find(pack => pack.id === id)?.name ?? id;
   const chips = $derived([
     ...filters.types.map(value => ({ kind: "type" as const, value, label: i18n.t(`panel.types.${value}`) })),
     ...filters.tags.map(value => ({ kind: "tag" as const, value, label: tagName(value) })),
+    ...filters.packs.map(value => ({ kind: "pack" as const, value, label: packName(value) })),
   ]);
   const visible = $derived(sections.flatMap(section => (isCollapsed(section.id) ? [] : section.items.map(item => ({ key: `${section.id}:${item.id}`, item })))));
   const tabbableKey = $derived(visible.some(entry => entry.key === current) ? current : (visible[0]?.key ?? ""));
@@ -112,12 +115,13 @@
     hovered = null;
   });
 
-  // A tag deleted elsewhere, such as from another tab, stops being a filter.
+  // A tag or pack deleted elsewhere, such as from another tab, stops being a filter.
   $effect(() => {
     const tags = library.loaded ? library.tags : null;
+    const packs = library.loaded ? library.packs : null;
 
-    if (tags) {
-      const next = withoutMissingTags(untrack(() => filters), tags);
+    if (tags && packs) {
+      const next = withoutMissingPacks(withoutMissingTags(untrack(() => filters), tags), packs);
 
       if (next !== untrack(() => filters)) {
         filters = next;
@@ -166,10 +170,16 @@
   }
 
   // Taking a chip off moves focus to the next one, or back to the filter button after the last.
-  async function removeChip(chip: { kind: "type" | "tag"; value: string }, index: number): Promise<void> {
-    filters = chip.kind === "type"
-      ? { ...filters, types: filters.types.filter(type => type !== chip.value) }
-      : { ...filters, tags: filters.tags.filter(tag => tag !== chip.value) };
+  async function removeChip(chip: { kind: "type" | "tag" | "pack"; value: string }, index: number): Promise<void> {
+    if (chip.kind === "type") {
+      filters = { ...filters, types: filters.types.filter(type => type !== chip.value) };
+    }
+    else if (chip.kind === "tag") {
+      filters = { ...filters, tags: filters.tags.filter(tag => tag !== chip.value) };
+    }
+    else {
+      filters = { ...filters, packs: filters.packs.filter(pack => pack !== chip.value) };
+    }
 
     await tick();
 
@@ -418,12 +428,17 @@
             types={typeOptions(items, ITEM_TYPES)}
             tags={tagOptions(items, library.tags, filters.tags)}
             names={library.tags}
+            packs={packOptions(items, library.packs)}
+            packNames={library.packs}
             {filters}
             ontype={(type) => {
               filters = { ...filters, types: toggled(filters.types, type) };
             }}
             ontag={(id) => {
               filters = { ...filters, tags: toggled(filters.tags, id) };
+            }}
+            onpack={(id) => {
+              filters = { ...filters, packs: toggled(filters.packs, id) };
             }}
             onclear={() => clearFilters(undefined)}
             onclose={closeFilters}
@@ -448,7 +463,7 @@
       <ul bind:this={chipList} class="chips" aria-label={i18n.t("panel.filters.active")}>
         {#each chips as chip, index (`${chip.kind}:${chip.value}`)}
           <li class="chip">
-            {#if chip.kind === "tag"}<Tag size={12} aria-hidden="true" />{/if}
+            {#if chip.kind === "tag"}<Tag size={12} aria-hidden="true" />{:else if chip.kind === "pack"}<Package size={12} aria-hidden="true" />{/if}
             <span class="chip-label">{chip.label}</span>
             <button class="chip-remove" type="button" aria-label={i18n.t("panel.filters.remove", { name: chip.label })} onclick={() => void removeChip(chip, index)}>
               <X size={14} aria-hidden="true" />
