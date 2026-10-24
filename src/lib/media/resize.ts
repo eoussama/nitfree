@@ -57,6 +57,7 @@ export function drawScaled(source: CanvasImageSource, from: TSize, to: TSize): O
   }
 
   const canvas = new OffscreenCanvas(to.width, to.height);
+  // Stryker disable next-line ObjectLiteral,BooleanLiteral: a speed hint for the browser's canvas.
   const context = canvas.getContext("2d", { willReadFrequently: true })!;
 
   context.imageSmoothingQuality = "high";
@@ -93,6 +94,7 @@ export function gifFrame(canvas: OffscreenCanvas): { index: Uint8Array; palette:
  * @returns The frame's palette indices, palette and transparent color.
  */
 export function gifPixels(rgba: Uint8ClampedArray): { index: Uint8Array; palette: number[][]; transparentIndex: number } {
+  // Stryker disable next-line EqualityOperator: one more pass lands past the pixels, where nothing is written.
   for (let i = 0; i < rgba.length; i += 4) {
     if (rgba[i + 3]! < ALPHA_THRESHOLD) {
       rgba[i] = rgba[i + 1] = rgba[i + 2] = rgba[i + 3] = 0;
@@ -102,6 +104,7 @@ export function gifPixels(rgba: Uint8ClampedArray): { index: Uint8Array; palette
     }
   }
 
+  // Stryker disable next-line BooleanLiteral: every alpha is 0 or 255 by now, so one bit of it loses nothing.
   const palette = quantize(rgba, 256, { format: "rgba4444", oneBitAlpha: true });
 
   return { index: applyPalette(rgba, palette, "rgba4444"), palette, transparentIndex: palette.findIndex(color => color[3] === 0) };
@@ -140,6 +143,7 @@ export async function resizeImage(file: Blob, info: TImageInfo, max: number): Pr
     first ??= canvas;
     count++;
 
+    // Stryker disable next-line ConditionalExpression: a still image's frame is only written to be dropped for a PNG.
     if (info.animated) {
       const { index, palette, transparentIndex } = gifFrame(canvas);
 

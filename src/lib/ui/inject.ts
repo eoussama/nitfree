@@ -100,6 +100,7 @@ export function watchChatButtonGroups(
       }
     }
 
+    // Stryker disable next-line OptionalChaining: an open popover always has its button.
     if (panel.open && panel.mode === "popover" && !panel.anchor?.isConnected) {
       closePanel();
     }
@@ -124,6 +125,7 @@ export function watchChatButtonGroups(
       remove();
     }
 
+    // Stryker disable next-line CallExpression: nothing reads the map once stopped.
     mounted.clear();
     closePanel();
   };
@@ -146,6 +148,7 @@ export function mountPopover(onpick: (item: TItem, send: boolean) => void): () =
   const release = isolate(host);
 
   return () => {
+    // Stryker disable next-line CallExpression: a host taken out of the page has no events left to keep in.
     release();
     void unmount(component);
     host.remove();
@@ -170,6 +173,7 @@ export function mountOverlay(): () => void {
   const release = isolate(host, { pointer: true, focus: true });
 
   return () => {
+    // Stryker disable next-line CallExpression: as above; the window's focus listeners only act on events from the host.
     release();
     void unmount(component);
     host.remove();

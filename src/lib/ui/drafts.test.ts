@@ -93,3 +93,15 @@ describe("tags", () => {
     expect(suggestTags("", tags, ["Dogs"], 2).map(found => found.name)).toEqual(["Cats", "Funny"]);
   });
 });
+
+describe("suggestTags, in detail", () => {
+  const named = (...names: string[]) => names.map(name => ({ id: name, name }));
+
+  it("trims what is typed, and puts names that start with it before names that contain it", () => {
+    expect(suggestTags(" cat ", named("xcat", "Cat"), []).map(tag => tag.name)).toEqual(["Cat", "xcat"]);
+  });
+
+  it("suggests no more than asked for what is typed", () => {
+    expect(suggestTags("c", named("c1", "c2", "c3", "c4", "c5", "c6", "c7"), [])).toHaveLength(6);
+  });
+});

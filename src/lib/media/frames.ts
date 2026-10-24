@@ -76,10 +76,12 @@ async function* decodedFrames(bytes: Uint8Array<ArrayBuffer>, mime: string): Asy
  */
 export async function* compositedFrames(split: TSplitImage): AsyncGenerator<TFrame> {
   const canvas = new OffscreenCanvas(split.width, split.height);
+  // Stryker disable next-line ObjectLiteral,BooleanLiteral: a speed hint for the browser's canvas.
   const context = canvas.getContext("2d", { willReadFrequently: true })!;
 
   for (const frame of split.frames) {
     const before = frame.dispose === "previous" ? context.getImageData(0, 0, split.width, split.height) : null;
+    // Stryker disable next-line ObjectLiteral: browsers decode an image by what it holds, not the type it is given.
     const still = await createImageBitmap(new Blob([frame.bytes], { type: split.mime }));
 
     try {

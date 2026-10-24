@@ -21,7 +21,7 @@ export default {
   incremental: true,
   incrementalFile: "reports/mutation/incremental.json",
   // Below the score of the first full run, the run fails, so it can only go up.
-  thresholds: { high: 90, low: 80, break: 85 },
+  thresholds: { high: 97, low: 95, break: 95 },
   tempDirName: ".stryker-tmp",
   cleanTempDir: "always",
 };

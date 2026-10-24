@@ -15,5 +15,6 @@ describe("fileName", () => {
     expect(fileName("a/b:c*d", "image/webp")).toBe("a_b_c_d.webp");
     expect(fileName("", "image/png")).toBe("nitfree.png");
     expect(fileName("odd", "image/bmp")).toBe("odd.png");
+    expect(fileName("a//:b", "image/png")).toBe("a_b.png");
   });
 });

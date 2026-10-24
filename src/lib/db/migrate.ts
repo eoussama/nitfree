@@ -58,6 +58,7 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
     return null;
   }
 
+  // Stryker disable next-line BlockStatement: going on would find the same mark in the copy's transaction, and delete the old database after.
   if (await db.meta.get(MIGRATED_KEY)) {
     await Dexie.delete(LEGACY_DATABASE_NAME);
 
@@ -74,6 +75,7 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
     readTable<TLegacyMetadata>(legacy, "Metadata"),
   ]);
 
+  // Stryker disable next-line CallExpression: Dexie closes its own connections to a database before deleting it.
   legacy.close();
 
   const timestamp = now();
@@ -85,6 +87,7 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
   // Inspecting and hashing is asynchronous work that cannot run inside an IndexedDB transaction.
   for (const metadata of legacyMetadata) {
     const data = files.get(metadata.fileId);
+    // Stryker disable next-line ArrowFunction: a file it cannot read is skipped, whatever stands for none.
     const inspected = data instanceof Blob ? await inspectFile(data).catch(() => null) : null;
 
     if (!inspected || typeof metadata.id !== "string") {
@@ -99,6 +102,7 @@ export async function migrateLegacyDatabase(db: NitfreeDatabase, now: () => numb
       type: inspected.animated && inspected.format === "gif" ? "gif" : "image",
       title: (typeof metadata.title === "string" && metadata.title.trim()) || "Untitled",
       description: typeof metadata.description === "string" ? metadata.description.trim() : "",
+      // Stryker disable next-line ConditionalExpression,ArrayDeclaration: a tag id that is not text names no copied tag, and is dropped below.
       tags: typeof metadata.tagId === "string" ? [metadata.tagId] : [],
       packs: [],
       favorite: metadata.favorite ? 1 : 0,

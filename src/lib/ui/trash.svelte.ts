@@ -24,6 +24,7 @@ type TTrashState = {
  * Items deleted in this tab. They are hidden from the panel at once, removed from the library once
  * the undo delay has passed, and stay hidden until the reloaded library no longer has them.
  */
+// Stryker disable next-line ObjectLiteral,ArrayDeclaration: the state starts empty, and only what is deleted fills it.
 export const trash: TTrashState = $state({ pending: [] });
 
 function commit(id: string): void {

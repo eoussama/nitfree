@@ -148,6 +148,42 @@ describe("applyArchive", () => {
     expect((await fresh.library.list()).every(item => item.tags.includes(tag!.id) && item.type === "image")).toBe(true);
   });
 
+  it("hands each item to the target exactly as the archive has it, leaving out tags and packs it does not know", async () => {
+    const fresh = await profile();
+    const calls: [unknown, boolean][] = [];
+    const entry = { id: null, type: "emoji" as const, title: "T", description: "d", tags: ["Cats", "Ghost"], packs: ["Pets", "Ghost"], favorite: true, createdAt: null, updatedAt: 9, usedAt: 7, usageCount: 2, hash: "h", bytes: png(2, 2) };
+    const archive = {
+      kind: "nitfree" as const,
+      entries: [entry, { ...entry, id: "x", createdAt: 5, updatedAt: null }],
+      tags: [{ id: "t", name: "Cats", color: null, createdAt: 0 }],
+      packs: [{ id: "p", name: "Pets", icon: null, createdAt: 0 }],
+      settings: null,
+      ignored: 0,
+      totalSize: 2,
+    };
+    const run = async (mode: "merge" | "replace") => {
+      calls.length = 0;
+
+      return applyArchive(archive, mode, { ...fresh.target, importItem: async (item, skip) => {
+        calls.push([item, skip]);
+
+        return fresh.library.import(item, skip);
+      } });
+    };
+
+    expect(await run("merge")).toMatchObject({ failed: 0 });
+
+    const [cats] = await fresh.tags.list();
+    const [pets] = await fresh.packs.list();
+
+    expect(calls[0]![0]).toEqual({ id: undefined, file: expect.any(Blob), type: "emoji", title: "T", description: "d", tags: [cats!.id], packs: [pets!.id], favorite: true, createdAt: undefined, updatedAt: 9, usedAt: 7, usageCount: 2 });
+    expect(calls[1]![0]).toMatchObject({ id: "x", createdAt: 5, updatedAt: undefined });
+    expect(calls.map(([, skip]) => skip)).toEqual([true, true]);
+
+    await run("replace");
+    expect(calls.map(([, skip]) => skip)).toEqual([false, false]);
+  });
+
   it("leaves out a pack the archive's items name but never listed", async () => {
     const { bytes } = await exported();
     const fresh = await profile();

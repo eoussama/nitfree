@@ -96,6 +96,7 @@ export function hashDistance(a: string, b: string): number {
  * @returns Whether they match.
  */
 export function isSimilar(a: string, b: string): boolean {
+  // Stryker disable next-line EqualityOperator: one more pass reads past the color, which is never too far apart.
   for (let i = 16; i < 22; i += 2) {
     if (Math.abs(Number.parseInt(a.slice(i, i + 2), 16) - Number.parseInt(b.slice(i, i + 2), 16)) > MAX_COLOR_DIFFERENCE) {
       return false;

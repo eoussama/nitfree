@@ -60,6 +60,7 @@ function imageType(name: string): TItemType {
  */
 export function emojiMedia(id: string, alt: string, src: string): TChatMedia {
   const url = parse(src);
+  // Stryker disable next-line StringLiteral: with no address, any text that does not end in .gif says the same.
   const animated = url?.searchParams.get("animated") === "true" || /\.gif$/i.test(url?.pathname ?? "");
   const name = alt.replace(/^:|:$/g, "").trim() || url?.searchParams.get("name") || "emoji";
 
@@ -124,18 +125,21 @@ export function imageMedia(href: string, safeSrc: string): TChatMedia | null {
  * @returns What it shows, or null when it is nothing Nitfree can save.
  */
 export function findChatMedia(target: Element): TChatMedia | null {
+  // Stryker disable next-line StringLiteral: each list holds one selector, which joins the same way with anything.
   const emoji = target.closest<HTMLImageElement>(SELECTORS.chatEmoji.join(","));
 
   if (emoji) {
     return emojiMedia(emoji.dataset.id!, emoji.alt, emoji.currentSrc || emoji.src);
   }
 
+  // Stryker disable next-line StringLiteral: as above.
   const sticker = target.closest<HTMLElement>(SELECTORS.chatSticker.join(","));
 
   if (sticker) {
     return stickerMedia(sticker.dataset.id!, sticker.dataset.name ?? "", sticker.dataset.formatType ?? "");
   }
 
+  // Stryker disable next-line StringLiteral: as above.
   const image = target.closest<HTMLAnchorElement>(SELECTORS.chatImage.join(","));
 
   return image ? imageMedia(image.href, image.dataset.safeSrc ?? "") : null;

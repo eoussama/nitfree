@@ -94,6 +94,311 @@ afterEach(() => {
   resetEditor();
 });
 
+describe("the editor, in detail", () => {
+  const revoked = () => vi.mocked(URL.revokeObjectURL).mock.calls.map(([url]) => url);
+
+  beforeEach(() => {
+    let count = 0;
+
+    vi.spyOn(URL, "createObjectURL").mockImplementation(() => `blob:${count++}`);
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("tells a file it does not take from one it cannot read, by name and by type, and owns no URL for either", async () => {
+    const unreadable = (file: File) => {
+      vi.spyOn(file, "arrayBuffer").mockRejectedValue(new Error("Moved."));
+
+      return file;
+    };
+
+    await startAdd([
+      unreadable(new File(["?"], "notes.txt", { type: "text/plain" })),
+      unreadable(new File(["?"], "odd.bmp", { type: "image/bmp" })),
+      unreadable(new File(["?"], "x.png", { type: "" })),
+      new File(["?"], "odd.bmp", { type: "image/bmp" }),
+    ]);
+
+    expect(editor.drafts.map(draft => [draft.error, draft.ownsUrl, draft.url])).toEqual([
+      ["This file is not a supported image or video.", false, null],
+      ["This file could not be read. It may have been moved or changed.", false, null],
+      ["This file could not be read. It may have been moved or changed.", false, null],
+      ["This file is not a supported image or video.", false, null],
+    ]);
+    expect(editor.drafts[0]).toMatchObject({ description: "", tags: [], packs: [] });
+  });
+
+  it("lets go of the URLs of a dialog it opens over, closes, or drops a file from", async () => {
+    await startAdd([image("a.png"), image("b.png", png(9, 9))]);
+    removeDraft(editor.drafts[0]!);
+    expect(revoked()).toEqual(["blob:0"]);
+
+    await startAdd([image("c.png", png(7, 7))]);
+    startEdit(item());
+    expect(revoked()).toEqual(["blob:0", "blob:1", "blob:2"]);
+
+    // The item's thumbnail is not the editor's to let go of.
+    await wait();
+    closeEditor();
+    expect(revoked()).toEqual(["blob:0", "blob:1", "blob:2"]);
+  });
+
+  it("lets go of the URLs of files read for a dialog that is gone, or that another request opened", async () => {
+    await startAdd([image("a.png")]);
+
+    const joining = startAdd([image("b.png", png(9, 9))]);
+
+    closeEditor();
+    await joining;
+    expect(revoked()).toEqual(["blob:0", "blob:1"]);
+
+    const first = startAdd([image("c.png", png(7, 7))]);
+    const second = startAdd([image("d.png", png(6, 6))]);
+
+    await Promise.all([first, second]);
+    expect(revoked()).toEqual(["blob:0", "blob:1", "blob:2"]);
+    expect(editor.drafts.map(draft => draft.url)).toEqual(["blob:3"]);
+  });
+
+  it("replaces the right file, letting go of what it replaces, or of what it read for nothing", async () => {
+    await startAdd([image("a.png"), image("b.png", png(9, 9))]);
+
+    const [a, b] = editor.drafts;
+
+    await replaceFile(b!, image("c.png", png(7, 7)));
+    expect(editor.drafts.map(draft => draft.file?.name)).toEqual(["a.png", "c.png"]);
+    expect(revoked()).toEqual(["blob:1"]);
+
+    const gone = replaceFile(a!, image("d.png", png(6, 6)));
+
+    editor.drafts = editor.drafts.slice(1);
+    await gone;
+    expect(editor.drafts.map(draft => draft.file?.name)).toEqual(["c.png"]);
+    expect(revoked()).toEqual(["blob:1", "blob:3"]);
+
+    const closed = replaceFile(editor.drafts[0]!, image("e.png", png(5, 5)));
+
+    closeEditor();
+    await closed;
+    expect(revoked()).toEqual(["blob:1", "blob:3", "blob:2", "blob:4"]);
+    expect(editor.reading).toBe(0);
+  });
+
+  it("gives an edited image the type it was made as", async () => {
+    edited.mockResolvedValue(new Blob([png(4, 4)], { type: "image/png" }));
+    await startAdd([image("a.gif", gif(8, 8, 2))]);
+    await editDraft(editor.drafts[0]!, editor.drafts[0]!.file!, NO_EDITS);
+    expect(editor.drafts[0]!.file?.type).toBe("image/png");
+  });
+
+  it("gives an item's draft its details as the library has them, by id", () => {
+    library.tags = [{ id: "t0", name: "Dogs", color: null, createdAt: 0 }, { id: "t1", name: "Cats", color: null, createdAt: 0 }];
+    library.packs = [{ id: "p0", name: "Other", icon: null, createdAt: 0 }, { id: "p1", name: "Pets", icon: null, createdAt: 0 }];
+    startEdit(item({ tags: ["t1"], packs: ["p1"], format: "gif", mime: "image/gif", width: 3, height: 2, animated: true }));
+    expect(editor.drafts[0]).toMatchObject({ tags: ["Cats"], packs: ["Pets"], ownsUrl: false, info: { format: "gif", mime: "image/gif", width: 3, height: 2, animated: true } });
+  });
+
+  it("switches from a view to editing once, keeping the draft's place and picture, and then what the user typed", async () => {
+    library.items = [item({ id: "z", title: "other" }), item({ title: "renamed" })];
+    startView(item());
+    await wait();
+
+    const { key } = editor.drafts[0]!;
+
+    editFromView();
+    expect(editor.drafts[0]).toMatchObject({ key, url: "blob:thumbnail", title: "renamed" });
+
+    editor.drafts[0]!.title = "typed";
+    library.items = [item({ title: "again" })];
+    editFromView();
+    expect(editor.drafts[0]!.title).toBe("typed");
+  });
+
+  it("asks the library for the edited item's file by id, and gives it as it is", async () => {
+    startEdit(item());
+
+    const file = await editSource(editor.drafts[0]!);
+
+    expect(send).toHaveBeenCalledWith("library:file", { id: "a" });
+    expect(file).toMatchObject({ name: "wave.png", type: "image/png", size: png(8, 8).length });
+  });
+
+  it("does not warn of a file with no hash listed after another, nor of the item an edited copy is made from", async () => {
+    await startAdd([new File(["?"], "x.txt"), new File(["?"], "y.txt")]);
+    expect(duplicateWarning(editor.drafts[1]!)).toBeNull();
+
+    const result = png(4, 4);
+
+    edited.mockResolvedValue(new Blob([result], { type: "image/png" }));
+    fingerprint.mockResolvedValue("0000000000000000ffffff");
+    answer({ "library:similar": () => item() });
+    library.items = [item({ hash: await hashOf(result) })];
+    startEdit(item());
+    await editDraft(editor.drafts[0]!, image("wave.png"), NO_EDITS);
+    expect(editor.drafts[0]!.copyOf?.id).toBe("a");
+    expect(duplicateWarning(editor.drafts[0]!)).toBeNull();
+  });
+
+  it("names the item a file looks like, and not another", async () => {
+    library.items = [item({ id: "z", title: "other" }), item({ id: "look", title: "look" })];
+    fingerprint.mockResolvedValue("0000000000000000ffffff");
+    answer({ "library:similar": () => item({ id: "look", title: "look" }) });
+    await startAdd([image()]);
+    expect(duplicateWarning(editor.drafts[0]!)).toBe("This looks like “look”, already in your library. Saving it keeps a second copy.");
+  });
+
+  it("does not compare pictures with a file listed above when either has no fingerprint", async () => {
+    fingerprint.mockResolvedValueOnce("0000000000000000ffffff").mockResolvedValueOnce(null).mockResolvedValueOnce("0000000000000000ffffff");
+    await startAdd([image("a.png", png(8, 8)), image("b.png", png(9, 9)), image("c.png", png(7, 7))]);
+
+    expect(duplicateWarning(editor.drafts[1]!)).toBeNull();
+    // The draft above it with no fingerprint is passed over; the first is like it.
+    expect(duplicateWarning(editor.drafts[2]!)).toBe("This looks like a file listed above. Adding both keeps two copies.");
+
+    editor.drafts[0]!.fingerprint = null;
+    expect(duplicateWarning(editor.drafts[2]!)).toBeNull();
+  });
+
+  it("edits the right draft, letting go of what it replaces, or of what it made for nothing", async () => {
+    edited.mockResolvedValue(new Blob([png(4, 4)], { type: "image/png" }));
+    await startAdd([image("a.png"), image("b.png", png(9, 9))]);
+
+    const [a, b] = editor.drafts;
+
+    await editDraft(b!, b!.file!, NO_EDITS);
+    expect(editor.drafts.map(draft => draft.source?.name ?? null)).toEqual([null, "b.png"]);
+    expect(revoked()).toEqual(["blob:1"]);
+
+    const gone = editDraft(a!, a!.file!, NO_EDITS);
+
+    editor.drafts = editor.drafts.slice(1);
+    await gone;
+    expect(editor.drafts.map(draft => draft.source?.name)).toEqual(["b.png"]);
+    expect(revoked()).toEqual(["blob:1", "blob:3"]);
+
+    // Going back lets go of the edited image.
+    await revertDraft(editor.drafts[0]!);
+    expect(revoked()).toEqual(["blob:1", "blob:3", "blob:2"]);
+
+    const late = editDraft(editor.drafts[0]!, editor.drafts[0]!.file!, NO_EDITS);
+
+    closeEditor();
+    await late;
+    expect(revoked()).toEqual(["blob:1", "blob:3", "blob:2", "blob:4", "blob:5"]);
+  });
+
+  it("goes back only for a draft still in the dialog, to the item the copy was made from, with its picture", async () => {
+    edited.mockResolvedValue(new Blob([png(4, 4)], { type: "image/png" }));
+    library.items = [item({ id: "z", title: "other" }), item()];
+    startEdit(item());
+    await wait();
+    await editDraft(editor.drafts[0]!, image("wave.png"), NO_EDITS);
+
+    const draft = editor.drafts[0]!;
+
+    await revertDraft({ ...draft, key: -1 });
+    expect(draft.source).not.toBeNull();
+
+    vi.mocked(thumbnail).mockResolvedValue("blob:again");
+    await revertDraft(draft);
+    expect(editor.item?.id).toBe("a");
+    expect(revoked()).toEqual(["blob:0"]);
+    await wait();
+    expect(draft.url).toBe("blob:again");
+  });
+
+  it("lets go of what it read going back once the dialog is gone, or the draft is", async () => {
+    edited.mockResolvedValue(new Blob([png(4, 4)], { type: "image/png" }));
+    await startAdd([image("a.png")]);
+    await editDraft(editor.drafts[0]!, editor.drafts[0]!.file!, NO_EDITS);
+
+    const draft = editor.drafts[0]!;
+    const reverting = revertDraft(draft);
+
+    editor.drafts = [];
+    await reverting;
+    expect(revoked()).toEqual(["blob:0", "blob:2"]);
+  });
+
+  it("converts the right video, of the GIF's type, and lets go of what it replaces or made for nothing", async () => {
+    const clip = { start: 0, end: 1, rate: 10, size: 320 };
+    const video = () => new File(["v"], "clip.webm", { type: "video/webm" });
+
+    await startAdd([video(), video()]);
+
+    const [a, b] = editor.drafts;
+
+    await convertDraft(b!, clip, new Blob([gif(8, 8, 2)], { type: "image/gif" }));
+    expect(editor.drafts.map(draft => draft.clip)).toEqual([null, clip]);
+    expect(b!.file?.type).toBe("image/gif");
+    expect(revoked()).toEqual(["blob:1"]);
+
+    const gone = convertDraft(a!, clip, new Blob([gif(8, 8, 2)], { type: "image/gif" }));
+
+    editor.drafts = editor.drafts.slice(1);
+    await gone;
+    expect(revoked()).toEqual(["blob:1", "blob:3"]);
+  });
+
+  it("finds the tag another tab made by its name, among others", async () => {
+    answer({
+      "tags:add": () => {
+        throw new Error("Taken.");
+      },
+      "tags:list": () => [{ id: "t8", name: "Dogs" }, { id: "t9", name: "Cats" }],
+    });
+    await startAdd([image("a.png")]);
+    editor.drafts[0]!.tags = ["cats"];
+    await saveEditor();
+    expect(send).toHaveBeenCalledWith("library:add", expect.objectContaining({ tags: ["t9"] }));
+  });
+
+  it("saves only the usable files, refuses when any of them has no name, and is saving meanwhile", async () => {
+    await startAdd([image("a.png"), image("b.png", png(9, 9)), new File(["?"], "x.txt")]);
+    editor.drafts[1]!.title = " ";
+    expect(await saveEditor()).toBe(false);
+
+    editor.drafts[1]!.title = "b";
+    editor.reading = 1;
+    expect(await saveEditor()).toBe(false);
+    editor.reading = 0;
+    editor.saving = true;
+    expect(await saveEditor()).toBe(false);
+    editor.saving = false;
+
+    let finish!: () => void;
+
+    answer({ "library:add": () => new Promise<TItem>(resolve => (finish = () => resolve(item()))) });
+
+    const saving = saveEditor();
+
+    await wait();
+    expect(editor.saving).toBe(true);
+    answer({ "library:add": () => item() });
+    finish();
+    expect(await saving).toBe(true);
+    expect(send.mock.calls.filter(([name]) => name === "library:add")).toHaveLength(2);
+  });
+
+  it("lets go of the saved files, and keeps those that failed", async () => {
+    await startAdd([image("a.png"), image("b.png", png(9, 9))]);
+    answer({
+      "library:add": ({ title }: { title: string }) => {
+        if (title === "b") {
+          throw new Error("Disk full.");
+        }
+
+        return item();
+      },
+    });
+    await saveEditor();
+    expect(revoked()).toEqual(["blob:0"]);
+  });
+});
+
 describe("focusedElement", () => {
   it("finds what has focus, inside shadow roots too, and nothing when the page has it", () => {
     expect(focusedElement()).toBeNull();

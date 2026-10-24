@@ -5,6 +5,93 @@ import { inspectImage } from "./inspect";
 
 
 
+const SIGNATURE = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+const text = (value: string) => [...value].map(char => char.charCodeAt(0));
+const u32 = (value: number) => [(value >>> 24) & 0xFF, (value >>> 16) & 0xFF, (value >>> 8) & 0xFF, value & 0xFF];
+const header = (length: number, type: string) => [...u32(length), ...text(type)];
+const ihdr = (width: number, height: number) => [...header(13, "IHDR"), ...u32(width), ...u32(height), 8, 6, 0, 0, 0, 0, 0, 0, 0];
+const sof = (marker: number, width: number, height: number) => [0xFF, marker, 0x00, 0x11, 0x08, (height >>> 8) & 0xFF, height & 0xFF, (width >>> 8) & 0xFF, width & 0xFF];
+
+describe("inspectImage, at the edges of each format", () => {
+  it("reads a PNG no longer than its size, and not a shorter one", () => {
+    expect(inspectImage(Uint8Array.from([...SIGNATURE, ...header(13, "IHDR"), ...u32(4), ...u32(3)]))).toMatchObject({ width: 4, height: 3 });
+    expect(inspectImage(Uint8Array.from([...SIGNATURE, ...header(13, "IHDR"), ...u32(4)]))).toBeNull();
+  });
+
+  it("rejects a PNG whose first chunk is not its header", () => {
+    expect(inspectImage(Uint8Array.from([...SIGNATURE, ...header(13, "IHDX"), ...u32(4), ...u32(3), 8, 6, 0, 0, 0, 0, 0, 0, 0]))).toBeNull();
+  });
+
+  it("reads a PNG whose chunks run to its end with no image data", () => {
+    expect(inspectImage(Uint8Array.from([...SIGNATURE, ...ihdr(4, 3)]))).toMatchObject({ width: 4, height: 3, animated: false });
+  });
+
+  it("takes the frame count only from an acTL that is whole, and before the image data", () => {
+    const whole = [...header(8, "acTL"), ...u32(2)];
+
+    expect(inspectImage(Uint8Array.from([...SIGNATURE, ...ihdr(4, 3), ...whole]))).toMatchObject({ animated: true });
+    expect(inspectImage(Uint8Array.from([...SIGNATURE, ...ihdr(4, 3), ...header(8, "acTL"), 0, 0]))).toMatchObject({ animated: false });
+    expect(inspectImage(Uint8Array.from([...SIGNATURE, ...ihdr(4, 3), ...header(1, "IDAT"), 0, 0, 0, 0, 0, ...whole, 0, 0, 0, 0]))).toMatchObject({ animated: false });
+  });
+
+  it("skips each image's own color table to count a GIF's frames", () => {
+    const image = (colors: number) => [0x2C, 0, 0, 0, 0, 2, 0, 2, 0, 0x80 | colors, ...Array.from<number>({ length: 3 * 2 ** (colors + 1) }).fill(0), 0x02, 0x02, 0x44, 0x01, 0x00];
+
+    expect(inspectImage(Uint8Array.from([...text("GIF89a"), 2, 0, 2, 0, 0, 0, 0, ...image(1), ...image(2), 0x3B]))).toMatchObject({ animated: true });
+  });
+
+  it("rejects a WebP too short to have a header, and reads a lossless one as WebP", () => {
+    expect(inspectImage(webpLossless(8, 8).subarray(0, 29))).toBeNull();
+    expect(inspectImage(webpLossless(8, 8))).toMatchObject({ format: "webp", mime: "image/webp" });
+  });
+
+  it("reads a lossy WebP only with its whole start code", () => {
+    for (const at of [23, 24, 25]) {
+      const broken = webpLossy(8, 8);
+
+      broken[at] = 0;
+      expect(inspectImage(broken), String(at)).toBeNull();
+    }
+
+    const lossless = webpLossless(8, 8);
+
+    // A lossless header under a lossy name is not read as lossless.
+    lossless.set(text("VP8 "), 12);
+    expect(inspectImage(lossless)).toBeNull();
+  });
+
+  it("does not take a RIFF file that is not a WebP, nor a WebP-looking file that is not RIFF", () => {
+    const avi = webpExtended(8, 8, false);
+    const notRiff = webpExtended(8, 8, false);
+
+    avi.set(text("AVI "), 8);
+    notRiff.set(text("RIFX"), 0);
+    expect(inspectImage(avi)).toBeNull();
+    expect(inspectImage(notRiff)).toBeNull();
+  });
+
+  it("reads a JPEG frame that ends where the file does, and not one cut short", () => {
+    expect(inspectImage(Uint8Array.from([0xFF, 0xD8, ...sof(0xC0, 6, 5)]))).toMatchObject({ width: 6, height: 5 });
+    expect(inspectImage(Uint8Array.from([0xFF, 0xD8, ...sof(0xC0, 6, 5).slice(0, 7)]))).toBeNull();
+  });
+
+  it("rejects a JPEG with something other than a marker where one should be", () => {
+    expect(inspectImage(Uint8Array.from([0xFF, 0xD8, 0x00, ...sof(0xC0, 6, 5).slice(1)]))).toBeNull();
+  });
+
+  it("passes over JPEG segments that are not frames, and takes every kind of frame", () => {
+    const segment = (marker: number) => [0xFF, marker, 0x00, 0x04, 0, 0];
+
+    expect(inspectImage(Uint8Array.from([0xFF, 0xD8, ...segment(0xBF), ...segment(0xC4), ...segment(0xC8), ...segment(0xCC), ...segment(0xD0), ...segment(0xDB), ...sof(0xC2, 6, 5), 0]))).toMatchObject({ width: 6, height: 5 });
+    expect(inspectImage(Uint8Array.from([0xFF, 0xD8, ...sof(0xCF, 6, 5), 0]))).toMatchObject({ width: 6, height: 5 });
+  });
+
+  it("takes only a file that starts with both bytes of a JPEG's start", () => {
+    expect(inspectImage(Uint8Array.from([0xFF, 0x00, ...sof(0xC0, 6, 5), 0]))).toBeNull();
+    expect(inspectImage(Uint8Array.from([0x00, 0xD8, ...sof(0xC0, 6, 5), 0]))).toBeNull();
+  });
+});
+
 describe("inspectImage", () => {
   it("reads still and animated PNGs", () => {
     expect(inspectImage(png(48, 32))).toEqual({ format: "png", mime: "image/png", width: 48, height: 32, animated: false });

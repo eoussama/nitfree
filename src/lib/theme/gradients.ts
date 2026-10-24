@@ -61,6 +61,7 @@ function hslText([hue, saturation, lightness]: THsl): string {
  * @returns The surface and text colors.
  */
 export function blendColors(first: TRgb, last: TRgb, dark: boolean): { base: THsl; text: THsl } {
+  // Stryker disable next-line EqualityOperator: for two colors exactly as bright, either is as fair a pick for the lighter one.
   const [lighter, darker] = luminance(first) > luminance(last) ? [first, last] : [last, first];
   const light = rgbToHsl(lighter);
   let deep = rgbToHsl(darker);

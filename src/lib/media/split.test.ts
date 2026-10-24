@@ -151,6 +151,84 @@ describe("splitGif of files made by hand", () => {
   it("stops at an image cut short before its header ends, and at a block it does not know", () => {
     expect(splitGif(Uint8Array.from([...head, ...screen, ...image.slice(0, 5)]))).toBeNull();
     expect(splitGif(Uint8Array.from([...head, ...screen, ...image, 0x99, 0x3B]))!.frames).toHaveLength(1);
+    // However much it looks like an image after it.
+    expect(splitGif(Uint8Array.from([...head, ...screen, ...image, 0x99, ...image.slice(1), 0x3B]))!.frames).toHaveLength(1);
+  });
+
+  it("drops an image whose data runs to the end of the file unfinished", () => {
+    expect(splitGif(Uint8Array.from([...head, ...screen, ...image.slice(0, -1)]))).toBeNull();
+  });
+
+  it("refuses a file too short to have its size, and one that is not a GIF however much it looks like one", () => {
+    expect(splitGif(Uint8Array.from(head.slice(0, 5)))).toBeNull();
+    expect(splitGif(Uint8Array.from([0x58, ...head.slice(1), ...screen, ...image, 0x3B]))).toBeNull();
+  });
+
+  it("does not read as the Netscape extension one whose block is not the size of its name", () => {
+    // A ten-byte block, whose next sub-block happens to spell the name's end and a loop block.
+    const extension = [0x21, 0xFF, 10, ...[..."NETSCAPE2."].map(char => char.charCodeAt(0)), 0x30, 0x00, 0x01, 0x05, 0x00, ...Array.from<number>({ length: 44 }).fill(0x01), 0x00];
+
+    expect(splitGif(Uint8Array.from([...head, ...screen, ...extension, ...image, 0x3B]))!.repeat).toBe(-1);
+  });
+
+  it("takes only a whole graphic control block as one, not a comment or an odd-sized one", () => {
+    const comment = [0x21, 0xFE, 0x04, 0x0D, 0x09, 0x09, 0x09, 0x00];
+    const odd = [0x21, 0xF9, 0x05, 0x0D, 0x09, 0x09, 0x09, 0x09, 0x00];
+
+    for (const extension of [comment, odd]) {
+      expect(splitGif(Uint8Array.from([...head, ...screen, ...extension, ...image, 0x3B]))!.frames).toMatchObject([{ delay: 0, dispose: "none" }]);
+    }
+  });
+
+  it("reads the loop count only from the Netscape extension's loop block", () => {
+    const loops = (label: number, size: number, name: string, id: number) => splitGif(Uint8Array.from([
+      ...head,
+      ...screen,
+      0x21,
+      label,
+      size,
+      ...[...name].map(char => char.charCodeAt(0)),
+      0x03,
+      id,
+      0x05,
+      0x00,
+      0x00,
+      ...image,
+      0x3B,
+    ]))!.repeat;
+
+    expect(loops(0xFF, 11, "NETSCAPE2.0", 1)).toBe(5);
+    expect(loops(0xFE, 11, "NETSCAPE2.0", 1)).toBe(-1);
+    expect(loops(0xFF, 11, "ANIMEXTS1.0", 1)).toBe(-1);
+    expect(loops(0xFF, 11, "NETSCAPE2.0", 2)).toBe(-1);
+    expect(loops(0xFF, 10, "NETSCAPE2.", 1)).toBe(-1);
+  });
+
+  it("makes each still of the screen, its colors, the frame's control block without disposal, and the frame's own image", () => {
+    const control = [0x21, 0xF9, 0x04, 0x09, 0x07, 0x00, 0x00, 0x00];
+    const split = splitGif(Uint8Array.from([...head, ...screen, ...control, ...image, 0x3B]));
+
+    expect([...split!.frames[0]!.bytes]).toEqual([
+      ...head,
+      1,
+      0,
+      1,
+      0,
+      0x80,
+      0,
+      0,
+      ...screen.slice(7),
+      0x21,
+      0xF9,
+      0x04,
+      0x01,
+      0x07,
+      0x00,
+      0x00,
+      0x00,
+      ...image,
+      0x3B,
+    ]);
   });
 });
 
@@ -238,6 +316,53 @@ describe("splitApng", () => {
 
     expect(splitApng(Uint8Array.from(whole))!.frames).toHaveLength(1);
     expect(splitApng(Uint8Array.from(whole.slice(0, -2)))).toBeNull();
+  });
+
+  it("refuses a file with one byte of its signature wrong, whatever follows", () => {
+    const bytes = Uint8Array.from([...signature, ...header, ...frameControl(0, 40, 20, 0, 0, 0, 0), ...chunk("IDAT", [1]), ...chunk("IEND", [])]);
+
+    expect(splitApng(bytes)).not.toBeNull();
+    bytes[1] = 0;
+    expect(splitApng(bytes)).toBeNull();
+  });
+
+  it("ignores control chunks too short to read, and long chunks that are not frames", () => {
+    const split = splitApng(Uint8Array.from([
+      ...signature,
+      ...header,
+      ...chunk("acTL", [...u32(3)]),
+      ...frameControl(0, 10, 5, 0, 0, 0, 0),
+      ...chunk("fcTL", [...u32(0), ...u32(40)]),
+      ...chunk("tEXt", Array.from<number>({ length: 30 }).fill(65)),
+      ...chunk("IDAT", [1]),
+      ...chunk("IEND", []),
+    ]));
+
+    expect(split).toMatchObject({ repeat: 0 });
+    expect(split!.frames.map(frame => [frame.width, frame.height])).toEqual([[10, 5]]);
+  });
+
+  it("reads a last chunk of image data with nothing in it", () => {
+    expect(splitApng(Uint8Array.from([...signature, ...header, ...frameControl(0, 40, 20, 0, 0, 0, 0), ...chunk("IDAT", [])]))!.frames).toHaveLength(1);
+  });
+
+  it("keeps each frame's disposal, and nothing after the end, and data before any frame", () => {
+    const split = splitApng(Uint8Array.from([
+      ...signature,
+      ...header,
+      ...chunk("fdAT", [...u32(0), 5]),
+      ...frameControl(0, 40, 20, 0, 0, 0, 0),
+      ...chunk("IDAT", [1]),
+      ...frameControl(1, 40, 20, 0, 0, 2, 0),
+      ...chunk("fdAT", [...u32(2), 2]),
+      ...frameControl(3, 40, 20, 0, 0, 1, 0),
+      ...chunk("fdAT", [...u32(4), 3]),
+      ...chunk("IEND", []),
+      ...frameControl(5, 40, 20, 0, 0, 0, 0),
+      ...chunk("fdAT", [...u32(6), 4]),
+    ]));
+
+    expect(split!.frames.map(frame => frame.dispose)).toEqual(["none", "previous", "background"]);
   });
 
   it("times a frame by a hundredth of a second when its control block gives no denominator, and ignores chunks it has no use for", () => {

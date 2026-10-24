@@ -155,11 +155,14 @@ const due = new Set<Element>();
 let observer: IntersectionObserver | null = null;
 let scheduled = false;
 
+// Stryker disable all: an element no longer observed or due is never looked up again, and the observer
+// is made before anything is watched.
 function stop(target: Element): void {
   watchers.delete(target);
   due.delete(target);
   observer?.unobserve(target);
 }
+// Stryker restore all
 
 function load(): void {
   scheduled = false;
@@ -168,6 +171,7 @@ function load(): void {
     const callback = watchers.get(target);
 
     stop(target);
+    // Stryker disable next-line OptionalChaining: only watched elements are due.
     callback?.();
   }
 

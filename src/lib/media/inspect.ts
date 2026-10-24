@@ -45,6 +45,7 @@ function inspectPng(bytes: Uint8Array, view: DataView): TImageInfo | null {
 
   let animated = false;
 
+  // Stryker disable next-line EqualityOperator: a chunk header that fills the end exactly has no frame count to read.
   for (let offset = 8; offset + 8 <= bytes.length;) {
     const length = view.getUint32(offset);
     const type = ascii(bytes, offset + 4, 4);

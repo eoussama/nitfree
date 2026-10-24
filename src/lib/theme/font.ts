@@ -73,6 +73,7 @@ export function pickFontUrl(src: string, base: string): string | null {
     .filter(({ url }) => url);
   const best = urls.find(({ format, url }) => format === "woff2" || url.endsWith(".woff2")) ?? urls[0];
 
+  // Stryker disable next-line ConditionalExpression,BlockStatement: reading the address of none fails just below, with the same result.
   if (!best) {
     return null;
   }
@@ -127,6 +128,7 @@ export function findFontFaces(sheets: Iterable<CSSStyleSheet>, base: string): TF
 }
 
 function sameFaces(a: readonly TFontFace[], b: readonly TFontFace[]): boolean {
+  // Stryker disable next-line OptionalChaining: both lists are as long, so every face has its match.
   return a.length === b.length && a.every((face, i) => face.url === b[i]?.url && face.weight === b[i]?.weight && face.unicodeRange === b[i]?.unicodeRange);
 }
 
@@ -149,6 +151,7 @@ export async function captureDiscordFont(doc: Document = document): Promise<void
     const response = await fetch(face.url);
 
     if (!response.ok) {
+      // Stryker disable next-line StringLiteral: the reason is never shown; a failed fetch only leaves the copy as it was.
       throw new Error(`${face.url}: ${response.status}`);
     }
 

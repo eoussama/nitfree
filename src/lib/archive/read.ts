@@ -145,6 +145,7 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
     entries.push({
       id: item.id,
       type: item.type,
+      // Stryker disable next-line MethodExpression: the schema trims titles already; this keeps it so should it stop.
       title: item.title.trim(),
       description: item.description,
       tags: names,
@@ -169,6 +170,7 @@ async function readNitfree(files: Record<string, Uint8Array>): Promise<TParsedAr
 }
 
 function titleOf(file: string): string {
+  // Stryker disable next-line Regex: a run of separators turns into spaces one by one, then the spaces into one.
   return file.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
@@ -186,6 +188,7 @@ export async function readImages(files: Record<string, Uint8Array>): Promise<TPa
   let totalSize = 0;
 
   for (const [path, bytes] of Object.entries(files).sort(([a], [b]) => a.localeCompare(b))) {
+    // Stryker disable next-line MethodExpression: a blank part is no folder, and is dropped from the names below too.
     const parts = path.split("/").filter(Boolean);
     const file = parts.pop();
 

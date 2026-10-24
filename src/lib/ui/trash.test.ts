@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { sendMessage } from "~/lib/messaging";
 
-import { deleteWithUndo, flushTrash, pruneTrash, trash, undoable, undoDelete, UNDO_DELAY } from "./trash.svelte";
+import { deleteWithUndo, flushTrash, pruneTrash, trash, UNDO_DELAY, undoable, undoDelete } from "./trash.svelte";
+
+
 
 vi.mock("~/lib/messaging", async original => ({ ...await original<object>(), sendMessage: vi.fn(async () => undefined) }));
 

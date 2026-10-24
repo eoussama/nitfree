@@ -99,3 +99,30 @@ describe("colorThemeCss", () => {
     expect(findColorTheme(null)).toBeNull();
   });
 });
+
+describe("blendColors and colorThemeCss, in detail", () => {
+  it("lends surfaces the darker color's hue and text the lighter's in dark themes, whichever comes first", () => {
+    const yellow = rgb("#ffff00");
+    const navy = rgb("#000080");
+
+    expect(blendColors(yellow, navy, true)).toEqual({ base: [240, 1, 0.05], text: [60, 1, 0.95] });
+    expect(blendColors(navy, yellow, true)).toEqual({ base: [240, 1, 0.05], text: [60, 1, 0.95] });
+  });
+
+  it("gives text more contrast from the first blue to the last purple", () => {
+    const black = rgb("#000000");
+
+    expect(blendColors(rgb("#00aaff"), black, true).text).toEqual([200, 1, 0.8]);
+    expect(blendColors(rgb("#ff00ff"), black, true).text).toEqual([300, 1, 0.8]);
+  });
+
+  it("writes the gradient's last color, black for a color it cannot read, and the dark and light colors apart", () => {
+    const css = colorThemeCss({ id: "x" as never, scheme: "dark", angle: 90, colors: ["#ff0000", "#00ff00", "#0000ff"] });
+
+    expect(css).toContain("--custom-theme-secondary-color: #0000ff;");
+    expect(css).toContain("--custom-background-gradient-opacity-multiplier: 1;\n  --custom-theme-base-color-amount: 50%;\n  --custom-theme-text-color-amount: 38%;");
+    expect(css).toMatch(/--custom-theme-base-color-dark-hsl: \d+ 100% 5%;/);
+    expect(css).toMatch(/--custom-theme-base-color-light-hsl: \d+ 100% 90%;/);
+    expect(colorThemeCss({ id: "x" as never, scheme: "dark", angle: 0, colors: ["bad", "#ffffff"] })).not.toContain("NaN");
+  });
+});

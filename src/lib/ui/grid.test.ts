@@ -60,3 +60,26 @@ describe("nextTile", () => {
     expect(nextTile(rects, 5, "End")).toBe(9);
   });
 });
+
+describe("nextTile, by where tiles are", () => {
+  const at = (x: number, y: number, width: number, height: number): TRect => ({ x, y, width, height });
+
+  it("goes to the tile in the next row whose middle is closest, by width as well as place", () => {
+    expect(nextTile([at(0, 0, 10, 10), at(0, 20, 2, 10), at(12, 20, 2, 10)], 0, "ArrowDown")).toBe(1);
+    expect(nextTile([at(0, 20, 10, 10), at(0, 0, 2, 10), at(12, 0, 2, 10)], 0, "ArrowUp")).toBe(1);
+  });
+
+  it("takes a row by the middle of its tiles, by height as well as place", () => {
+    expect(nextTile([at(0, 0, 10, 10), at(0, 12, 10, 2)], 0, "ArrowDown")).toBe(1);
+    expect(nextTile([at(0, 0, 10, 10), at(0, 6, 10, 20)], 0, "ArrowDown")).toBe(1);
+  });
+
+  it("does not count a tile only half a row lower as the next row", () => {
+    expect(nextTile([at(0, 0, 10, 10), at(20, 5, 10, 10)], 0, "ArrowDown")).toBe(0);
+  });
+
+  it("keeps to the nearest row, leaving out a tile half a row below it, and keeps the first of two as close", () => {
+    expect(nextTile([at(0, 0, 10, 10), at(30, 20, 10, 10), at(0, 25, 10, 10)], 0, "ArrowDown")).toBe(1);
+    expect(nextTile([at(10, 0, 10, 10), at(0, 20, 10, 10), at(20, 20, 10, 10)], 0, "ArrowDown")).toBe(1);
+  });
+});

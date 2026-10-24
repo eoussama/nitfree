@@ -13,12 +13,23 @@ import { vi } from "vitest";
  */
 export function stubDecoder(options: { supported: boolean; track: { frameCount: number; repetitionCount: number } | null; durations: (number | null)[] }) {
   const decoded: { closed: boolean }[] = [];
-  const state = { closed: false, requested: [] as number[] };
+  const state = { closed: false, requested: [] as number[], init: null as { data: Uint8Array; type: string } | null };
 
   class FakeDecoder {
     static isTypeSupported = async () => options.supported;
     tracks = { ready: Promise.resolve(), selectedTrack: options.track };
     completed = Promise.resolve();
+
+    /**
+     * Notes what it was made to decode.
+     *
+     * @param init - The file's bytes and type.
+     * @param init.data - The bytes.
+     * @param init.type - The MIME type.
+     */
+    constructor(init: { data: Uint8Array; type: string }) {
+      state.init = init;
+    }
 
     /**
      * Decodes one frame, a picture of one color.

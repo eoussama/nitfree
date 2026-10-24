@@ -68,7 +68,11 @@ beforeEach(() => {
   // What the browser does that happy-dom does not: extend a selection by a character, and delete it.
   Object.defineProperty(Selection.prototype, "modify", {
     configurable: true,
-    value(this: Selection) {
+    value(this: Selection, alter: string, direction: string, granularity: string) {
+      if (alter !== "extend" || direction !== "backward" || granularity !== "character") {
+        return;
+      }
+
       this.setBaseAndExtent(this.anchorNode!, this.anchorOffset, this.focusNode!, Math.max(0, this.focusOffset - 1));
     },
   });
@@ -409,6 +413,271 @@ describe("pickSuggestion and highlightSuggestion", () => {
     await settle();
     highlightSuggestion(1);
     expect(suggest.highlighted).toBe(1);
+  });
+});
+
+describe("followSuggestions, in detail", () => {
+  const typeIn = (text: string) => {
+    document.querySelector("#line")!.textContent = text;
+    caret(text.length);
+  };
+
+  it("reads only the line the caret is on, and ignores zero-width characters", async () => {
+    document.body.innerHTML = "<form><div role=\"textbox\" contenteditable=\"true\" tabindex=\"0\" id=\"box\"><div data-slate-node=\"element\">:</div><div data-slate-node=\"element\"><span id=\"line\">ca</span></div></div></form>";
+    box().focus();
+    caret(2);
+    expect(suggest.mode).toBeNull();
+
+    compose(":﻿ca", false);
+    expect(suggest).toMatchObject({ mode: "list", query: "ca" });
+  });
+
+  it("names its rows, marks the highlighted one and only that, and forgets all of it on close", async () => {
+    compose(":ca");
+    await settle();
+    expect(ours().map(row => row.id)).toEqual(["nitfree-autocomplete-0", "nitfree-autocomplete-1"]);
+
+    box().setAttribute("aria-activedescendant", "d2");
+    press("ArrowDown");
+    expect(ours().map(row => row.getAttribute("aria-selected"))).toEqual(["true", "false"]);
+    expect(list().getAttribute("data-nitfree-suggesting")).toBe("");
+
+    press("ArrowDown");
+    expect(ours().map(row => row.getAttribute("aria-selected"))).toEqual(["false", "true"]);
+
+    press("Escape");
+    expect(list().hasAttribute("data-nitfree-suggesting")).toBe(false);
+    expect(suggest).toMatchObject({ box: null, query: "", items: [], mode: null, highlighted: null });
+  });
+
+  it("moves its rows when the popup's setting changes, and keeps them together and in place", async () => {
+    library.items = [item("cat"), item("cart", { type: "sticker" }), item("can")];
+    compose(":ca");
+    await settle();
+
+    preferences.suggestionsAt = "start";
+    flushSync();
+    await settle();
+    expect(ours().at(-1)!.nextElementSibling?.id).toBe("d1");
+
+    // One of them strays, and the rest are put back around Discord's first row.
+    list().append(ours()[1]!);
+    await settle();
+    expect(ours().map(row => row.id)).toEqual(["nitfree-autocomplete-0", "nitfree-autocomplete-1", "nitfree-autocomplete-2"]);
+    expect(ours().at(-1)!.nextElementSibling?.id).toBe("d1");
+    expect(ours()[0]!.previousElementSibling).toBeNull();
+
+    preferences.suggestionsAt = "end";
+    flushSync();
+    await settle();
+    expect(ours()[0]!.previousElementSibling?.id).toBe("d2");
+  });
+
+  it("puts its rows back next to Discord's last row when something is put between", async () => {
+    library.items = [item("cat"), item("cart"), item("can")];
+    compose(":ca");
+    await settle();
+
+    list().insertBefore(document.createElement("i"), ours()[0]!);
+    await settle();
+    expect(ours()[0]!.previousElementSibling?.id).toBe("d2");
+    expect(ours().map(row => row.id)).toEqual(["nitfree-autocomplete-0", "nitfree-autocomplete-1", "nitfree-autocomplete-2"]);
+  });
+
+  it("hears Discord's list change through the box's aria-controls, too", async () => {
+    compose(":ca", false);
+    await settle();
+    document.body.insertAdjacentHTML("beforeend", `<div id="other" role="listbox">${ROW("o1")}</div>`);
+    box().setAttribute("aria-expanded", "true");
+    box().setAttribute("aria-controls", "other");
+    await settle();
+    expect(suggest.mode).toBe("inline");
+    expect(document.querySelector("#other [data-nitfree-option]")).not.toBeNull();
+  });
+
+  it("resets the highlight when what is suggested changes, and keeps it when it does not", async () => {
+    library.items = [item("cat"), item("cart"), item("can"), item("cabin")];
+    compose(":ca", false);
+    await settle();
+
+    suggest.highlighted = 2;
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(suggest.highlighted).toBe(2);
+
+    // A longer name, other suggestions.
+    typeIn(":car");
+    expect(suggest.highlighted).toBe(0);
+
+    suggest.highlighted = 1;
+    typeIn(":ca");
+    expect(suggest.highlighted).toBe(0);
+
+    // Same name and number of suggestions, but one of them is another.
+    suggest.highlighted = 3;
+    library.items = [item("cat"), item("cart"), item("can"), item("cabana")];
+    flushSync();
+    expect(suggest.highlighted).toBe(0);
+
+    // The same ones, only one fewer.
+    suggest.highlighted = 2;
+    library.items = [item("cat"), item("cart"), item("can")];
+    flushSync();
+    expect(suggest.highlighted).toBe(0);
+
+    // From a list of their own to Discord's rows.
+    suggest.highlighted = 2;
+    list().innerHTML = ROW("d1");
+    box().setAttribute("aria-expanded", "true");
+    await settle();
+    expect(suggest).toMatchObject({ mode: "inline", highlighted: null });
+  });
+
+  it("shows again a name that was hidden, once another was typed or another box is used", async () => {
+    compose(":ca", false);
+    await settle();
+    press("Escape");
+
+    typeIn(":cat");
+    expect(suggest.mode).toBe("list");
+    typeIn(":ca");
+    expect(suggest.mode).toBe("list");
+
+    press("Escape");
+    compose(":ca", false);
+    await settle();
+    expect(suggest.mode).toBe("list");
+  });
+
+  it("goes round three suggestions both ways, and only Escape hides them", async () => {
+    library.items = [item("cat"), item("cart"), item("can")];
+    compose(":ca", false);
+    await settle();
+
+    const seen: (number | null)[] = [];
+
+    for (const key of ["ArrowDown", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp"]) {
+      press(key);
+      seen.push(suggest.highlighted);
+    }
+
+    expect(seen).toEqual([1, 2, 0, 2, 1]);
+    press("a");
+    press("Backspace");
+    press("Enter", { shiftKey: true });
+    expect(suggest.mode).toBe("list");
+  });
+
+  it("stops the key it takes from reaching anyone else", async () => {
+    compose(":ca", false);
+    await settle();
+
+    const later = vi.fn();
+
+    window.addEventListener("keydown", later, true);
+    press("ArrowDown");
+    window.removeEventListener("keydown", later, true);
+    expect(later).not.toHaveBeenCalled();
+  });
+
+  it("takes the name out as a backspace over a selection that editors can cancel, then picks with nothing left of it", async () => {
+    compose(":ca", false);
+    await settle();
+
+    let seen: InputEvent | null = null;
+
+    box().addEventListener("beforeinput", (event) => {
+      seen = event as InputEvent;
+      event.preventDefault();
+    });
+    pick.mockImplementation(() => expect(suggest.box).toBeNull());
+    press("Enter");
+    expect(seen).toMatchObject({ inputType: "deleteContentBackward", bubbles: true, cancelable: true });
+    expect(pick).toHaveBeenCalledOnce();
+  });
+
+  it("leaves the caret at the end where it would select something else", async () => {
+    compose(":ca", false);
+    await settle();
+    Object.defineProperty(Selection.prototype, "modify", { configurable: true, value: () => undefined });
+
+    const collapse = vi.spyOn(Selection.prototype, "collapseToEnd");
+
+    press("Enter");
+    expect(collapse).toHaveBeenCalledOnce();
+  });
+
+  it("gives the keys back the way it took them, from the top or the bottom of Discord's rows", async () => {
+    compose(":ca");
+    await settle();
+    list().insertAdjacentHTML("beforeend", ROW("d3"));
+    await settle();
+
+    // In the middle of Discord's rows, the keys are Discord's.
+    box().setAttribute("aria-activedescendant", "d2");
+    expect(press("ArrowDown").defaultPrevented).toBe(false);
+
+    // In from the bottom: up at the first suggestion goes back, and the key is kept.
+    box().setAttribute("aria-activedescendant", "d3");
+    expect(press("ArrowDown").defaultPrevented).toBe(true);
+    expect(press("ArrowUp").defaultPrevented).toBe(true);
+    expect(suggest.highlighted).toBeNull();
+
+    // In from the top, by the pointer: down at the last suggestion goes back, and the key is kept.
+    box().setAttribute("aria-activedescendant", "d1");
+    ours()[0]!.dispatchEvent(new Event("pointermove"));
+    expect(suggest.highlighted).toBe(0);
+    suggest.highlighted = 1;
+    expect(press("ArrowDown").defaultPrevented).toBe(true);
+    expect(suggest.highlighted).toBeNull();
+
+    // Pointing again while a suggestion is highlighted does not change how the keys came.
+    box().setAttribute("aria-activedescendant", "d3");
+    ours()[0]!.dispatchEvent(new Event("pointermove"));
+    ours()[1]!.dispatchEvent(new Event("pointermove"));
+    expect(suggest.highlighted).toBe(1);
+  });
+
+  it("listens to the page's own events before the page does, and to all of them", async () => {
+    compose(":ca", false);
+    await settle();
+
+    box().addEventListener("input", event => event.stopPropagation());
+    box().addEventListener("focusout", event => event.stopPropagation());
+    box().addEventListener("keydown", event => event.stopPropagation());
+
+    typeIn(":zz");
+    expect(suggest.mode).toBeNull();
+    document.querySelector("#line")!.textContent = ":ca";
+    document.getSelection()!.collapse(document.querySelector("#line")!.firstChild!, 3);
+    box().dispatchEvent(new Event("input", { bubbles: true }));
+    expect(suggest.mode).toBe("list");
+
+    box().blur();
+    box().dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    expect(suggest.mode).toBeNull();
+
+    box().focus();
+    caret(3);
+    expect(press("ArrowDown").defaultPrevented).toBe(true);
+  });
+
+  it("is deaf to everything once stopped", async () => {
+    compose(":ca", false);
+    await settle();
+    stop();
+
+    library.items = [item("cat"), item("cart")];
+    flushSync();
+    box().dispatchEvent(new Event("input", { bubbles: true }));
+    expect(suggest.mode).toBeNull();
+    box().dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    expect(suggest.mode).toBeNull();
+    expect(press("ArrowDown").defaultPrevented).toBe(false);
+
+    // Started again, it shows what is being typed.
+    stop = followSuggestions(pick);
+    box().dispatchEvent(new Event("input", { bubbles: true }));
+    expect(suggest.mode).toBe("list");
   });
 });
 

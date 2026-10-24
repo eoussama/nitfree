@@ -62,6 +62,29 @@ afterEach(async () => {
   await Dexie.delete(LEGACY_DATABASE_NAME);
 });
 
+describe("migrateLegacyDatabase, in detail", () => {
+  it("skips nothing when the old database has no items at all", async () => {
+    await createLegacyDatabase({ Tags: [{ id: "t-1", name: "Cats" }] }, ["Tags", "Files"]);
+    expect(await migrateLegacyDatabase(db)).toEqual({ items: [], tags: ["t-1"], skipped: 0 });
+  });
+
+  it("calls only an animated GIF a GIF, and keeps titles that are not text out", async () => {
+    await createLegacyDatabase({
+      Files: [{ id: "f-1", data: new Blob([gif(8, 8, 1)]) }, { id: "f-2", data: new Blob([png(8, 8, 2)]) }],
+      Metadata: [{ id: "m-1", fileId: "f-1", title: 5 }, { id: "m-2", fileId: "f-2", title: "apng" }],
+    });
+    await migrateLegacyDatabase(db);
+    expect(await db.items.get("m-1")).toMatchObject({ type: "image", title: "Untitled", packs: [] });
+    expect(await db.items.get("m-2")).toMatchObject({ type: "image", animated: true });
+  });
+
+  it("keeps tags of other names apart, with the spaces inside their names made single", async () => {
+    await createLegacyDatabase({ Tags: [{ id: "t-1", name: "Big  cats" }, { id: "t-2", name: "Dogs" }] });
+    await migrateLegacyDatabase(db);
+    expect((await db.tags.toArray()).map(tag => tag.name).sort()).toEqual(["Big cats", "Dogs"]);
+  });
+});
+
 describe("migrateLegacyDatabase", () => {
   it("does nothing without an old database", async () => {
     expect(await migrateLegacyDatabase(db)).toBeNull();

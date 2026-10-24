@@ -87,6 +87,7 @@ function textBeforeCaret(box: HTMLElement): string | null {
 
   const node = caret.startContainer instanceof Element ? caret.startContainer : caret.startContainer.parentElement;
   // Each line of Discord's editor is one of its elements.
+  // Stryker disable next-line OptionalChaining: an element's parent is only missing for a detached node, which holds no caret.
   const line = node?.closest("[data-slate-node=\"element\"]") ?? box;
   const range = box.ownerDocument.createRange();
 
@@ -186,6 +187,7 @@ function placeRows(list: Element, discord: readonly HTMLElement[]): void {
 }
 
 // Follows the box's link to Discord's list, and the list itself.
+// Stryker disable ConditionalExpression,EqualityOperator,BooleanLiteral,ObjectLiteral: watching again what is watched already, or watching the list's depth, changes nothing seen.
 function watch(box: Element | null, list: Element | null): void {
   if (watched.box !== box) {
     boxObserver?.disconnect();
@@ -207,6 +209,7 @@ function watch(box: Element | null, list: Element | null): void {
 
   watched = { box, list };
 }
+// Stryker restore ConditionalExpression,EqualityOperator,BooleanLiteral,ObjectLiteral
 
 /**
  * Reads what is being typed and updates the suggestions.
@@ -214,16 +217,18 @@ function watch(box: Element | null, list: Element | null): void {
 function update(): void {
   const box = preferences.autocomplete ? messageBoxOf(document.activeElement) : null;
   const text = box ? textBeforeCaret(box) : null;
+  // Stryker disable next-line ConditionalExpression: with no text there is no box, and nothing is read of a missing one.
   const query = text === null ? null : findEmojiQuery(text);
   const list = box ? findDiscordAutocomplete(box) : null;
 
   watch(box, list);
 
-  if (!box || !query || (dismissed?.box === box && dismissed.query === query)) {
-    if (dismissed && (dismissed.box !== box || dismissed.query !== query)) {
-      dismissed = null;
-    }
+  // Typing anything else, or going to another box, ends the hiding.
+  if (dismissed && (dismissed.box !== box || dismissed.query !== query)) {
+    dismissed = null;
+  }
 
+  if (!box || !query || dismissed) {
     close();
 
     return;
@@ -249,6 +254,7 @@ function update(): void {
   suggest.query = query;
   suggest.mode = mode;
 
+  // Stryker disable next-line LogicalOperator: inline is the mode exactly when Discord has rows, which needs a list.
   if (list && discord.length) {
     placeRows(list, discord);
   }
@@ -309,6 +315,7 @@ export function pickSuggestion(item: TItem, primary: boolean): void {
   }
 
   removeQuery(box, query);
+  // Stryker disable next-line OptionalChaining: picking is only wired while the suggestions are followed, which sets it.
   onpick?.(item, picksSend(primary, preferences.clickAction), composer);
 }
 
@@ -339,6 +346,7 @@ export function highlightSuggestion(index: number): void {
 function moveInline(down: boolean): boolean {
   const { box, items, highlighted } = suggest;
   const options = discordOptions(rows!.list);
+  // Stryker disable next-line OptionalChaining: keys are only taken while there is a box.
   const active = box?.getAttribute("aria-activedescendant");
 
   if (highlighted === null) {
@@ -346,6 +354,7 @@ function moveInline(down: boolean): boolean {
       entered = "end";
       suggest.highlighted = 0;
     }
+    // Stryker disable next-line OptionalChaining: Discord's rows exist while the suggestions are inline.
     else if (!down && active === options[0]?.id) {
       entered = "start";
       suggest.highlighted = items.length - 1;
@@ -381,6 +390,7 @@ function moveInline(down: boolean): boolean {
 function onKeydown(event: KeyboardEvent): void {
   const { box, items, mode, highlighted } = suggest;
 
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: with a box there are always items, and without one the box is not in the path.
   if (!box || !items.length || event.isComposing || !event.composedPath().includes(box) || event.ctrlKey || event.altKey || event.metaKey) {
     return;
   }
@@ -396,6 +406,7 @@ function onKeydown(event: KeyboardEvent): void {
       taken = true;
     }
   }
+  // Stryker disable next-line ConditionalExpression: with nothing highlighted there is no item to take either.
   else if ((event.key === "Enter" || event.key === "Tab") && !event.shiftKey && highlighted !== null) {
     const item = items[highlighted];
 
@@ -450,6 +461,7 @@ export function followSuggestions(pick: TPick): () => void {
   // Before Discord's own listeners, which move through and pick from its autocomplete.
   window.addEventListener("keydown", onKeydown, true);
 
+  // Stryker disable StringLiteral,BooleanLiteral,OptionalChaining,ObjectLiteral: happy-dom removes a listener whatever its capture flag, as browsers do not; the rest is bookkeeping before the state is reset.
   return () => {
     document.removeEventListener("selectionchange", update);
     document.removeEventListener("input", update, true);

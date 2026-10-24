@@ -90,6 +90,7 @@ export function clipFrameSize(video: TSize, clip: Pick<TClip, "size">): TSize {
 function once(video: HTMLVideoElement, event: string, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const listening = new AbortController();
+    // Stryker disable next-line ObjectLiteral: the listeners are only taken off once the promise has settled, after which they change nothing seen.
     const options = { signal: listening.signal };
 
     if (signal?.aborted) {
@@ -99,16 +100,19 @@ function once(video: HTMLVideoElement, event: string, signal?: AbortSignal): Pro
     }
 
     video.addEventListener(event, () => {
+      // Stryker disable next-line CallExpression: as above.
       listening.abort();
       resolve();
     }, options);
 
     video.addEventListener("error", () => {
+      // Stryker disable next-line CallExpression: as above.
       listening.abort();
       reject(new Error(video.error?.message || "The video cannot be played."));
     }, options);
 
     signal?.addEventListener("abort", () => {
+      // Stryker disable next-line CallExpression: as above.
       listening.abort();
       reject(signal.reason);
     }, options);

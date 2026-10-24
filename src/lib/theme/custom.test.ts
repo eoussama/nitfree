@@ -70,3 +70,13 @@ describe("mergeSnippets", () => {
     expect(mergeSnippets(kept, imported)).toEqual([snippet("a", "a {}"), snippet("b", "b { color: red }", false), snippet("c", "c {}")]);
   });
 });
+
+describe("accentScale and accentCss, in detail", () => {
+  it("never makes the lighter steps of a light accent lighter than white", () => {
+    expect(accentScale("#ffffff")!.every(([, , lightness]) => lightness <= 100)).toBe(true);
+  });
+
+  it("puts each step on a line of its own", () => {
+    expect(accentCss("#5865f2").split("\n")).toHaveLength(BLURPLE_SCALE.length + 2);
+  });
+});

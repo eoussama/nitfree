@@ -88,6 +88,7 @@ export async function applyArchive(
         usageCount: entry.usageCount,
       }, mode === "merge");
 
+      // Stryker disable next-line ConditionalExpression: an entry with no id would only record an id nothing looks up.
       if (entry.id) {
         itemIds.set(entry.id, item.id);
       }

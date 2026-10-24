@@ -6,6 +6,7 @@ import { stubDecoder } from "~/test/decoder";
 import { gif, png, webpExtended } from "~/test/fixtures";
 import { readFrames } from "./frames";
 import { inspectImage } from "./inspect";
+import { crc32 } from "./split";
 
 
 
@@ -82,5 +83,63 @@ describe("readFrames", () => {
     // This fixture has no frame control chunks, so there is nothing to split and the first image stands in.
     expect(await collect(new Blob([animatedPng]), info(animatedPng))).toHaveLength(1);
     expect(await collect(new Blob([webp]), info(webp))).toHaveLength(1);
+  });
+});
+
+describe("readFrames, in detail", () => {
+  const u32 = (value: number) => [(value >>> 24) & 0xFF, (value >>> 16) & 0xFF, (value >>> 8) & 0xFF, value & 0xFF];
+  const chunk = (type: string, data: number[]) => {
+    const body = [...type].map(char => char.charCodeAt(0)).concat(data);
+
+    return [...u32(data.length), ...body, ...u32(crc32(Uint8Array.from(body)))];
+  };
+  const control = (sequence: number) => chunk("fcTL", [...u32(sequence), ...u32(8), ...u32(6), ...u32(0), ...u32(0), 0, 5, 0, 100, 0, 0]);
+
+  it("composites an APNG's frames where the browser cannot decode them", async () => {
+    const bytes = Uint8Array.from([
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+      ...chunk("IHDR", [...u32(8), ...u32(6), 8, 6, 0, 0, 0]),
+      ...chunk("acTL", [...u32(2), ...u32(0)]),
+      ...control(0),
+      ...chunk("IDAT", [1]),
+      ...control(1),
+      ...chunk("fdAT", [...u32(2), 2]),
+      ...chunk("IEND", []),
+    ]);
+
+    expect(await collect(new Blob([bytes]), info(bytes))).toHaveLength(2);
+  });
+
+  it("decodes a still image itself, even where the browser could decode frames", async () => {
+    const { state } = stubDecoder({ supported: true, track: { frameCount: 3, repetitionCount: 0 }, durations: [] });
+    const bytes = png(12, 9);
+
+    expect(await collect(new Blob([bytes]), info(bytes))).toHaveLength(1);
+    expect(state.requested).toEqual([]);
+  });
+
+  it("gives the browser's decoder the file and its type", async () => {
+    const { state } = stubDecoder({ supported: true, track: { frameCount: 1, repetitionCount: 0 }, durations: [70_000] });
+    const bytes = gif(8, 6, 2);
+
+    await collect(new Blob([bytes]), info(bytes));
+    expect(state.init?.type).toBe("image/gif");
+    expect([...state.init!.data]).toEqual([...bytes]);
+  });
+
+  it("closes a composited frame when told", async () => {
+    const bytes = gif(8, 6, 2);
+
+    for await (const frame of readFrames(new Blob([bytes]), info(bytes))) {
+      frame.close();
+      expect((frame.source as unknown as { closed: boolean }).closed).toBe(true);
+    }
   });
 });

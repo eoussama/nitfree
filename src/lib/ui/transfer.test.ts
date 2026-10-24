@@ -185,6 +185,10 @@ describe("exportItems", () => {
 });
 
 describe("isArchiveFile", () => {
+  it("goes by the end of the name only", () => {
+    expect(isArchiveFile(new File([], "a.zip.png", { type: "image/png" }))).toBe(false);
+  });
+
   it("knows a backup or a zip by its name or type", () => {
     expect(isArchiveFile(new File([], "backup.nitfree"))).toBe(true);
     expect(isArchiveFile(new File([], "memes.ZIP"))).toBe(true);
@@ -326,6 +330,48 @@ describe("importPending", () => {
     };
     await importPending("merge", true);
     expect(await colorTheme.getValue()).toBeNull();
+  });
+
+  it("leaves each setting an older file does not have as it is set", async () => {
+    const snippets = [{ id: "mine", name: "Mine", css: "a {}", enabled: true }];
+
+    await autocomplete.setValue(false);
+    await suggestionsAt.setValue("start");
+    await shortcut.setValue(false);
+    await colorTheme.setValue("ocean");
+    await cssSnippets.setValue(snippets);
+    transfer.pending = {
+      name: "old.nitfree",
+      archive: { kind: "nitfree", entries: [], tags: [], packs: [], ignored: 0, totalSize: 0, settings: { sendSizes: { emoji: 32, sticker: 120 }, clickAction: "send", playAnimations: true } },
+    };
+
+    await importPending("merge", true);
+    expect(transfer.error).toBeNull();
+    expect([await autocomplete.getValue(), await suggestionsAt.getValue(), await shortcut.getValue(), await colorTheme.getValue()]).toEqual([false, "start", false, "ocean"]);
+    expect(await cssSnippets.getValue()).toEqual(snippets);
+  });
+
+  it("is busy reading a file, and then importing it", async () => {
+    const reading = pickImport(new File([zipSync({ "cat.png": png(2, 2) })], "cats.zip"));
+
+    expect(transfer.busy).toBe("read");
+    await reading;
+
+    const importing = importPending("merge", false);
+
+    expect(transfer.busy).toBe("import");
+    await importing;
+  });
+
+  it("is busy reading a folder", async () => {
+    const file = new File([png(2, 2)], "cat.png");
+
+    Object.defineProperty(file, "webkitRelativePath", { value: "memes/cat.png" });
+
+    const reading = pickFolder([file]);
+
+    expect(transfer.busy).toBe("read");
+    await reading;
   });
 
   it("leaves the settings alone unless asked, or when the file has none", async () => {

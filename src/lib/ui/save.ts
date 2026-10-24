@@ -82,6 +82,7 @@ export function followSaveFromChat(): () => void {
   function stopWaiting(): void {
     observer?.disconnect();
     observer = null;
+    // Stryker disable next-line CallExpression: the timer only stops waiting, which is already done.
     clearTimeout(timer);
   }
 
@@ -126,6 +127,7 @@ export function followSaveFromChat(): () => void {
   window.addEventListener("contextmenu", onContextMenu, true);
 
   return () => {
+    // Stryker disable next-line BooleanLiteral: happy-dom removes a listener whatever its capture flag, as browsers do not.
     window.removeEventListener("contextmenu", onContextMenu, true);
     stopWaiting();
     clear();

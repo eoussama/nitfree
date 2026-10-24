@@ -24,6 +24,7 @@ function verticalNeighbor(rects: readonly TRect[], from: number, direction: 1 | 
   const current = rects[from]!;
   const candidates = rects
     .map((rect, index) => ({ rect, index }))
+    // Stryker disable next-line ArithmeticOperator: dividing by one or minus one is the same as multiplying by it.
     .filter(({ rect }) => (centerY(rect) - centerY(current)) * direction > current.height / 2);
 
   if (!candidates.length) {

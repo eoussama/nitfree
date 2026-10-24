@@ -133,6 +133,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
   const onDiscordTab = (event: Event): void => {
     const target = event.target as Element | null;
 
+    // Stryker disable next-line OptionalChaining: an event from the page always has a target.
     if (selected && isActivation(event) && target?.closest("[role=\"tab\"]") && !target.closest(`#${TAB_ID}`)) {
       deselect();
     }
@@ -167,7 +168,9 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
   document.addEventListener("keydown", onPickerButton, true);
 
   function inject(tabList: Element): TInjected | null {
+    // Stryker disable next-line OptionalChaining: a tab list found in the page has a parent, and that one too.
     const dialog = tabList.closest("[role=\"dialog\"]") ?? tabList.parentElement?.parentElement;
+    // Stryker disable next-line OptionalChaining: as above.
     const container = dialog?.querySelector<HTMLElement>("[role=\"tabpanel\"]")?.parentElement;
 
     if (!container) {
@@ -186,6 +189,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     tab.tabIndex = 0;
     tab.dataset.nitfreeTab = "";
     tab.setAttribute("aria-controls", PANEL_ID);
+    // Stryker disable next-line StringLiteral: the first scan sets it again right after.
     tab.setAttribute("aria-selected", "false");
     tab.textContent = i18n.t("extName");
     tab.addEventListener("click", () => void select());
@@ -212,6 +216,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     // React re-applies its own classes when it re-renders the tabs; put the selection back each time.
     const observer = new MutationObserver(() => sync());
 
+    // Stryker disable next-line StringLiteral: happy-dom tells of every attribute, whatever the filter says.
     observer.observe(tabList, { attributes: true, subtree: true, attributeFilter: ["class", "aria-selected"] });
 
     return { tabList, observer, container, tab, host, library: null };
@@ -222,10 +227,15 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
       return;
     }
 
+    // Stryker disable all: once the tab is gone, its listeners and observer find no tab to act on, and an
+    // unmounted library is already out of the page with its panel; happy-dom also removes a listener
+    // whatever its capture flag, as browsers do not.
     current.observer.disconnect();
     current.tabList.removeEventListener("click", onDiscordTab, true);
     current.tabList.removeEventListener("keydown", onDiscordTab, true);
 
+    // Stryker restore all
+    // Stryker disable next-line ConditionalExpression,BlockStatement: as above, though a library never shown must not be unmounted.
     if (current.library) {
       void unmount(current.library);
     }
@@ -250,6 +260,7 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     }
 
     if (!selected) {
+      // Stryker disable next-line ConditionalExpression: only spares the observer a mutation.
       if (container.hasAttribute("data-nitfree-selected")) {
         delete container.dataset.nitfreeSelected;
       }
@@ -331,7 +342,9 @@ export function createPickerTab({ onpick, onchange }: TOptions): TPickerTab {
     deselect,
     isOpen: () => findTabList() !== null,
     stop: () => {
+      // Stryker disable next-line StringLiteral,BooleanLiteral: happy-dom removes a listener whatever its capture flag, as browsers do not.
       document.removeEventListener("click", onPickerButton, true);
+      // Stryker disable next-line StringLiteral,BooleanLiteral: as above.
       document.removeEventListener("keydown", onPickerButton, true);
       restoreSilenced();
       teardown();

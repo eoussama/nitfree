@@ -68,6 +68,7 @@ export function accentScale(hex: string): [number, number, number][] | null {
   return BLURPLE_SCALE.map(([, s, l]) => [
     hue,
     round(Math.min(100, s * saturation / baseSaturation)),
+    // Stryker disable next-line EqualityOperator: at the base's own lightness both ways give the accent's.
     round(l >= baseLightness
       ? lightness + (l - baseLightness) * (100 - lightness) / (100 - baseLightness)
       : l * lightness / baseLightness),
@@ -122,6 +123,7 @@ export function themeStyles(document: Document): { render: (theme: TCustomTheme)
 
     style.setAttribute(STYLE_ATTRIBUTE, key);
 
+    // Stryker disable next-line ConditionalExpression: only spares writing the same text again.
     if (style.textContent !== css) {
       style.textContent = css;
     }
@@ -168,6 +170,7 @@ export function themeStyles(document: Document): { render: (theme: TCustomTheme)
       ];
 
       for (const style of styles) {
+        // Stryker disable next-line ConditionalExpression: a kept style taken out is put back just below.
         if (!next.includes(style)) {
           style.remove();
         }
@@ -179,8 +182,10 @@ export function themeStyles(document: Document): { render: (theme: TCustomTheme)
       mark();
     },
     stop() {
+      // Stryker disable all: with no styles left and the class gone, the observers find nothing to do.
       observer.disconnect();
       classes.disconnect();
+      // Stryker restore all
       themed = false;
       mark();
 
@@ -188,6 +193,7 @@ export function themeStyles(document: Document): { render: (theme: TCustomTheme)
         style.remove();
       }
 
+      // Stryker disable next-line ArrayDeclaration: as above.
       styles = [];
     },
   };

@@ -213,3 +213,79 @@ describe("followSaveFromChat", () => {
     stop = () => undefined;
   });
 });
+
+describe("followSaveFromChat, in detail", () => {
+  async function saveFrom(target: Element): Promise<void> {
+    rightClick(target);
+
+    const menu = openMenu();
+
+    await settle();
+    flushSync();
+    menu.querySelector<HTMLElement>("[data-nitfree-save] [role=menuitem]")!.click();
+    await settle();
+  }
+
+  it("closes Discord's menu with an Escape that reaches the page and can be cancelled, and opens the dialog with the file as downloaded", async () => {
+    serve({ ok: true });
+
+    const heard: KeyboardEvent[] = [];
+    const listen = (event: KeyboardEvent) => heard.push(event);
+
+    document.addEventListener("keydown", listen);
+    await saveFrom(document.querySelector("#emoji")!);
+    document.removeEventListener("keydown", listen);
+    expect(heard.map(event => [event.key, event.code, event.cancelable])).toEqual([["Escape", "Escape", true]]);
+
+    const [files] = vi.mocked(startAdd).mock.calls[0]!;
+    const [file] = [...files];
+
+    expect([file!.type, file!.size]).toEqual(["image/png", 1]);
+  });
+
+  it("keeps an emoji's or sticker's name as it is, dots and all", async () => {
+    serve({ ok: true });
+    document.body.insertAdjacentHTML("beforeend", `<img id="dotted" data-type="emoji" data-id="5" alt=":a.b:" src="https://cdn.discordapp.com/emojis/5.webp">
+      <div id="sticker" data-type="sticker" data-id="6" data-name="c.d" data-format-type="1"></div>`);
+    await saveFrom(document.querySelector("#dotted")!);
+    await saveFrom(document.querySelector("#sticker")!);
+    expect(vi.mocked(startAdd).mock.calls.map(([, , preset]) => preset?.title)).toEqual(["a.b", "c.d"]);
+  });
+
+  it("saves what the last right click was on, when two come before the menu opens", async () => {
+    const fetched = serve({ ok: true });
+
+    rightClick(document.querySelector("#emoji")!);
+    rightClick(document.querySelector("#image")!);
+
+    const menu = openMenu();
+
+    await settle();
+    flushSync();
+    expect(menu.querySelectorAll("[data-nitfree-save]")).toHaveLength(1);
+    menu.querySelector<HTMLElement>("[data-nitfree-save] [role=menuitem]")!.click();
+    await settle();
+    expect(fetched).toHaveBeenCalledWith("https://cdn.discordapp.com/attachments/1/2/party-parrot.png");
+  });
+
+  it("hears a right click before Discord stops it", async () => {
+    document.querySelector("#emoji")!.addEventListener("contextmenu", event => event.stopPropagation());
+    rightClick(document.querySelector("#emoji")!);
+
+    const menu = openMenu();
+
+    await settle();
+    flushSync();
+    expect(menu.querySelector("[data-nitfree-save]")).not.toBeNull();
+  });
+
+  it("stops waiting for a menu once stopped", async () => {
+    rightClick(document.querySelector("#emoji")!);
+    stop();
+    openMenu();
+    await settle();
+    flushSync();
+    expect(document.querySelector("[data-nitfree-save]")).toBeNull();
+    stop = () => undefined;
+  });
+});

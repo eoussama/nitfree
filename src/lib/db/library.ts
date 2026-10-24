@@ -62,6 +62,7 @@ export async function inspectFile(file: Blob): Promise<TInspectedFile> {
 
   return {
     ...info,
+    // Stryker disable next-line ConditionalExpression: a copy of a file already of its type holds the same.
     file: file.type === info.mime ? file : new Blob([file], { type: info.mime }),
     hash: await hashBytes(bytes),
     size: file.size,
@@ -107,6 +108,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
       const print = blob ? await fingerprintOf(blob.original) : null;
 
       // The file may have been replaced meanwhile, and the fingerprint would then be of the old one.
+      // Stryker disable next-line StringLiteral: Dexie takes an empty index name for the primary key, which is the id.
       await db.items.where("id").equals(row.id).modify((current) => {
         if (current.hash === row.hash) {
           current.fingerprint = print;
@@ -514,6 +516,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
      * @returns Resolves once stored; rejects when the item does not exist.
      */
     async storeVariant(id: string, key: string, file: Blob): Promise<void> {
+      // Stryker disable next-line StringLiteral: Dexie takes an empty index name for the primary key, which is the item's id.
       const updated = await db.blobs.where("itemId").equals(id).modify((row) => {
         row.variants = { ...row.variants, [key]: file };
       });
@@ -552,6 +555,7 @@ export function createLibrary(db: NitfreeDatabase, now: () => number = Date.now,
       await db.blobs.toCollection().modify((row) => {
         const files = Object.values(row.variants);
 
+        // Stryker disable next-line ConditionalExpression: a file with no copies frees nothing, and has none left either way.
         if (files.length) {
           freed.size += files.reduce((sum, file) => sum + file.size, 0);
           freed.count += files.length;

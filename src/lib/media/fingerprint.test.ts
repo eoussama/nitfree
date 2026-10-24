@@ -79,3 +79,72 @@ describe("imageFingerprint", () => {
     expect(await imageFingerprint(await fileOf(paintedCanvas(32, 32, "#ff0000")))).toBe("0000000000000000ff0000");
   });
 });
+
+describe("fingerprints, in detail", () => {
+  // The brightness a fingerprint compares, written out plainly: the pixel over white.
+  function reference(rgba: number[]): string {
+    const bright = (i: number) => {
+      const alpha = rgba[i + 3]! / 255;
+
+      return (0.299 * rgba[i]! + 0.587 * rgba[i + 1]! + 0.114 * rgba[i + 2]!) * alpha + 255 * (1 - alpha);
+    };
+    let hash = "";
+
+    for (let y = 0; y < 8; y++) {
+      let bits = 0;
+
+      for (let x = 0; x < 8; x++) {
+        bits = bits * 2 + (bright((y * 9 + x) * 4) > bright((y * 9 + x + 1) * 4) ? 1 : 0);
+      }
+
+      hash += bits.toString(16).padStart(2, "0");
+    }
+
+    return hash;
+  }
+
+  it("compares pixels by how bright they show over white, see-through ones included", () => {
+    let state = 3;
+    const next = () => (state = (state * 1_103_515_245 + 12_345) % 2_147_483_648) % 256;
+
+    for (let run = 0; run < 100; run++) {
+      const rgba = Array.from({ length: 9 * 8 * 4 }, next);
+
+      expect(fingerprintPixels(rgba).slice(0, 16)).toBe(reference(rgba));
+    }
+  });
+
+  it("counts only the hash's bits apart, not the color's", () => {
+    expect(hashDistance("0000000000000000000000", "0000000000000000ffffff")).toBe(0);
+  });
+
+  it("takes colors exactly as far apart as it allows as the same", () => {
+    expect(isSimilar("0000000000000000000000", "0000000000000000181818")).toBe(true);
+    expect(isSimilar("0000000000000000000000", "0000000000000000191919")).toBe(false);
+  });
+
+  it("makes none where the page cannot draw, and closes what it decoded", async () => {
+    installCanvas();
+    vi.stubGlobal("OffscreenCanvas", undefined);
+    expect(await imageFingerprint(new Blob([png(4, 4)]))).toBeNull();
+
+    installCanvas();
+    vi.stubGlobal("createImageBitmap", undefined);
+    expect(await imageFingerprint(new Blob([png(4, 4)]))).toBeNull();
+
+    installCanvas();
+
+    const decode = globalThis.createImageBitmap;
+    const bitmaps: { closed: boolean }[] = [];
+
+    vi.stubGlobal("createImageBitmap", async (file: Blob) => {
+      const bitmap = await decode(file);
+
+      bitmaps.push(bitmap as never);
+
+      return bitmap;
+    });
+    await imageFingerprint(new Blob([png(4, 4)]));
+    expect(bitmaps.map(bitmap => bitmap.closed)).toEqual([true]);
+  });
+});

@@ -9,6 +9,28 @@ import { clipFrameSize, clipTimes, defaultClip, loadVideo, MAX_CLIP, MIN_CLIP, m
 
 
 
+// The real encoder, counted each time it is closed.
+const encoders = vi.hoisted(() => ({ closed: 0 }));
+
+vi.mock("./encoder", async (original) => {
+  const real = await original<typeof import("./encoder")>();
+
+  return {
+    ...real,
+    startGifEncoder: async (...args: Parameters<typeof real.startGifEncoder>) => {
+      const encoder = await real.startGifEncoder(...args);
+
+      return {
+        ...encoder,
+        close: () => {
+          encoders.closed++;
+          encoder.close();
+        },
+      };
+    },
+  };
+});
+
 const CLIP = { start: 2, end: 5, rate: 10, size: 320 };
 
 describe("clips", () => {
@@ -135,6 +157,57 @@ describe("seekVideo", () => {
     video.seeking = true;
     await seekVideo(asVideo(video), 0);
     expect(video.seeks).toEqual([0]);
+  });
+
+  it("takes a frame the video has just enough of as showing", async () => {
+    const video = new FakeVideo(10);
+
+    video.readyState = 2;
+    await seekVideo(asVideo(video), 0);
+    expect(video.seeks).toEqual([]);
+
+    video.readyState = 1;
+    await seekVideo(asVideo(video), 0);
+    expect(video.seeks).toEqual([0]);
+  });
+});
+
+describe("loadVideo, at the edges", () => {
+  beforeEach(() => {
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses a video that lasts no time at all", async () => {
+    await expect(loadVideo(asVideo(new FakeVideo(0)), "blob:video")).rejects.toThrow("The video has no picture.");
+  });
+});
+
+describe("videoToGif, with its encoder", () => {
+  const clip = { start: 0, end: 1, rate: 10, size: 160 };
+
+  beforeEach(() => {
+    installCanvas();
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
+    encoders.closed = 0;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("closes the encoder once done, or given up", async () => {
+    await videoToGif(asVideo(new FakeVideo(10)), clip, () => undefined);
+    expect(encoders.closed).toBe(1);
+
+    const stop = new AbortController();
+
+    stop.abort(new Error("Cancelled."));
+    await expect(videoToGif(asVideo(new FakeVideo(10)), clip, () => undefined, stop.signal)).rejects.toThrow("Cancelled.");
+    expect(encoders.closed).toBe(2);
   });
 });
 

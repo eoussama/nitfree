@@ -1,4 +1,7 @@
 // @vitest-environment happy-dom
+import type { Mock } from "vitest";
+import type { TThemeSnapshot } from "./tokens";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
@@ -174,7 +177,7 @@ describe("watchTheme", () => {
 
 describe("watchTheme, one change at a time", () => {
   let background = "rgb(1, 1, 1)";
-  let heard: ReturnType<typeof vi.fn>;
+  let heard: Mock<(snapshot: TThemeSnapshot) => void>;
   let stop: () => void;
   let media: ReturnType<typeof stubMedia>;
 
@@ -350,6 +353,25 @@ describe("themeStyles", () => {
 
     await wait();
     expect([...document.head.children]).toEqual(before);
+    theme.stop();
+  });
+
+  it("puts its styles back in order when Discord puts one of its own between them", async () => {
+    const theme = themeStyles(document);
+
+    theme.render({ colorTheme: null, accent: "#e91e63", snippets: [snippet("a", "a{}")] });
+    document.head.insertBefore(document.createElement("style"), document.head.lastElementChild);
+    await wait();
+    expect([...document.head.children].slice(-2).map(style => style.getAttribute("data-nitfree-theme"))).toEqual(["accent", "snippet-a"]);
+    theme.stop();
+  });
+
+  it("does not mark the root as themed before a color theme is rendered", async () => {
+    const theme = themeStyles(document);
+
+    document.documentElement.className = "theme-dark";
+    await wait();
+    expect(document.documentElement.classList.contains(THEME_CLASS)).toBe(false);
     theme.stop();
   });
 

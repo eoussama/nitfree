@@ -56,12 +56,14 @@ export function readMenuLook(menu: Element): TMenuLook {
   // A plain item with an icon, not red like Delete, and not highlighted.
   const plain = items.filter(item => [...item.classList].some(name => name.startsWith("colorDefault_")));
   const model = plain.find(item => item.querySelector("svg")) ?? plain[0] ?? items[0];
+  // Stryker disable next-line ArrayDeclaration: a menu with no item has no class to keep, whatever stands in.
   const item = [...model?.classList ?? []].filter(name => CLASS_PATTERNS.menuItem.test(name));
   const suffix = item.find(name => name.startsWith("item_"))?.slice("item_".length);
   const descendants = [...model?.querySelectorAll("*") ?? []];
   const leftIcon = firstClass(descendants, CLASS_PATTERNS.menuIconContainerLeft);
   const label = descendants.find(element => [...element.classList].some(name => CLASS_PATTERNS.menuLabel.test(name)));
   // The innermost element with the text, which carries the font.
+  // Stryker disable next-line OptionalChaining: an element's text is never missing, only empty.
   const text = label && [label, ...label.querySelectorAll("*")].findLast(element => element.textContent?.trim());
   const style = text && getComputedStyle(text);
   const icon = model?.querySelector("svg")?.getBoundingClientRect().width;

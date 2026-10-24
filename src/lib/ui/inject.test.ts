@@ -165,6 +165,68 @@ describe("watchChatButtonGroups", () => {
   });
 });
 
+describe("watchChatButtonGroups, in detail", () => {
+  it("leaves a group that already has a Nitfree button from elsewhere", () => {
+    document.body.innerHTML = group("a");
+    document.querySelector("#a")!.insertAdjacentHTML("afterbegin", "<div data-nitfree-toggler></div>");
+
+    const inject = vi.fn(() => () => undefined);
+
+    watchChatButtonGroups({ isInvalid: false }, inject)();
+    expect(inject).not.toHaveBeenCalled();
+  });
+
+  it("scans nothing more once stopped, not even a scan already asked for", async () => {
+    document.body.innerHTML = group("a");
+
+    const afterScan = vi.fn();
+    const stop = watchChatButtonGroups({ isInvalid: false }, () => () => undefined, afterScan);
+
+    document.body.insertAdjacentHTML("beforeend", group("b"));
+    await Promise.resolve();
+    stop();
+    await frame();
+    await frame();
+    document.body.insertAdjacentHTML("beforeend", group("c"));
+    await frame();
+    await frame();
+    expect(afterScan).toHaveBeenCalledOnce();
+  });
+});
+
+describe("mountPopover and mountOverlay, in detail", () => {
+  it("mark their hosts with empty attributes, and place them over the page", () => {
+    const removePopover = mountPopover(() => undefined);
+    const removeOverlay = mountOverlay();
+    const popover = document.querySelector<HTMLElement>("[data-nitfree-panel]")!;
+    const overlay = document.querySelector<HTMLElement>("[data-nitfree-overlay]")!;
+
+    expect([popover.dataset.nitfreePanel, overlay.dataset.nitfreeOverlay]).toEqual(["", ""]);
+    expect(popover.style.position).toBe("fixed");
+    expect(popover.style.zIndex).toBe("2147483000");
+    removePopover();
+    removeOverlay();
+  });
+
+  it("keep presses in the overlay, and hide focus moving in it, from the page", () => {
+    const removeOverlay = mountOverlay();
+    const overlay = document.querySelector<HTMLElement>("[data-nitfree-overlay]")!;
+    const pressed = vi.fn();
+    const focused = vi.fn();
+
+    document.body.addEventListener("pointerdown", pressed);
+    window.addEventListener("focusin", focused, true);
+    overlay.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    overlay.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    document.body.removeEventListener("pointerdown", pressed);
+    window.removeEventListener("focusin", focused, true);
+    removeOverlay();
+
+    expect(pressed).not.toHaveBeenCalled();
+    expect(focused).not.toHaveBeenCalled();
+  });
+});
+
 describe("mountPopover and mountOverlay", () => {
   it("add their host in a shadow root of its own, keep their events in, and take it all away", () => {
     const removePopover = mountPopover(() => undefined);

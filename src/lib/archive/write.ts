@@ -116,11 +116,13 @@ export async function writeArchive(source: TArchiveSource): Promise<Uint8Array> 
     })),
   };
 
+  // Stryker disable ObjectLiteral: 6 is the level fflate deflates at anyway.
   entries["manifest.json"] = [json(manifest), { level: 6 }];
   entries["library.json"] = [json(library), { level: 6 }];
 
   if (settings) {
     entries["settings.json"] = [json(settings), { level: 6 }];
+    // Stryker restore ObjectLiteral
   }
 
   return zipSync(entries);

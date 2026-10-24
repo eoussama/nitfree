@@ -43,6 +43,7 @@ type TTransferState = {
   error: string | null;
 };
 
+// Stryker disable next-line ObjectLiteral: an empty start reads as idle all the same, and each task sets what it shows.
 export const transfer: TTransferState = $state({ busy: null, task: null, done: 0, total: 0, pending: null, result: null, error: null });
 
 function start(busy: NonNullable<TTransferState["busy"]>, total = 0): void {

@@ -389,6 +389,77 @@ describe("the chat bar button", () => {
   });
 });
 
+describe("the chat bar button, in detail", () => {
+  it("does not let the wait for the picker open the popover over it once it opened", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    q("#emoji-a").addEventListener("click", () => (picker.open = true));
+    togglePanel(q("#toggler-a"));
+    afterScan()();
+    vi.advanceTimersByTime(600);
+    expect(panel).toMatchObject({ open: true, mode: "picker" });
+  });
+
+  it("rescans an open picker with nothing waiting for it", () => {
+    picker.open = true;
+    expect(() => afterScan()()).not.toThrow();
+    expect(panel.open).toBe(false);
+  });
+
+  it("falls back to the popover without pressing an emoji button that opened nothing", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+    const clicks = vi.fn();
+
+    togglePanel(q("#toggler-a"));
+    q("#emoji-a").addEventListener("click", clicks);
+    vi.advanceTimersByTime(600);
+    expect(panel.mode).toBe("popover");
+    expect(clicks).not.toHaveBeenCalled();
+  });
+
+  it("closes a popover pressed again without touching Discord's picker", () => {
+    openPanel("popover", q("#toggler-a"));
+    togglePanel(q("#toggler-a"));
+    expect(picker.deselect).not.toHaveBeenCalled();
+  });
+});
+
+describe("picking, in detail", () => {
+  it("takes the same item again once it is in", async () => {
+    openPanel("popover", q("#toggler-a"));
+    pick()(item(), false);
+    await settle();
+    pick()(item(), false);
+    await settle();
+    expect(attachFile).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("the keyboard shortcut, in detail", () => {
+  const press = () => {
+    const event = new KeyboardEvent("keydown", { key: "n", code: "KeyN", ctrlKey: true, altKey: true, bubbles: true, cancelable: true });
+
+    Object.defineProperty(event, "getModifierState", { value: () => false });
+    (document.activeElement ?? document.body).dispatchEvent(event);
+  };
+
+  it("opens for the composer typed in once the panel is closed, or its button is gone", () => {
+    picker.open = true;
+    openPanel("popover", q("#toggler-b"));
+    closePanel();
+    q("#box-a").focus();
+    press();
+    expect(panel.anchor).toBe(q("#toggler-a"));
+
+    closePanel();
+    openPanel("popover", q("#toggler-b"));
+    q("#toggler-b").remove();
+    q("#box-a").focus();
+    press();
+    expect(panel.anchor).toBe(q("#toggler-a"));
+  });
+});
+
 describe("the keyboard shortcut", () => {
   function shortcut(init: KeyboardEventInit = {}, altGraph = false): KeyboardEvent {
     const event = new KeyboardEvent("keydown", { key: "n", code: "KeyN", ctrlKey: true, altKey: true, bubbles: true, cancelable: true, ...init });
@@ -445,5 +516,45 @@ describe("the keyboard shortcut", () => {
   it("does nothing where there is no Nitfree button", () => {
     document.body.innerHTML = "";
     expect(shortcut().defaultPrevented).toBe(false);
+  });
+
+  it("hears the keys before the page does, and keeps them from anyone else", () => {
+    picker.open = true;
+    q("#box-a").focus();
+    q("#box-a").addEventListener("keydown", event => event.stopPropagation());
+
+    const later = vi.fn();
+
+    window.addEventListener("keydown", later, true);
+    shortcut();
+    window.removeEventListener("keydown", later, true);
+    expect(panel.open).toBe(true);
+    expect(later).not.toHaveBeenCalled();
+  });
+
+  it("hears nothing once stopped", () => {
+    picker.open = true;
+    stop();
+    expect(shortcut().defaultPrevented).toBe(false);
+    stop = () => undefined;
+  });
+});
+
+describe("stopping", () => {
+  it("drops what it had going: the dialog, the notice, the trash on leaving, and a picker it waited for", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    togglePanel(q("#toggler-a"));
+    editor.mode = "add";
+    notice.text = "Saved.";
+    stop();
+
+    expect(editor.mode).toBeNull();
+    expect(notice.text).toBeNull();
+    vi.advanceTimersByTime(600);
+    expect(panel.open).toBe(false);
+
+    window.dispatchEvent(new Event("pagehide"));
+    expect(flushTrash).toHaveBeenCalledOnce();
+    stop = () => undefined;
   });
 });

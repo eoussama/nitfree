@@ -54,6 +54,7 @@ export function isVideoFile(file: Pick<File, "name" | "type">): boolean {
  */
 export function titleFromFileName(name: string): string {
   const base = name.replace(/\.[^.]+$/, "");
+  // Stryker disable next-line MethodExpression,Regex: spaces at the ends become underscores, which go too, and runs of them become one.
   const title = base.trim().replace(/[\s\-.]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
 
   return title || "untitled";
@@ -110,6 +111,7 @@ export function parseTagNames(input: string): string[] {
   const seen = new Set<string>();
 
   return names.filter((name) => {
+    // Stryker disable next-line MethodExpression: names that differ only in case match in upper case as well.
     const key = name.toLocaleLowerCase();
 
     if (seen.has(key)) {
@@ -162,6 +164,7 @@ export function suggestTags<T extends TNamed>(query: string, tags: readonly T[],
   const taken = new Set(chosen.map(name => name.toLocaleLowerCase()));
   const available = tags.filter(tag => !taken.has(tag.name.toLocaleLowerCase()));
 
+  // Stryker disable next-line ConditionalExpression,BlockStatement: every name starts with nothing, so the search below gives the same.
   if (!needle) {
     return available.slice(0, limit);
   }

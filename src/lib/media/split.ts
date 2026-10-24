@@ -82,6 +82,7 @@ function le16(value: number): number[] {
 function skipSubBlocks(bytes: Uint8Array, offset: number): number {
   let position = offset;
 
+  // Stryker disable next-line EqualityOperator: one more step past the end reads nothing, and still ends as cut short.
   while (position < bytes.length && bytes[position] !== 0) {
     position += bytes[position]! + 1;
   }
@@ -103,6 +104,7 @@ function colorTableSize(packed: number): number {
 export function splitGif(bytes: Uint8Array): TSplitImage | null {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
+  // Stryker disable next-line EqualityOperator: a GIF of only its screen has no frame either way.
   if (bytes.length < 13 || String.fromCharCode(...bytes.subarray(0, 3)) !== "GIF") {
     return null;
   }
@@ -116,6 +118,7 @@ export function splitGif(bytes: Uint8Array): TSplitImage | null {
   let repeat = -1;
   let position = 13 + globalTable.length;
 
+  // Stryker disable next-line all: the trailer, or the end, is no block it knows, so it stops there anyway.
   while (position < bytes.length && bytes[position] !== 0x3B) {
     const block = bytes[position];
 
@@ -123,6 +126,7 @@ export function splitGif(bytes: Uint8Array): TSplitImage | null {
       const label = bytes[position + 1];
       const end = skipSubBlocks(bytes, position + 2);
 
+      // Stryker disable next-line all: going on from before the start reads no block, and stops.
       if (end === -1) {
         break;
       }
@@ -139,6 +143,7 @@ export function splitGif(bytes: Uint8Array): TSplitImage | null {
       position = end;
     }
     else if (block === 0x2C) {
+      // Stryker disable next-line all: an image header cut short has no data after it, which stops it just below.
       if (position + 10 > bytes.length) {
         break;
       }
@@ -207,6 +212,7 @@ function pngChunk(type: string, data: Uint8Array): Uint8Array<ArrayBuffer> {
  * @returns The frames, or null when no frame could be read.
  */
 export function splitApng(bytes: Uint8Array): TSplitImage | null {
+  // Stryker disable next-line EqualityOperator,ConditionalExpression,LogicalOperator: a file shorter than the signature does not match it either.
   if (bytes.length < 8 || !PNG_SIGNATURE.every((byte, i) => bytes[i] === byte)) {
     return null;
   }
@@ -229,6 +235,7 @@ export function splitApng(bytes: Uint8Array): TSplitImage | null {
     }
 
     if (type === "IHDR") {
+      // Stryker disable next-line MethodExpression: each frame copies the header before changing it.
       header = data.slice();
     }
     else if (type === "acTL" && length >= 8) {
@@ -282,6 +289,7 @@ export function splitApng(bytes: Uint8Array): TSplitImage | null {
     height: headerView.getUint32(4),
     repeat,
     frames: playable.map(({ data, ...frame }, index) => {
+      // Stryker disable next-line MethodExpression: the image's own size is read before the frames change the header.
       const frameHeader = header.slice();
       const frameView = new DataView(frameHeader.buffer);
 

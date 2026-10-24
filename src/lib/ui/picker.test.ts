@@ -256,6 +256,155 @@ describe("the chat bar's picker buttons", () => {
   });
 });
 
+describe("createPickerTab, in detail", () => {
+  it("marks its tab and panel as a tab and panel of their own, and keeps keys typed in the panel from Discord", () => {
+    open();
+    expect(tab()!.getAttribute("role")).toBe("tab");
+    expect(tab()!.getAttribute("aria-controls")).toBe("nitfree-picker-tab-panel");
+    expect(tab()!.hasAttribute("data-nitfree-tab")).toBe(true);
+    expect(host()!.getAttribute("role")).toBe("tabpanel");
+    expect(host()!.getAttribute("aria-labelledby")).toBe("nitfree-picker-tab");
+
+    const heard = vi.fn();
+
+    document.addEventListener("keydown", heard);
+    host()!.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
+    document.removeEventListener("keydown", heard);
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it("marks the panel as showing the library with an empty attribute", () => {
+    open();
+    tab()!.click();
+    expect(q("#contents").getAttribute("data-nitfree-selected")).toBe("");
+  });
+
+  it("hears Discord's tabs and buttons before they stop the event themselves", () => {
+    open();
+    tab()!.click();
+
+    const stopped = (element: HTMLElement, type: string) => element.addEventListener(type, event => event.stopPropagation());
+
+    stopped(q("#gif-picker-tab"), "click");
+    q("#gif-picker-tab").click();
+    expect(changes).toEqual([true, false]);
+
+    tab()!.click();
+    stopped(q("#emoji-picker-tab"), "keydown");
+    q("#emoji-picker-tab").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(changes).toEqual([true, false, true, false]);
+
+    tab()!.click();
+    stopped(q("#gif-button"), "click");
+    q("#gif-button").click();
+    expect(changes.at(-1)).toBe(false);
+
+    tab()!.click();
+    stopped(q("#gif-button"), "keydown");
+    q("#gif-button").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(changes.at(-1)).toBe(false);
+  });
+
+  it("keeps the press on the button of the tab Discord hid from reaching the page", () => {
+    open();
+    tab()!.click();
+
+    const heard = vi.fn();
+
+    document.body.addEventListener("click", heard);
+    q("#emoji-button").click();
+    document.body.removeEventListener("click", heard);
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it("puts the selection back when React marks one of its tabs selected, or gives it its class, again", async () => {
+    open();
+    tab()!.click();
+
+    q("#gif-picker-tab").setAttribute("aria-selected", "true");
+    await settle();
+    expect(q("#gif-picker-tab").getAttribute("aria-selected")).toBe("false");
+
+    q("#gif-picker-tab").className = "navButton_1 navButtonActive_2";
+    await settle();
+    expect(q("#gif-picker-tab").classList.contains("navButtonActive_2")).toBe(false);
+  });
+
+  it("keeps its tab through scans of the same picker, and moves to a new one", () => {
+    open();
+
+    const first = tab();
+
+    controller.scan();
+    expect(tab()).toBe(first);
+
+    const tabs = q("#tabs");
+    const copy = tabs.cloneNode(true) as HTMLElement;
+
+    copy.querySelector("#nitfree-picker-tab")!.remove();
+    tabs.replaceWith(copy);
+    controller.scan();
+    expect(tab()).not.toBe(first);
+    expect(copy.querySelector("#nitfree-picker-tab")).toBe(tab());
+  });
+
+  it("selects itself again in a picker that lost the mark, and syncs on every scan", () => {
+    open();
+    tab()!.click();
+    delete q("#contents").dataset.nitfreeSelected;
+    controller.scan();
+    expect(q("#contents").hasAttribute("data-nitfree-selected")).toBe(true);
+
+    // Marked selected by Discord while nothing watched, the scan puts it back.
+    q("#emoji-picker-tab").setAttribute("aria-selected", "true");
+    controller.scan();
+    expect(q("#emoji-picker-tab").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("marks its tab with an empty attribute", () => {
+    open();
+    expect(tab()!.getAttribute("data-nitfree-tab")).toBe("");
+  });
+
+  it("stays selected, without a word of leaving, through a picker Discord draws anew", () => {
+    open();
+    tab()!.click();
+
+    const before = counter.focusedSearch!;
+
+    document.body.innerHTML = CHAT_BAR + picker();
+    controller.scan();
+    expect(changes).toEqual([true]);
+    // Selected again in the new picker, which shows the library ready to search.
+    expect(counter.focusedSearch).toBe(before + 1);
+  });
+
+  it("selects itself again, ready to search, in a picker that lost the mark", () => {
+    open();
+    tab()!.click();
+
+    const before = counter.focusedSearch!;
+
+    delete q("#contents").dataset.nitfreeSelected;
+    controller.scan();
+    expect(counter.focusedSearch).toBe(before + 1);
+  });
+
+  it("says it is left, and gives Discord its tab back, when stopped while selected", () => {
+    open();
+    tab()!.click();
+    controller.stop();
+    expect(changes).toEqual([true, false]);
+    expect(q("#emoji-picker-tab").getAttribute("aria-selected")).toBe("true");
+    expect(q("#emoji-picker-tab").classList.contains("navButtonActive_2")).toBe(true);
+  });
+
+  it("stops without having shown the library", () => {
+    open();
+    expect(() => controller.stop()).not.toThrow();
+  });
+});
+
 describe("stop", () => {
   it("takes away the tab, its panel, its style and listeners, and gives Discord its tab back", () => {
     open();

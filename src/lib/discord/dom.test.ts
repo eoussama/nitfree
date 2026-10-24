@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   chatButtonGroupOf,
@@ -228,6 +228,25 @@ describe("readMenuLook", () => {
     });
   });
 
+  it("models its look on a plain item with an icon, over a red one with an icon or a plain one without", () => {
+    mount(`<div role="menu" id="menu">
+      <div role="menuitem" class="item_1 colorDanger_1"><svg></svg></div>
+      <div role="menuitem" class="item_2 colorDefault_2"></div>
+      <div role="menuitem" class="item_3 colorDefault_3"><svg></svg></div>
+    </div>`);
+    expect(readMenuLook(q("#menu")).item).toBe("item_3 colorDefault_3");
+  });
+
+  it("finds the label among its other classes, and the font on the last element with words in it", () => {
+    mount(menu(item("", "<div class=\"label_t extra_x\"><span id=\"words\">Reply</span><span> </span></div>")));
+
+    const style = vi.spyOn(window, "getComputedStyle");
+
+    expect(readMenuLook(q("#menu")).label).toBe("label_t");
+    expect(style).toHaveBeenCalledWith(q("#words"));
+    style.mockRestore();
+  });
+
   it("falls back to the first item when none is plain, and reads nothing from a menu with none", () => {
     mount("<div role=\"menu\" id=\"menu\"><div role=\"menuitem\" class=\"labelContainer_c\"></div></div>");
     expect(readMenuLook(q("#menu"))).toMatchObject({ item: "labelContainer_c", focused: "", separator: "", iconSize: 18 });
@@ -264,6 +283,11 @@ describe("findChatMedia", () => {
 
     expect(findChatMedia(q("#i"))).toEqual({ url: "https://cdn.discordapp.com/attachments/1/2/cat.gif?ex=a", type: "gif", name: "cat.gif" });
     expect(findChatMedia(q("#none"))).toBeNull();
+  });
+
+  it("reads an image from elsewhere through its proxied copy, named after the link", () => {
+    mount("<a id=\"ext\" data-role=\"img\" href=\"https://example.com/cat.png\" data-safe-src=\"https://images-ext-1.discordapp.net/external/x/y.png\"></a>");
+    expect(findChatMedia(q("#ext"))).toEqual({ url: "https://images-ext-1.discordapp.net/external/x/y.png", type: "image", name: "cat.png" });
   });
 
   it("names an embedded image after its proxied copy when the link it leads to has no file name", () => {

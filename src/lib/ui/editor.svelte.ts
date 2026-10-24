@@ -72,6 +72,7 @@ type TEditorState = {
  */
 export const editor: TEditorState = $state({ mode: null, item: null, drafts: [], saving: false, reading: 0, error: null });
 
+// Stryker disable UpdateOperator: keys, sessions and tickets are only compared for being the same, so counting down works as well.
 let nextKey = 0;
 // Bumped whenever the dialog opens or closes, so a save that outlives its dialog changes nothing.
 let session = 0;
@@ -84,6 +85,7 @@ type TRead = Pick<TDraft, "info" | "hash" | "fingerprint" | "similar" | "error" 
 
 // The library item showing the same picture; none when the background cannot tell.
 async function findSimilar(fingerprint: string | null, info: TImageInfo | null): Promise<TItem | null> {
+  // Stryker disable next-line LogicalOperator: a fingerprint is only taken of an image that was read.
   if (!fingerprint || !info) {
     return null;
   }
@@ -135,6 +137,7 @@ function release(drafts: readonly TDraft[]): void {
 export function focusedElement(): HTMLElement | null {
   let active = document.activeElement;
 
+  // Stryker disable next-line OptionalChaining: a document always has an active element, the body at least.
   while (active?.shadowRoot?.activeElement) {
     active = active.shadowRoot.activeElement;
   }
@@ -206,6 +209,7 @@ export function duplicateWarning(draft: TDraft): string | null {
   }
 
   // Read from the library as it is now, so an item deleted meanwhile is not named.
+  // Stryker disable next-line OptionalChaining: checked just before.
   const similar = draft.similar && library.items.find(found => found.id === draft.similar?.id && others(found));
 
   if (similar) {
@@ -304,6 +308,7 @@ export async function startAdd(files: Iterable<File>, focus: HTMLElement | null 
   const mine = ++ticket;
   const drafts = await readDrafts(list, preset);
 
+  // Stryker disable next-line LogicalOperator: an older request that opens anyway is opened over by the latest, which lets its files go.
   if (mine !== ticket || editor.mode) {
     release(drafts);
 
@@ -387,6 +392,7 @@ export function startView(item: TItem, focus: HTMLElement | null = focusedElemen
  * Makes the open item dialog editable, with the item as the library has it now.
  */
 export function editFromView(): void {
+  // Stryker disable next-line OptionalChaining: checked just before.
   const item = editor.mode === "view" && editor.item ? library.items.find(found => found.id === editor.item?.id) : null;
   const draft = editor.drafts[0];
 
@@ -483,6 +489,7 @@ export async function editDraft(draft: TDraft, source: File, edits: TEdits): Pro
   const read = await readFile(file);
   const current = editor.drafts.find(found => found.key === draft.key);
 
+  // Stryker disable next-line ConditionalExpression: a dialog closed meanwhile has none of its drafts left either.
   if (opened !== session || !current) {
     release([{ ...draft, ...read }]);
 
@@ -492,6 +499,7 @@ export async function editDraft(draft: TDraft, source: File, edits: TEdits): Pro
   release([current]);
   Object.assign(current, read, { file, source, edits });
 
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: only editing has an item, and making a copy of none leaves an added draft as it is.
   if (editor.mode === "edit" && editor.item) {
     current.copyOf = editor.item;
     editor.item = null;
@@ -514,6 +522,7 @@ export async function revertDraft(draft: TDraft): Promise<void> {
     return;
   }
 
+  // Stryker disable next-line OptionalChaining: checked just before.
   const item = current.copyOf && library.items.find(found => found.id === current.copyOf?.id);
 
   if (item) {
@@ -529,6 +538,7 @@ export async function revertDraft(draft: TDraft): Promise<void> {
   const source = current.source;
   const read = await readFile(source);
 
+  // Stryker disable next-line ConditionalExpression: a dialog closed meanwhile has none of its drafts left either.
   if (opened !== session || !editor.drafts.includes(current)) {
     release([{ ...current, ...read }]);
 
@@ -561,6 +571,7 @@ export async function convertDraft(draft: TDraft, clip: TClip, gif: Blob): Promi
   const read = await readFile(file);
   const current = editor.drafts.find(found => found.key === draft.key);
 
+  // Stryker disable next-line ConditionalExpression: a dialog closed meanwhile has none of its drafts left either.
   if (opened !== session || !current) {
     release([{ ...draft, ...read }]);
 

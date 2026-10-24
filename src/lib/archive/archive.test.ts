@@ -1,9 +1,9 @@
 import type { TItem } from "~/lib/db";
 
-import { strToU8, zipSync } from "fflate";
-import { describe, expect, it } from "vitest";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { beforeAll, describe, expect, it } from "vitest";
 
-import { createLibrary } from "~/lib/db/library";
+import { createLibrary, hashBytes } from "~/lib/db/library";
 import { createTags } from "~/lib/db/tags";
 import { openTestDatabase, steppingClock } from "~/lib/db/testing";
 import { png } from "~/test/fixtures";
@@ -28,6 +28,88 @@ async function pack(items: TItem[], tagList: Awaited<ReturnType<ReturnType<typeo
     readFile: async item => files.get(item.id) ?? null,
   });
 }
+
+describe("writeArchive, in detail", () => {
+  let hash = "";
+
+  beforeAll(async () => {
+    hash = await hashBytes(png(1, 1));
+  });
+
+  const entry = (id: string, packs: string[]) => ({
+    id,
+    type: "emoji",
+    title: id,
+    description: "",
+    tags: [],
+    packs,
+    favorite: false,
+    hash,
+    size: png(1, 1).length,
+    format: "png",
+    mime: "image/png",
+    width: 1,
+    height: 1,
+    animated: false,
+    createdAt: 1,
+    updatedAt: 1,
+    usedAt: null,
+    usageCount: 0,
+  }) as unknown as TItem;
+  const write = (items: TItem[], packs: { id: string; name: string; icon: string | null; createdAt: number }[]) =>
+    writeArchive({ items, tags: [], packs, appVersion: "1", readFile: async () => png(1, 1) });
+
+  it("keeps a pack's icon only for an item that is in the archive and in the pack", async () => {
+    const packs = [
+      { id: "p", name: "P", icon: "a", createdAt: 1 },
+      { id: "q", name: "Q", icon: "a", createdAt: 1 },
+      { id: "r", name: "R", icon: "gone", createdAt: 1 },
+    ];
+    const read = await readArchive(await write([entry("a", ["p"])], packs));
+
+    expect(read.kind).toBe("nitfree");
+    expect(read.packs.map(found => [found.name, found.icon])).toEqual([["P", "a"], ["Q", null], ["R", null]]);
+  });
+
+  it("says which item is missing from the library, and writes the packs of the items that are listed", async () => {
+    await expect(writeArchive({ items: [entry("a", [])], tags: [], appVersion: "1", readFile: async () => null })).rejects.toMatchObject({
+      reason: "notInLibrary",
+      message: "The file of \"a\" is missing from the library",
+      params: { title: "a" },
+    });
+
+    const parsed = await readArchive(await write([entry("a", ["p", "unlisted"])], [{ id: "p", name: "P", icon: null, createdAt: 1 }]));
+
+    expect(parsed.entries[0]!.packs).toEqual(["P"]);
+  });
+
+  it("writes a pack's icon only for an item that is in the archive and in the pack, in the file itself", async () => {
+    const packs = [
+      { id: "p", name: "P", icon: "a", createdAt: 1 },
+      { id: "q", name: "Q", icon: "a", createdAt: 1 },
+      { id: "r", name: "R", icon: "b", createdAt: 1 },
+    ];
+    const files = unzipSync(await write([entry("a", ["p"]), entry("b", [])], packs));
+    const library = JSON.parse(strFromU8(files["library.json"]!)) as { packs: { icon: string | null }[] };
+
+    expect(library.packs.map(found => found.icon)).toEqual(["a", null, null]);
+  });
+
+  it("stores the files as they are, and deflates the rest", async () => {
+    const big = new Uint8Array(20_000);
+    const archive = await writeArchive({ items: [entry("a", [])], tags: [], settings: { clickAction: "send" } as never, appVersion: "1", readFile: async () => big });
+    const files = unzipSync(archive);
+
+    // Stored, the file takes its whole size; deflated, zeros take a few bytes.
+    expect(archive.length).toBeGreaterThan(big.length);
+    expect(Object.keys(files).sort()).toEqual(["files/a.png", "library.json", "manifest.json", "settings.json"]);
+    expect(JSON.parse(strFromU8(files["settings.json"]!))).toEqual({ clickAction: "send" });
+  });
+
+  it("names the error as what it is", () => {
+    expect(new ArchiveError("empty", "x").name).toBe("ArchiveError");
+  });
+});
 
 describe("archive", () => {
   it("round-trips items, tags and favorites", async () => {

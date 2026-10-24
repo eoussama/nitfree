@@ -16,7 +16,8 @@ export default defineConfig({
   // Svelte's client build, so components can be mounted in tests that run with a DOM.
   resolve: { conditions: ["browser"] },
   test: {
-    exclude: [...configDefaults.exclude, "e2e/**"],
+    // Stryker's copy of the project, there while a mutation run goes, is not the project's own tests.
+    exclude: [...configDefaults.exclude, "e2e/**", ".stryker-tmp/**"],
     cache: !mutating,
     fsModuleCache: !mutating,
     setupFiles: ["fake-indexeddb/auto", "src/test/setup.ts"],

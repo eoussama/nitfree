@@ -12,7 +12,10 @@ shellEmulator: true
 
 # KaTeX is only reached through the linter's Markdown support; 0.18.2 fixes its prototype pollution.
 # qs is only reached through Stryker's dashboard client, which pins 6.15.1; 6.16.0 fixes its denial of service.
+# fast-uri is only reached through the linter behind WXT's web-ext; 3.1.9 fixes its URI parsing flaws.
 overrides:
+  fast-uri: ">=3.1.9"
+
   katex: ">=0.18.2"
   qs: ">=6.16.0"
 

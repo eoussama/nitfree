@@ -27,6 +27,61 @@ function file(bytes: Uint8Array<ArrayBuffer>, type = ""): Blob {
   return new Blob([bytes], { type });
 }
 
+describe("the library, in detail", () => {
+  it("trims descriptions on adding, importing and editing, and leaves them empty when none is given", async () => {
+    const added = await library.add({ file: file(png(4, 4)), type: "emoji", title: "a", description: "  hi  " });
+    const imported = await library.import({ file: file(png(5, 5)), type: "emoji", title: "b", description: "  yo  " }, false);
+    const bare = await library.import({ file: file(png(6, 6)), type: "emoji", title: "c" }, false);
+
+    expect([added.description, imported.item.description, bare.item.description]).toEqual(["hi", "yo", ""]);
+    expect((await library.update(added.id, { description: "  new  " })).description).toBe("new");
+  });
+
+  it("names the tags and packs it does not know", async () => {
+    await expect(library.add({ file: file(png(4, 4)), type: "emoji", title: "a", tags: ["x"] })).rejects.toThrow("Unknown tag \"x\"");
+    await expect(library.add({ file: file(png(4, 4)), type: "emoji", title: "a", packs: ["y"] })).rejects.toThrow("Unknown pack \"y\"");
+  });
+
+  it("refuses a type it does not know on importing and editing", async () => {
+    const item = await library.add({ file: file(png(4, 4)), type: "emoji", title: "a" });
+
+    await expect(library.import({ file: file(png(5, 5)), type: "odd" as never, title: "b" }, false)).rejects.toThrow("Unknown item type \"odd\"");
+    await expect(library.update(item.id, { type: "odd" as never })).rejects.toThrow("Unknown item type \"odd\"");
+  });
+
+  it("changes only what an edit names", async () => {
+    const tag = await tags.add({ name: "Cats" });
+    const item = await library.add({ file: file(png(4, 4)), type: "sticker", title: "a", description: "d", tags: [tag.id], favorite: true });
+    const updated = await library.update(item.id, { title: "b" });
+
+    expect(updated).toMatchObject({ title: "b", type: "sticker", description: "d", tags: [tag.id], packs: [], favorite: true });
+  });
+
+  it("keeps the latest send, a description, and no time sent for items never sent, when merging", async () => {
+    const make = (title: string, size: number) => library.add({ file: file(png(size, size)), type: "emoji", title });
+    const [a, b, c] = [await make("a", 4), await make("b", 5), await make("c", 6)];
+
+    expect((await library.merge(a.id, [b.id])).item).toMatchObject({ usedAt: null, description: "" });
+
+    await library.use(c.id);
+
+    const [d] = [await make("d", 7)];
+
+    await library.use(d.id);
+
+    const earlier = (await library.get(c.id))!.usedAt!;
+    const later = (await library.get(d.id))!.usedAt!;
+    const merged = (await library.merge(c.id, [d.id])).item;
+
+    expect(later).toBeGreaterThan(earlier);
+    expect(merged.usedAt).toBe(later);
+  });
+
+  it("has no copy for an item that is gone", async () => {
+    expect(await library.variant("gone", "emoji-48")).toBeNull();
+  });
+});
+
 describe("add", () => {
   it("stores the file with what it learns from it", async () => {
     const bytes = gif(64, 32, 3);

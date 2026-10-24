@@ -105,7 +105,9 @@ function waitFor(composer: Element, ready: () => boolean): Promise<boolean> {
     const timer = setTimeout(done, ATTACH_TIMEOUT, false);
 
     function done(result: boolean): void {
+      // Stryker disable next-line CallExpression: a promise settles once, so a later call changes nothing seen.
       observer.disconnect();
+      // Stryker disable next-line CallExpression: as above.
       clearTimeout(timer);
       resolve(result);
     }

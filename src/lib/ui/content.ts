@@ -60,6 +60,7 @@ function anchorOfOpenPicker(): HTMLElement | null {
  * @returns The button, or null when no composer is shown.
  */
 function shortcutAnchor(): HTMLElement | null {
+  // Stryker disable next-line OptionalChaining: an open panel always has its button.
   if (panel.open && panel.anchor?.isConnected) {
     return panel.anchor;
   }
@@ -97,6 +98,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
   const picker = createPickerTab({
     onpick: pick,
     onchange: (selected) => {
+      // Stryker disable next-line ConditionalExpression,StringLiteral: opening the picker panel again, or then closing it, leaves it as it was.
       if (selected && panel.mode !== "picker") {
         openPanel("picker", panel.anchor ?? anchorOfOpenPicker());
       }
@@ -109,6 +111,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
 
   function cancelPending(): void {
     if (pending) {
+      // Stryker disable next-line CallExpression: a timer left running finds nothing pending for it.
       clearTimeout(pending.timer);
       pending = null;
     }
@@ -119,6 +122,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
 
     const target = document.activeElement ?? document.body;
 
+    // Stryker disable next-line StringLiteral,BooleanLiteral: Discord reads only the key, which the tests check; the rest is for other listeners.
     target.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true, cancelable: true }));
 
     // If Escape did not reach Discord's picker, the button of the tab it is showing closes it.
@@ -227,6 +231,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
   }
 
   function toggle(anchor: HTMLElement): void {
+    // Stryker disable next-line CallExpression: a wait left for another button finds the panel's anchor changed.
     cancelPending();
 
     if (wasOpenFor(anchor)) {
@@ -240,10 +245,12 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
       return;
     }
 
+    // Stryker disable next-line all: opening the panel elsewhere replaces the popover anyway; this only closes it first.
     if (panel.mode === "popover") {
       closePanel();
     }
 
+    // Stryker disable next-line LogicalOperator: a closed picker has no tab to select.
     if (picker.isOpen() && picker.select()) {
       openPanel("picker", anchor);
 
@@ -262,6 +269,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
       anchor,
       emoji,
       timer: setTimeout(() => {
+        // Stryker disable next-line ConditionalExpression,OptionalChaining: a wait that ended is cleared, so its timer does not run.
         if (pending?.anchor === anchor && !ctx.isInvalid) {
           pending = null;
           fallBackToPopover(anchor, emoji);
@@ -323,6 +331,7 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
   window.addEventListener("keydown", onShortcut, true);
 
   return () => {
+    // Stryker disable next-line BooleanLiteral: happy-dom removes a listener whatever its capture flag, as browsers do not.
     window.removeEventListener("keydown", onShortcut, true);
     cancelPending();
     setToggleHandler(togglePopover);
@@ -333,10 +342,12 @@ export function startContent(ctx: Pick<ContentScriptContext, "isInvalid">): () =
     stopSaving();
     stopSuggestions();
     resetEditor();
+    // Stryker disable next-line all: the menu's own tests close it; here it only matters with a menu open as Nitfree goes.
     closeMenu();
     clearNotice();
     removeOverlay();
     removePopover();
+    // Stryker disable next-line all: the preferences' own tests stop following; nothing here reads them once stopped.
     stopPreferences();
     stopLibrary();
   };

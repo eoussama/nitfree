@@ -138,11 +138,16 @@ export class FakeCanvas {
   }
 
   /**
-   * The canvas' only context, whatever kind is asked for.
+   * The canvas' only context, a 2D one; any other kind fails, where a browser would give none.
    *
+   * @param type - The kind of context.
    * @returns The context.
    */
-  getContext(): FakeContext {
+  getContext(type = "2d"): FakeContext {
+    if (type !== "2d") {
+      throw new Error(`The canvas has no "${type}" context.`);
+    }
+
     return this.context;
   }
 

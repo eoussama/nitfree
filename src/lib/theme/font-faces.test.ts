@@ -145,6 +145,28 @@ describe("captureDiscordFont", () => {
     expect(await discordFont.getValue()).toBeNull();
   });
 
+  it("fetches again when Discord adds a face, or changes the second of them", async () => {
+    const fetched = serve();
+    const third = face({ "src": "url(c.woff2)", "font-weight": "600" });
+
+    await captureDiscordFont(fonts([rules[0]!]));
+    await captureDiscordFont(fonts([rules[0]!, third]));
+    expect(fetched).toHaveBeenCalledTimes(1 + 2);
+
+    await captureDiscordFont(fonts([rules[0]!, face({ "src": "url(d.woff2)", "font-weight": "600" })]));
+    expect(fetched).toHaveBeenCalledTimes(1 + 2 + 2);
+  });
+
+  it("keeps files of exactly as many bytes as it allows", async () => {
+    serve(1024 * 1024);
+    await captureDiscordFont(fonts(rules));
+    expect((await discordFont.getValue())?.faces).toHaveLength(2);
+  });
+
+  it("reads a face's weight with spaces around it", () => {
+    expect(findFontFaces([sheet([face({ "font-weight": " 500 " })])], BASE)).toMatchObject([{ weight: "500" }]);
+  });
+
   it("looks at the page it runs on when none is given", async () => {
     serve();
     vi.stubGlobal("document", { styleSheets: [sheet(rules)], baseURI: BASE });

@@ -63,3 +63,23 @@ describe("imageMedia", () => {
     expect(imageMedia("https://example.com/cat.jpg", "")).toBeNull();
   });
 });
+
+describe("chat media, at the edges", () => {
+  it("takes only the colons that wrap an emoji's name, and only a name that ends in .gif as animated", () => {
+    expect(emojiMedia("1", ":a:b:", "https://cdn.discordapp.com/emojis/1.webp").name).toBe("a:b");
+    expect(emojiMedia("1", ":a:", "https://cdn.discordapp.com/emojis/1.gif.webp").url).toBe("https://cdn.discordapp.com/emojis/1.png");
+  });
+
+  it("trims a sticker's name", () => {
+    expect(stickerMedia("1", "  wave  ", "1")?.name).toBe("wave");
+  });
+
+  it("takes an attachment only from Discord, at the start of its path, and is a GIF only by the end of its name", () => {
+    const proxied = "https://media.discordapp.net/attachments/1/2/proxied.png";
+
+    expect(imageMedia("https://cdn.discordapp.com/attachments/1/2/a.gif.png", "")).toMatchObject({ type: "image", name: "a.gif.png" });
+    expect(imageMedia("https://evil.example/attachments/1/2/a.png", proxied)).toMatchObject({ url: proxied, name: "a.png" });
+    expect(imageMedia("https://cdn.discordapp.com/x/attachments/1/2/a.png", proxied)?.url).toBe(proxied);
+    expect(imageMedia("not a url", proxied)).toMatchObject({ url: proxied, name: "proxied.png" });
+  });
+});

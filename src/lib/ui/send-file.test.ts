@@ -111,6 +111,71 @@ describe("prepareFile", () => {
   });
 });
 
+describe("prepareFile, at the upload limit", () => {
+  it("does not refuse an emoji or sticker for the size of its original, which is sent smaller", async () => {
+    answer({ "library:file": big() });
+    resize.mockResolvedValue(new Blob(["small"], { type: "image/png" }));
+    expect(await (await prepareFile(item({ size: UPLOAD_LIMIT + 1 }))).text()).toBe("small");
+    expect(send).toHaveBeenCalledWith("library:file", { id: "a" });
+  });
+
+  it("sends a file of exactly the limit, of the type it is", async () => {
+    const exact = new Blob([new Uint8Array(UPLOAD_LIMIT)], { type: "image/gif" });
+
+    answer({ "library:file": exact });
+
+    const file = await prepareFile(item({ type: "gif", size: UPLOAD_LIMIT }));
+
+    expect(file.size).toBe(UPLOAD_LIMIT);
+    expect(file.type).toBe("image/gif");
+  });
+
+  it("names the item a sized file is still too large for", async () => {
+    answer({ "library:file": big() });
+    resize.mockResolvedValue(big());
+    await expect(prepareFile(item())).rejects.toThrow("“wave” is over Discord's 10 MB upload limit.");
+  });
+});
+
+describe("attachFile, as Discord hears it", () => {
+  const COMPOSER = `<form id="c">
+    <div class="uploadInput_u"><input type="file"></div>
+    <div role="textbox" data-slate-editor="true"></div>
+    <ul data-list-id="attachments"></ul>
+  </form>`;
+  const composer = () => document.querySelector("#c")!;
+  const file = () => new File(["x"], "wave.png", { type: "image/png" });
+
+  beforeEach(() => {
+    document.body.innerHTML = COMPOSER;
+  });
+
+  it("tells the composer of the file, and presses an Enter it can cancel, bubbling up to it", async () => {
+    const heard: Event[] = [];
+
+    composer().addEventListener("change", (event) => {
+      heard.push(event);
+      document.querySelector("ul")!.insertAdjacentHTML("beforeend", "<li data-list-item-id=\"attachments___new\"></li>");
+    });
+    composer().addEventListener("keydown", event => heard.push(event));
+    await attachFile(composer(), file(), { send: true, title: "wave" });
+
+    expect(heard.map(event => event.type)).toEqual(["change", "keydown"]);
+    expect(heard[1]).toMatchObject({ key: "Enter", cancelable: true });
+  });
+
+  it("does not take a change to the composer for the file", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+    const attaching = attachFile(composer(), file(), { send: false, title: "wave" });
+    const failed = expect(attaching).rejects.toThrow("Discord did not take “wave”. Try again.");
+
+    document.querySelector("form")!.insertAdjacentHTML("beforeend", "<p>typing</p>");
+    await vi.advanceTimersByTimeAsync(10_000);
+    await failed;
+  });
+});
+
 describe("attachFile", () => {
   const COMPOSER = `<form id="c">
     <div class="uploadInput_u"><input type="file"></div>
