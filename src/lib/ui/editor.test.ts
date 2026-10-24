@@ -96,11 +96,21 @@ afterEach(() => {
 
 describe("the editor, in detail", () => {
   const revoked = () => vi.mocked(URL.revokeObjectURL).mock.calls.map(([url]) => url);
+  // Files are read side by side, so which one gets an address first varies: each address is looked up by its file's name, and the order it was made for that name.
+  const made: { name: string; url: string }[] = [];
+  const urlOf = (name: string, nth = 0) => made.filter(entry => entry.name === name)[nth]!.url;
 
   beforeEach(() => {
     let count = 0;
 
-    vi.spyOn(URL, "createObjectURL").mockImplementation(() => `blob:${count++}`);
+    made.length = 0;
+    vi.spyOn(URL, "createObjectURL").mockImplementation((file) => {
+      const url = `blob:${count++}`;
+
+      made.push({ name: (file as File).name, url });
+
+      return url;
+    });
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
   });
 
@@ -134,16 +144,16 @@ describe("the editor, in detail", () => {
   it("lets go of the URLs of a dialog it opens over, closes, or drops a file from", async () => {
     await startAdd([image("a.png"), image("b.png", png(9, 9))]);
     removeDraft(editor.drafts[0]!);
-    expect(revoked()).toEqual(["blob:0"]);
+    expect(revoked()).toEqual([urlOf("a.png")]);
 
     await startAdd([image("c.png", png(7, 7))]);
     startEdit(item());
-    expect(revoked()).toEqual(["blob:0", "blob:1", "blob:2"]);
+    expect(revoked()).toEqual([urlOf("a.png"), urlOf("b.png"), urlOf("c.png")]);
 
     // The item's thumbnail is not the editor's to let go of.
     await wait();
     closeEditor();
-    expect(revoked()).toEqual(["blob:0", "blob:1", "blob:2"]);
+    expect(revoked()).toEqual([urlOf("a.png"), urlOf("b.png"), urlOf("c.png")]);
   });
 
   it("lets go of the URLs of files read for a dialog that is gone, or that another request opened", async () => {
@@ -153,14 +163,14 @@ describe("the editor, in detail", () => {
 
     closeEditor();
     await joining;
-    expect(revoked()).toEqual(["blob:0", "blob:1"]);
+    expect(revoked()).toEqual([urlOf("a.png"), urlOf("b.png")]);
 
     const first = startAdd([image("c.png", png(7, 7))]);
     const second = startAdd([image("d.png", png(6, 6))]);
 
     await Promise.all([first, second]);
-    expect(revoked()).toEqual(["blob:0", "blob:1", "blob:2"]);
-    expect(editor.drafts.map(draft => draft.url)).toEqual(["blob:3"]);
+    expect(revoked()).toEqual([urlOf("a.png"), urlOf("b.png"), urlOf("c.png")]);
+    expect(editor.drafts.map(draft => draft.url)).toEqual([urlOf("d.png")]);
   });
 
   it("replaces the right file, letting go of what it replaces, or of what it read for nothing", async () => {
@@ -170,20 +180,20 @@ describe("the editor, in detail", () => {
 
     await replaceFile(b!, image("c.png", png(7, 7)));
     expect(editor.drafts.map(draft => draft.file?.name)).toEqual(["a.png", "c.png"]);
-    expect(revoked()).toEqual(["blob:1"]);
+    expect(revoked()).toEqual([urlOf("b.png")]);
 
     const gone = replaceFile(a!, image("d.png", png(6, 6)));
 
     editor.drafts = editor.drafts.slice(1);
     await gone;
     expect(editor.drafts.map(draft => draft.file?.name)).toEqual(["c.png"]);
-    expect(revoked()).toEqual(["blob:1", "blob:3"]);
+    expect(revoked()).toEqual([urlOf("b.png"), urlOf("d.png")]);
 
     const closed = replaceFile(editor.drafts[0]!, image("e.png", png(5, 5)));
 
     closeEditor();
     await closed;
-    expect(revoked()).toEqual(["blob:1", "blob:3", "blob:2", "blob:4"]);
+    expect(revoked()).toEqual([urlOf("b.png"), urlOf("d.png"), urlOf("c.png"), urlOf("e.png")]);
     expect(editor.reading).toBe(0);
   });
 
@@ -270,24 +280,24 @@ describe("the editor, in detail", () => {
 
     await editDraft(b!, b!.file!, NO_EDITS);
     expect(editor.drafts.map(draft => draft.source?.name ?? null)).toEqual([null, "b.png"]);
-    expect(revoked()).toEqual(["blob:1"]);
+    expect(revoked()).toEqual([urlOf("b.png", 0)]);
 
     const gone = editDraft(a!, a!.file!, NO_EDITS);
 
     editor.drafts = editor.drafts.slice(1);
     await gone;
     expect(editor.drafts.map(draft => draft.source?.name)).toEqual(["b.png"]);
-    expect(revoked()).toEqual(["blob:1", "blob:3"]);
+    expect(revoked()).toEqual([urlOf("b.png", 0), urlOf("a.png", 1)]);
 
     // Going back lets go of the edited image.
     await revertDraft(editor.drafts[0]!);
-    expect(revoked()).toEqual(["blob:1", "blob:3", "blob:2"]);
+    expect(revoked()).toEqual([urlOf("b.png", 0), urlOf("a.png", 1), urlOf("b.png", 1)]);
 
     const late = editDraft(editor.drafts[0]!, editor.drafts[0]!.file!, NO_EDITS);
 
     closeEditor();
     await late;
-    expect(revoked()).toEqual(["blob:1", "blob:3", "blob:2", "blob:4", "blob:5"]);
+    expect(revoked()).toEqual([urlOf("b.png", 0), urlOf("a.png", 1), urlOf("b.png", 1), urlOf("b.png", 2), urlOf("b.png", 3)]);
   });
 
   it("goes back only for a draft still in the dialog, to the item the copy was made from, with its picture", async () => {
@@ -305,7 +315,7 @@ describe("the editor, in detail", () => {
     vi.mocked(thumbnail).mockResolvedValue("blob:again");
     await revertDraft(draft);
     expect(editor.item?.id).toBe("a");
-    expect(revoked()).toEqual(["blob:0"]);
+    expect(revoked()).toEqual([urlOf("wave.png")]);
     await wait();
     expect(draft.url).toBe("blob:again");
   });
@@ -320,7 +330,7 @@ describe("the editor, in detail", () => {
 
     editor.drafts = [];
     await reverting;
-    expect(revoked()).toEqual(["blob:0", "blob:2"]);
+    expect(revoked()).toEqual([urlOf("a.png", 0), urlOf("a.png", 2)]);
   });
 
   it("converts the right video, of the GIF's type, and lets go of what it replaces or made for nothing", async () => {
@@ -334,13 +344,14 @@ describe("the editor, in detail", () => {
     await convertDraft(b!, clip, new Blob([gif(8, 8, 2)], { type: "image/gif" }));
     expect(editor.drafts.map(draft => draft.clip)).toEqual([null, clip]);
     expect(b!.file?.type).toBe("image/gif");
-    expect(revoked()).toEqual(["blob:1"]);
+    // Both videos are named alike, and made in the order they were given.
+    expect(revoked()).toEqual([urlOf("clip.webm", 1)]);
 
     const gone = convertDraft(a!, clip, new Blob([gif(8, 8, 2)], { type: "image/gif" }));
 
     editor.drafts = editor.drafts.slice(1);
     await gone;
-    expect(revoked()).toEqual(["blob:1", "blob:3"]);
+    expect(revoked()).toEqual([urlOf("clip.webm", 1), urlOf("clip.gif", 1)]);
   });
 
   it("finds the tag another tab made by its name, among others", async () => {
@@ -395,7 +406,7 @@ describe("the editor, in detail", () => {
       },
     });
     await saveEditor();
-    expect(revoked()).toEqual(["blob:0"]);
+    expect(revoked()).toEqual([urlOf("a.png")]);
   });
 });
 
