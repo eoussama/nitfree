@@ -44,3 +44,10 @@ export const test = base.extend<TFixtures>({
 });
 
 export const { expect } = test;
+
+/**
+ * Whether the browser's UI language follows `locale`. Chromium on macOS ignores --lang and reads
+ * AppleLanguages, which it can only be given as a page to open, so tests that need another language
+ * there are skipped, and run on Linux in CI.
+ */
+export const canSetLanguage = process.platform !== "darwin";

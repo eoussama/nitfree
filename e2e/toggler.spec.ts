@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { expect, test } from "./fixtures";
+import { canSetLanguage, expect, test } from "./fixtures";
 import { COMPOSER, openDiscord } from "./helpers";
 
 
@@ -110,6 +110,7 @@ test.describe("panel", () => {
 
 test.describe("in french", () => {
   test.use({ locale: "fr-FR" });
+  test.skip(!canSetLanguage, "The browser's language cannot be set on macOS.");
 
   test("labels the button and panel in french", async ({ page }) => {
     await openDiscord(page);

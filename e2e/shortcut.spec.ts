@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 
+import process from "node:process";
 import { expect, test } from "./fixtures";
 import { openDiscord, openPopup, openPopupPage } from "./helpers";
 
@@ -10,6 +11,12 @@ const search = (page: Page) => panel(page).getByRole("searchbox", { name: "Searc
 const toggler = (page: Page) => page.getByRole("button", { name: "Open Nitfree" });
 const messageBox = (page: Page) => page.getByRole("textbox").first();
 const tooltip = (page: Page) => page.getByRole("tooltip");
+
+// Nitfree names modifiers the way the system it runs on does.
+const isMac = process.platform === "darwin";
+const ctrlAltN = isMac ? ["⌃", "⌥", "N"] : ["Ctrl", "Alt", "N"];
+const ctrlShiftK = isMac ? ["⌃", "⇧", "K"] : ["Ctrl", "Shift", "K"];
+const modifierHint = isMac ? "Hold ⌘, ⌥ or ⌃ with the key." : "Hold Ctrl or Alt with the key.";
 
 test.describe("keyboard shortcut", () => {
   test("Ctrl+Alt+N in a channel opens the panel ready to search, and closes it again", async ({ page }) => {
@@ -46,7 +53,7 @@ test.describe("keyboard shortcut", () => {
     await expect(toggler(page)).toHaveAttribute("aria-keyshortcuts", "Control+Alt+N");
     await toggler(page).hover();
     await expect(tooltip(page)).toContainText("Open Nitfree");
-    await expect(tooltip(page).locator("kbd")).toHaveText(["Ctrl", "Alt", "N"]);
+    await expect(tooltip(page).locator("kbd")).toHaveText(ctrlAltN);
   });
 
   test("can be changed or turned off in the popup", async ({ context, extensionId, page }) => {
@@ -57,19 +64,19 @@ test.describe("keyboard shortcut", () => {
 
     const keys = popup.locator("[data-shortcut] kbd");
 
-    await expect(keys).toHaveText(["Ctrl", "Alt", "N"]);
+    await expect(keys).toHaveText(ctrlAltN);
 
     // Shift alone is refused, as it types capitals; Escape stops recording and keeps the shortcut.
     await popup.getByRole("button", { name: "Change" }).click();
     await expect(popup.getByText("Press the keys…")).toBeVisible();
     await popup.keyboard.press("Shift+K");
-    await expect(popup.getByRole("alert")).toHaveText("Hold Ctrl or Alt with the key.");
+    await expect(popup.getByRole("alert")).toHaveText(modifierHint);
     await popup.keyboard.press("Escape");
-    await expect(keys).toHaveText(["Ctrl", "Alt", "N"]);
+    await expect(keys).toHaveText(ctrlAltN);
 
     await popup.getByRole("button", { name: "Change" }).click();
     await popup.keyboard.press("Control+Shift+K");
-    await expect(keys).toHaveText(["Ctrl", "Shift", "K"]);
+    await expect(keys).toHaveText(ctrlShiftK);
     await expect(popup.getByRole("button", { name: "Reset" })).toBeVisible();
 
     await openDiscord(page);
@@ -98,6 +105,6 @@ test.describe("keyboard shortcut", () => {
     await popup.bringToFront();
     await popup.getByRole("switch", { name: "Open Nitfree with a shortcut" }).check();
     await popup.getByRole("button", { name: "Reset" }).click();
-    await expect(keys).toHaveText(["Ctrl", "Alt", "N"]);
+    await expect(keys).toHaveText(ctrlAltN);
   });
 });

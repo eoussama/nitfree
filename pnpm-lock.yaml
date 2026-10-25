@@ -6,6 +6,9 @@ importers:
   .:
     configDependencies: {}
     packageManagerDependencies:
+      '@pnpm/exe':
+        specifier: 12.14.0
+        version: 12.14.0
       pnpm:
         specifier: 12.14.0
         version: 12.14.0
@@ -89,6 +92,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@pnpm/exe@12.14.0':
+    resolution: {integrity: sha512-iZCbiKegYUapNVkZY4O8vjXt9EF/j34LbDvew6qUM5g/HrxMY38cFJaoE8+5ZWQfbt2YCsLfufI5TTh+GxUbWw==}
+    engines: {node: '>=18.*'}
+    hasBin: true
+
   pnpm@12.14.0:
     resolution: {integrity: sha512-wYum2HmT09Fky16JSPMrLAbuhUSH4GzY2GeBNC+z5btGNDZwNHEehoArqpw3vqkGzhkprQjXCITJfYAd8TOJpg==}
     engines: {node: '>=18.*'}
@@ -138,6 +146,23 @@ snapshots:
   '@pnpm/exe.win32-x64@12.14.0':
     optional: true
 
+  '@pnpm/exe@12.14.0':
+    optionalDependencies:
+      '@pnpm/exe.android-arm64': 12.14.0
+      '@pnpm/exe.android-x64': 12.14.0
+      '@pnpm/exe.darwin-arm64': 12.14.0
+      '@pnpm/exe.darwin-x64': 12.14.0
+      '@pnpm/exe.freebsd-x64': 12.14.0
+      '@pnpm/exe.linux-arm64': 12.14.0
+      '@pnpm/exe.linux-arm64-musl': 12.14.0
+      '@pnpm/exe.linux-ppc64': 12.14.0
+      '@pnpm/exe.linux-riscv64': 12.14.0
+      '@pnpm/exe.linux-s390x': 12.14.0
+      '@pnpm/exe.linux-x64': 12.14.0
+      '@pnpm/exe.linux-x64-musl': 12.14.0
+      '@pnpm/exe.win32-arm64': 12.14.0
+      '@pnpm/exe.win32-x64': 12.14.0
+
   pnpm@12.14.0:
     optionalDependencies:
       '@pnpm/exe.android-arm64': 12.14.0
@@ -163,9 +188,10 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  fast-uri: '>=3.1.9'
+  node-forge: '-'
   katex: '>=0.18.2'
   qs: '>=6.16.0'
-  fast-uri: '>=3.1.9'
 
 patchedDependencies:
   '@stryker-mutator/vitest-runner': 0f42b1e8d42dd734ef842798912f620756b9fc20ae8c0564de9c4342b39bd3ff
@@ -3167,10 +3193,6 @@ packages:
     resolution: {integrity: sha512-kKHJhxwpR/Okycz4HhQKKlhWe4ASEfPgkSWNmKFHd7+ezuQlxkA5cM3+XkBPvm1gmHen3w53qsYAv+8GwRrBlg==}
     engines: {node: '>=18'}
 
-  node-forge@1.4.0:
-    resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
-    engines: {node: '>= 6.13.0'}
-
   node-releases@2.0.59:
     resolution: {integrity: sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==}
     engines: {node: '>=18'}
@@ -4570,7 +4592,6 @@ snapshots:
       bluebird: 3.7.2
       commander: 9.5.0
       debug: 4.3.7(supports-color@7.2.0)
-      node-forge: 1.4.0
       split: 1.0.1
     transitivePeerDependencies:
       - supports-color
@@ -7319,8 +7340,6 @@ snapshots:
   natural-compare@1.4.0: {}
 
   natural-orderby@5.0.0: {}
-
-  node-forge@1.4.0: {}
 
   node-releases@2.0.59: {}
 

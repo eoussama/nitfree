@@ -13,17 +13,14 @@ shellEmulator: true
 # KaTeX is only reached through the linter's Markdown support; 0.18.2 fixes its prototype pollution.
 # qs is only reached through Stryker's dashboard client, which pins 6.15.1; 6.16.0 fixes its denial of service.
 # fast-uri is only reached through the linter behind WXT's web-ext; 3.1.9 fixes its URI parsing flaws.
+# node-forge has no patched release for its RSA signature flaw. web-ext only loads it, through adbkit,
+# to run an extension on Firefox for Android, which Nitfree never does, so it is left out.
 overrides:
   fast-uri: ">=3.1.9"
 
   katex: ">=0.18.2"
+  node-forge: "-"
   qs: ">=6.16.0"
-
-auditConfig:
-  ignoreGhsas:
-    # node-forge has no patched release. It is only reached through web-ext's Android debugging
-    # (adbkit), a build-time tool that never ships in the extension and never verifies RSA signatures.
-    - GHSA-86w9-cpqp-85rv
 
 patchedDependencies:
   # Vitest 5 matches test names joined with " > ", which Stryker's runner joins with spaces, so no

@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { expect, test } from "./fixtures";
+import { canSetLanguage, expect, test } from "./fixtures";
 
 
 
@@ -63,6 +63,7 @@ test("popup renders in english", async ({ page, extensionId }) => {
 
 test.describe("in french", () => {
   test.use({ locale: "fr-FR" });
+  test.skip(!canSetLanguage, "The browser's language cannot be set on macOS.");
 
   test("popup renders in french", async ({ page, extensionId }) => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
