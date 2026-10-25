@@ -249,18 +249,18 @@
   /* Discord's theme picker: rounded squares of each gradient, the chosen one ringed and ticked. */
   .swatches {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 48px);
+    grid-template-columns: repeat(5, 1fr);
     gap: 10px;
-    padding: 4px 2px;
+    padding: 4px;
   }
 
+  /* The five columns share the row, so no space is left over at its end. */
   .theme {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    aspect-ratio: 1;
     box-sizing: border-box;
     border: 1px solid var(--border-subtle, var(--nf-border));
     border-radius: var(--radius-sm, 8px);

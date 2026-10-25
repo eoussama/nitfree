@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: October 23, 2026. Applies to Nitfree 0.2.0 and later._
+_Last updated: October 25, 2026. Applies to Nitfree 0.2.0 and later._
 
 Nitfree is a browser extension for Chrome, Edge and Firefox that keeps your own emojis, stickers, GIFs and images in a library and lets you send them on Discord. This policy explains what Nitfree stores, where it stores it, and what it sends.
 
@@ -39,6 +39,7 @@ Nitfree runs only on `discord.com`. There it:
 - When you right-click in a message, reads what is under the pointer (a custom emoji, a sticker or an image: its address, name and kind) to offer **Save to Nitfree** in Discord's menu. Nothing is kept unless you save it.
 - While you type in the message box, reads the current line up to the cursor, only to notice a `:name` and suggest matching items from your library. What you type is not stored or sent anywhere, and this stops when suggestions are turned off in the popup.
 - Checks each key press on Discord against the shortcut that opens Nitfree (Ctrl+Alt+N unless changed in the popup). Only that combination is acted on; key presses are not stored or sent anywhere, and this stops when the shortcut is turned off.
+- Checks that the parts of Discord's page it relies on (the chat bar, Discord's theme, emojis and stickers in messages, the expression picker and the message menu) are still there, and shows a red "!" on Nitfree's toolbar button when one is missing. When you run the checks from the Diagnostics part of the popup's Settings, it may open Discord's expression picker and a message menu for a moment to check them. Only which checks passed is kept, in memory, and **Copy report** puts on your clipboard, only when you click it, Nitfree's version, your browser's user agent (its name, version and operating system), the time and each check's result, nothing about you or your Discord.
 - Reads the current page address only to check that you are still in the same channel when an item finishes preparing, so it is never sent to the wrong channel. The address is not stored.
 
 Nitfree does not read, store or send your messages, contacts, servers, account details or any other content of your Discord account.
@@ -71,6 +72,7 @@ Nitfree asks for no other permissions. In Firefox, it declares that it collects 
 
 - Edit or delete any item or tag from the Nitfree panel on Discord.
 - See how much space your library uses in the popup, find and remove duplicates there, and rename or delete your packs.
+- Export your library, some items or a pack as files you save yourself, and import backups, zips, folders or `.nitfree` packs. These files are read and written on your device only; Nitfree does not upload them anywhere.
 - Uninstalling Nitfree removes its library and settings from your browser.
 - Clearing Discord's site data does not touch your library, because it is kept in the extension's own storage, not in Discord's.
 
