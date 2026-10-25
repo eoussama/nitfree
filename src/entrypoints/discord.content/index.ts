@@ -1,5 +1,6 @@
 import type { TCustomTheme } from "~/lib/theme";
 
+import { startDiagnostics } from "~/lib/diagnostics";
 import { DISCORD_MATCHES } from "~/lib/discord";
 import { accentColor, colorTheme, cssSnippets } from "~/lib/settings";
 import { applyPalette, captureDiscordFont, findColorTheme, themeSnapshot, themeStyles, watchTheme } from "~/lib/theme";
@@ -27,6 +28,7 @@ export default defineContentScript({
       void themeSnapshot.setValue(snapshot);
     });
     const stopContent = startContent(ctx);
+    const stopDiagnostics = startDiagnostics();
 
     // Once Discord has settled, keep its typeface for the popup; the files are already in the browser's cache by then.
     ctx.setTimeout(() => void captureDiscordFont().catch(() => undefined), FONT_DELAY);
@@ -35,6 +37,7 @@ export default defineContentScript({
       stopCustomTheme();
       stopTheme();
       stopContent();
+      stopDiagnostics();
     });
   },
 });

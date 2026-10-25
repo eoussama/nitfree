@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
+import { startDiagnostics } from "~/lib/diagnostics";
 import { accentColor, colorTheme, cssSnippets } from "~/lib/settings";
 import { captureDiscordFont, themeSnapshot } from "~/lib/theme";
 import { startContent } from "~/lib/ui/content";
@@ -13,6 +14,7 @@ import content from "../entrypoints/discord.content";
 const stopped = vi.hoisted((): string[] => []);
 
 vi.mock("~/lib/ui/content", () => ({ startContent: vi.fn(() => () => void stopped.push("content")) }));
+vi.mock("~/lib/diagnostics", () => ({ startDiagnostics: vi.fn(() => () => void stopped.push("diagnostics")) }));
 vi.mock("~/lib/theme", async original => ({ ...await original<object>(), captureDiscordFont: vi.fn(async () => undefined) }));
 
 const settle = (ms = 40) => new Promise(resolve => setTimeout(resolve, ms));
@@ -58,13 +60,14 @@ describe("the Discord content script", () => {
 
     expect(document.documentElement.dataset.nitfree).toMatch(/^\d+\.\d+\.\d+$/);
     expect(startContent).toHaveBeenCalledWith(ctx);
+    expect(startDiagnostics).toHaveBeenCalledOnce();
     expect(captureDiscordFont).toHaveBeenCalledOnce();
     await settle();
     expect((await themeSnapshot.getValue())?.theme).toBe("dark");
     expect(document.documentElement.style.getPropertyValue("--nf-bg")).not.toBe("");
 
     invalidate();
-    expect(stopped).toEqual(["content"]);
+    expect(stopped).toEqual(["content", "diagnostics"]);
   });
 
   it("gives Discord the theme set in the popup, following its changes, and takes it away when stopped", async () => {

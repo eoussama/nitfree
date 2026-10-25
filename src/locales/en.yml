@@ -326,3 +326,65 @@ save:
 toast:
   deleted: Deleted “{title}”
   undo: Undo
+diagnostics:
+  heading: Diagnostics
+  settingsHint: Checks that Nitfree still works with Discord as it is today, in your open Discord tab. Nothing is sent anywhere.
+  open: Run diagnostics
+  running: Checking…
+  noTab: Open Discord in a tab, then run the checks again.
+  unreachable: Nitfree is not running in your Discord tab. Reload the tab, then run the checks again.
+  allGood: Everything works.
+  changed:
+    1: Everything works, but Discord changed 1 thing Nitfree relies on.
+    n: Everything works, but Discord changed $1 things Nitfree relies on.
+  problems:
+    1: 1 thing is not working.
+    n: $1 things are not working.
+  results: Results
+  recheck: Check again
+  recheckHint: Checking again also opens Discord's emoji picker, then the menu of an emoji, sticker or image in the channel's messages, for a moment each, to check them. Nothing is sent.
+  reportTitle: Report
+  reportHint: A plain text list of the results, with Nitfree's version and your browser, to paste into a bug report.
+  copy: Copy report
+  copied: Copied. Paste it into a bug report on GitHub.
+  status:
+    ok: Works
+    fallback: Changed
+    missing: Not found
+    skipped: Not checked
+  groups:
+    extension: Nitfree
+    composer: Message box
+    theme: Theme
+    chat: Messages
+    picker: Expression picker
+    menu: Message menu
+  skippedHint:
+    composer: Open a channel you can write in to check it.
+    chat: Each is checked when one is in view in the channel's messages, sent by anyone. Discord's own emojis and your Nitfree library do not count.
+    picker: Checked when you check again.
+    menu: Checked when you check again, with a custom emoji, a sticker or an image Nitfree can save in view in the channel's messages. Discord's animated stickers cannot be saved.
+  checks:
+    background: Background service
+    library: Library database
+    content: Nitfree in the Discord tab
+    composer: Message box
+    composerBox: Message box frame
+    messageBox: Text field
+    uploadInput: File upload
+    chatButtonGroup: Chat bar buttons
+    chatButtonModel: Discord's chat button
+    chatButtonLook: Chat button style
+    pickerButton: Picker buttons
+    emojiButton: Emoji button
+    toggler: Nitfree button
+    theme: Discord's theme
+    chatEmoji: Custom emojis in messages
+    chatSticker: Stickers in messages
+    chatImage: Images in messages
+    pickerTabList: Picker tabs
+    pickerTabLook: Picker tab style
+    pickerTab: Nitfree tab
+    contextMenu: Menu
+    menuLook: Menu style
+    saveMenuItem: Save to Nitfree

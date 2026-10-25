@@ -341,6 +341,33 @@
   transition: none;
 }
 
+/* Discord's list rows: a label and its value, a line between each. */
+.rows {
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--border-subtle, var(--nf-border));
+}
+
+.row dt {
+  color: var(--text-default, var(--nf-text));
+}
+
+.row dd {
+  margin: 0;
+  color: var(--text-muted, var(--nf-muted));
+}
+
 /* What happened, under the controls that did it. */
 .feedback {
   margin: 12px 0 0;
@@ -354,6 +381,10 @@
 
 .feedback.critical {
   color: var(--text-feedback-critical, var(--nf-critical-text));
+}
+
+.feedback.warning {
+  color: var(--text-feedback-warning, var(--nf-warning-text));
 }
 
 .button:focus-visible,

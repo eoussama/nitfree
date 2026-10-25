@@ -1,4 +1,5 @@
 import type { TCacheUsage, TDuplicateGroup, TImportItem, TImportResult, TItem, TItemPatch, TNewItem, TNewPack, TNewTag, TPack, TPackPatch, TTag, TTagPatch } from "~/lib/db";
+import type { TCheck } from "~/lib/diagnostics/types";
 
 
 
@@ -38,6 +39,15 @@ export interface TProtocol {
   "packs:ensure": { request: TNewPack; response: TPack };
   "packs:update": { request: { id: string; patch: TPackPatch }; response: TPack };
   "packs:remove": { request: { id: string }; response: void };
+
+  "diagnostics:status": { request: { problems: number }; response: void };
+}
+
+/**
+ * Every request a Discord tab's content script answers, sent to one tab by the popup.
+ */
+export interface TTabProtocol {
+  "diagnostics:run": { request: { interactive: boolean }; response: TCheck[] };
 }
 
 export type TChange = "added" | "updated" | "removed";
@@ -57,3 +67,8 @@ export type TResponse<K extends TRequestName> = TProtocol[K]["response"];
 export type TRequestArgs<K extends TRequestName> = TRequest<K> extends void ? [] : [data: TRequest<K>];
 
 export type TEventName = keyof TEvents;
+
+export type TTabRequestName = keyof TTabProtocol;
+export type TTabRequest<K extends TTabRequestName> = TTabProtocol[K]["request"];
+export type TTabResponse<K extends TTabRequestName> = TTabProtocol[K]["response"];
+export type TTabRequestArgs<K extends TTabRequestName> = TTabRequest<K> extends void ? [] : [data: TTabRequest<K>];

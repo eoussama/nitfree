@@ -30,6 +30,18 @@ describe("the background", () => {
     expect(await sendMessage("library:list")).toEqual([]);
   });
 
+  it("shows on the toolbar button what a Discord tab says it cannot find", async () => {
+    background.main();
+
+    let reply: unknown;
+
+    await fakeBrowser.runtime.onMessage.trigger({ channel: "nitfree", kind: "request", name: "diagnostics:status", data: { problems: 1 } }, { tab: { id: 9 } as Browser.tabs.Tab }, (response: unknown) => {
+      reply = response;
+    });
+    await vi.waitFor(() => expect(reply).toEqual({ ok: true }));
+    expect(await browser.action.getBadgeText({ tabId: 9 })).toBe("!");
+  });
+
   it("notes when Nitfree was installed, and not when it was updated", async () => {
     background.main();
 

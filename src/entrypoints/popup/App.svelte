@@ -1,12 +1,14 @@
 <!--
   The extension popup: the library at a glance, live as it changes in Discord tabs, a place to add
   files through the same dialog as in Discord, and links to the backup, packs, storage, duplicates, themes and settings pages,
-  each opened in place like a page of Discord's settings. Styled with the last palette seen on
-  Discord, or the OS light or dark one before any.
+  each opened in place like a page of Discord's settings. The diagnostics page opens from the
+  settings, and goes back to them. Styled with the last palette seen on Discord, or the OS light or
+  dark one before any.
 -->
 <script lang="ts">
   import type { Component } from "svelte";
 
+  import Activity from "@lucide/svelte/icons/activity";
   import Archive from "@lucide/svelte/icons/archive";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
@@ -26,6 +28,7 @@
   import { tooltip } from "~/lib/ui/tooltip.svelte";
   import { isArchiveFile, pickImport } from "~/lib/ui/transfer.svelte";
 
+  import Diagnostics from "./Diagnostics.svelte";
   import Duplicates from "./Duplicates.svelte";
   import Packs from "./Packs.svelte";
   import Settings from "./Settings.svelte";
@@ -35,20 +38,35 @@
 
 
 
-  type TPage = "backup" | "packs" | "storage" | "duplicates" | "themes" | "settings";
+  type TPage = "backup" | "packs" | "storage" | "duplicates" | "themes" | "settings" | "diagnostics";
+
+  type TPageEntry = {
+    page: TPage;
+    title: string;
+    icon: Component<{ size?: number }>;
+    content: Component;
+
+    /**
+     * The page it opens from and goes back to, for a page the home does not list.
+     */
+    parent?: TPage;
+  };
 
   const { version } = browser.runtime.getManifest();
   const REPOSITORY = "https://github.com/eoussama/nitfree";
   const locale = i18n.t("locale");
 
-  const PAGES: { page: TPage; title: string; icon: Component<{ size?: number }>; content: Component }[] = [
-    { page: "backup", title: i18n.t("popup.transfer.heading"), icon: Archive, content: Transfer },
+  const PAGES: TPageEntry[] = [
     { page: "packs", title: i18n.t("editor.packs"), icon: Package, content: Packs },
-    { page: "storage", title: i18n.t("popup.storage.heading"), icon: HardDrive, content: Storage },
-    { page: "duplicates", title: i18n.t("popup.duplicates.heading"), icon: Copy, content: Duplicates },
     { page: "themes", title: i18n.t("popup.themes.heading"), icon: Palette, content: Themes },
+    { page: "duplicates", title: i18n.t("popup.duplicates.heading"), icon: Copy, content: Duplicates },
+    { page: "storage", title: i18n.t("popup.storage.heading"), icon: HardDrive, content: Storage },
+    { page: "backup", title: i18n.t("popup.transfer.heading"), icon: Archive, content: Transfer },
     { page: "settings", title: i18n.t("popup.settings"), icon: Cog, content: Settings },
+    { page: "diagnostics", title: i18n.t("diagnostics.heading"), icon: Activity, content: Diagnostics, parent: "settings" },
   ];
+
+  const LINKED = PAGES.filter(entry => !entry.parent);
 
   let fileInput: HTMLInputElement | undefined = $state();
   let dragging = $state(false);
@@ -66,12 +84,13 @@
   // Each page starts at the top, with focus on its way back; going back puts focus on the page's link.
   async function open(next: TPage | null): Promise<void> {
     const previous = page;
+    const back = next === (PAGES.find(entry => entry.page === previous)?.parent ?? null);
 
     page = next;
     window.scrollTo(0, 0);
     await tick();
 
-    const target = next ? "[data-back]" : `[data-page="${previous}"]`;
+    const target = back ? `[data-page="${previous}"]` : "[data-back]";
 
     document.querySelector<HTMLElement>(target)?.focus();
   }
@@ -144,7 +163,7 @@
 <main class="popup" class:editing={editor.mode !== null} ondragenter={onDragOver} ondragover={onDragOver} ondragleave={onDragLeave} ondrop={onDrop}>
   <header class="header" class:scrolled>
     {#if current}
-      <button class="icon-button" type="button" data-back aria-label={i18n.t("popup.back")} onclick={() => void open(null)} {@attach tooltip(i18n.t("popup.back"), "bottom")}>
+      <button class="icon-button" type="button" data-back aria-label={i18n.t("popup.back")} onclick={() => void open(current.parent ?? null)} {@attach tooltip(i18n.t("popup.back"), "bottom")}>
         <ArrowLeft size={20} aria-hidden="true" />
       </button>
       <h1 id="nf-page-title" class="page-title">{current.title}</h1>
@@ -166,7 +185,11 @@
   {#if current}
     {@const Content = current.content}
     <section class="page" aria-labelledby="nf-page-title">
-      <Content />
+      {#if current.page === "settings"}
+        <Settings onopen={target => void open(target)} />
+      {:else}
+        <Content />
+      {/if}
     </section>
   {:else}
     <section class="popup-section" aria-labelledby="nf-library">
@@ -200,7 +223,7 @@
 
     <nav class="popup-section" aria-label={i18n.t("popup.pages")}>
       <ul class="links">
-        {#each PAGES as { page: target, title, icon: Icon } (target)}
+        {#each LINKED as { page: target, title, icon: Icon } (target)}
           <li>
             <button class="link" type="button" data-page={target} onclick={() => void open(target)}>
               <span class="link-icon"><Icon size={20} /></span>

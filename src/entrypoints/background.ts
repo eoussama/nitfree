@@ -1,4 +1,5 @@
 import { createLibrary, createLibraryHandlers, createPacks, createTags, migrateLegacyDatabase, NitfreeDatabase } from "~/lib/db";
+import { showProblems } from "~/lib/diagnostics";
 import { broadcast, handleMessages } from "~/lib/messaging";
 
 
@@ -14,6 +15,7 @@ export default defineBackground(() => {
 
   handleMessages({
     "runtime:ping": () => ({ version: browser.runtime.getManifest().version }),
+    "diagnostics:status": ({ problems }, sender) => showProblems(sender.tab?.id, problems),
     ...createLibraryHandlers(createLibrary(db), createTags(db), createPacks(db), broadcast),
   });
 

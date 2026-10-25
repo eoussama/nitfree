@@ -2,7 +2,7 @@
   The popup's settings page: the sizes emojis and stickers are sent at, what a click on an item does,
   whether animated items play in the panel, whether typing `:name` suggests Nitfree items, and where,
   and the keyboard shortcut that opens the panel. Each change is saved at once, and open Discord tabs
-  follow it.
+  follow it. Its end links to the diagnostics page.
 -->
 <script lang="ts">
   import type { TClickAction, TSendSizes, TSuggestionsAt } from "~/lib/settings";
@@ -12,6 +12,8 @@
   import { DEFAULT_SHORTCUT, formatShortcut, isMac, isUsableShortcut, shortcutKeys as keysOf, shortcutOf } from "~/lib/shortcut";
 
 
+
+  const { onopen }: { onopen?: (page: "diagnostics") => void } = $props();
 
   const SIZE_KINDS: (keyof TSendSizes)[] = ["emoji", "sticker"];
   const CLICK_ACTIONS: TClickAction[] = ["send", "add"];
@@ -288,6 +290,14 @@
       {/if}
     </div>
   </fieldset>
+</div>
+
+<div class="form-section">
+  <h2 class="form-title">{i18n.t("diagnostics.heading")}</h2>
+  <p class="form-description">{i18n.t("diagnostics.settingsHint")}</p>
+  <div class="actions">
+    <button class="button secondary" type="button" data-page="diagnostics" onclick={() => onopen?.("diagnostics")}>{i18n.t("diagnostics.open")}</button>
+  </div>
 </div>
 
 <style>

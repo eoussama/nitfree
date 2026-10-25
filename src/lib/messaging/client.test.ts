@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
 import { CHANNEL, isEventEnvelope, isReply, isRequestEnvelope } from "./envelope";
-import { broadcast, handleMessages, onEvent, sendMessage } from "./index";
+import { broadcast, handleMessages, handleTabMessages, onEvent, sendMessage, sendTabMessage } from "./index";
 
 
 
@@ -35,6 +35,49 @@ describe("sendMessage", () => {
     fakeBrowser.runtime.onMessage.addListener(() => "something else" as never);
 
     await expect(sendMessage("runtime:ping")).rejects.toThrow("No handler answered \"runtime:ping\"");
+  });
+});
+
+describe("sendTabMessage", () => {
+  // The browser passes a tab's messages to the listeners in that tab.
+  function deliverToTab(): ReturnType<typeof vi.spyOn> {
+    return vi.spyOn(fakeBrowser.tabs, "sendMessage").mockImplementation(((_: number, message: unknown) => new Promise((resolve) => {
+      void fakeBrowser.runtime.onMessage.trigger(message, {}, resolve);
+    })) as never);
+  }
+
+  it("reaches the tab's handler, and gives back what it answers", async () => {
+    const send = deliverToTab();
+
+    handleTabMessages({ "diagnostics:run": ({ interactive }) => [{ id: "theme", status: interactive ? "ok" : "skipped" }] });
+
+    expect(await sendTabMessage(4, "diagnostics:run", { interactive: true })).toEqual([{ id: "theme", status: "ok" }]);
+    expect(send).toHaveBeenCalledWith(4, { channel: CHANNEL, kind: "request", name: "diagnostics:run", data: { interactive: true } });
+  });
+
+  it("rejects with the tab handler's error, and when Nitfree does not run in the tab", async () => {
+    deliverToTab();
+    handleTabMessages({
+      "diagnostics:run": () => {
+        throw new RangeError("Too far.");
+      },
+    });
+
+    await expect(sendTabMessage(4, "diagnostics:run", { interactive: false })).rejects.toMatchObject({ name: "RangeError", message: "Too far." });
+
+    vi.spyOn(fakeBrowser.tabs, "sendMessage").mockResolvedValue(undefined as never);
+    await expect(sendTabMessage(4, "diagnostics:run", { interactive: false })).rejects.toThrow("No handler answered \"diagnostics:run\"");
+  });
+
+  it("is not answered once the tab stops listening", async () => {
+    deliverToTab();
+
+    const stop = handleTabMessages({ "diagnostics:run": () => [] });
+    const remove = vi.spyOn(fakeBrowser.runtime.onMessage, "removeListener");
+
+    stop();
+    expect(remove).toHaveBeenCalledOnce();
+    expect(await fakeBrowser.runtime.onMessage.trigger({ channel: CHANNEL, kind: "request", name: "diagnostics:run", data: {} }, {}, () => undefined)).toEqual([]);
   });
 });
 

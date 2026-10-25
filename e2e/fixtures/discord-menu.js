@@ -17,11 +17,11 @@ const ITEMS = [
   [["copy-link", "Copy Message Link"], ["delete", "Delete Message", "colorDanger_c1e9c4"]],
 ];
 
-let open = null;
+let openLayer = null;
 
 function closeMenu() {
-  open?.remove();
-  open = null;
+  openLayer?.remove();
+  openLayer = null;
 }
 
 function fill(menu) {
@@ -85,7 +85,7 @@ function openMenu(event) {
 
   layer.append(menu);
   document.querySelector("#layers").append(layer);
-  open = layer;
+  openLayer = layer;
   menu.focus();
   setTimeout(() => menu.isConnected && fill(menu), 50);
 }
@@ -124,7 +124,7 @@ window.addEventListener("contextmenu", (event) => {
 });
 
 document.addEventListener("mousedown", (event) => {
-  if (open && !open.contains(event.target)) {
+  if (openLayer && !openLayer.contains(event.target)) {
     closeMenu();
   }
 });

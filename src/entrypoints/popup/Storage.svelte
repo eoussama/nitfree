@@ -224,33 +224,6 @@
 />
 
 <style>
-  /* Discord's list rows: a label and its value, a line between each. */
-  .rows {
-    margin: 0;
-  }
-
-  .row {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 0;
-    font-size: 14px;
-    line-height: 18px;
-  }
-
-  .row + .row {
-    border-top: 1px solid var(--border-subtle, var(--nf-border));
-  }
-
-  .row dt {
-    color: var(--text-default, var(--nf-text));
-  }
-
-  .row dd {
-    margin: 0;
-    color: var(--text-muted, var(--nf-muted));
-  }
-
   .largest {
     margin: 0;
     padding: 0;

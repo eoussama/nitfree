@@ -1,9 +1,13 @@
 import type { TEventEnvelope, TRequestEnvelope } from "./envelope";
-import type { TEventName, TEvents, TRequestArgs, TRequestName, TResponse } from "./protocol";
+import type { TEventName, TEvents, TRequestArgs, TRequestName, TResponse, TTabRequestArgs, TTabRequestName, TTabResponse } from "./protocol";
 import { decode, encode } from "./codec";
 import { CHANNEL, isEventEnvelope, isReply } from "./envelope";
 
 
+
+async function envelopeOf(name: string, data: unknown): Promise<TRequestEnvelope> {
+  return { channel: CHANNEL, kind: "request", name, data: await encode(data) };
+}
 
 /**
  * Sends a request to the background worker and resolves with its response.
@@ -14,9 +18,27 @@ import { CHANNEL, isEventEnvelope, isReply } from "./envelope";
  * @returns The handler's response.
  */
 export async function sendMessage<K extends TRequestName>(name: K, ...args: TRequestArgs<K>): Promise<TResponse<K>> {
-  const envelope: TRequestEnvelope = { channel: CHANNEL, kind: "request", name, data: await encode(args[0]) };
-  const reply: unknown = await browser.runtime.sendMessage(envelope);
+  const reply: unknown = await browser.runtime.sendMessage(await envelopeOf(name, args[0]));
 
+  return unwrap(name, reply) as TResponse<K>;
+}
+
+/**
+ * Sends a request to the content script of one Discord tab and resolves with its response.
+ * Rejects when Nitfree does not run in that tab, or with the handler's error.
+ *
+ * @param tabId - The tab.
+ * @param name - The request name.
+ * @param args - The request payload, omitted for requests that take none.
+ * @returns The handler's response.
+ */
+export async function sendTabMessage<K extends TTabRequestName>(tabId: number, name: K, ...args: TTabRequestArgs<K>): Promise<TTabResponse<K>> {
+  const reply: unknown = await browser.tabs.sendMessage(tabId, await envelopeOf(name, args[0]));
+
+  return unwrap(name, reply) as TTabResponse<K>;
+}
+
+function unwrap(name: string, reply: unknown): unknown {
   if (!isReply(reply)) {
     throw new Error(`No handler answered "${name}"`);
   }
@@ -29,7 +51,7 @@ export async function sendMessage<K extends TRequestName>(name: K, ...args: TReq
     throw error;
   }
 
-  return decode(reply.data) as TResponse<K>;
+  return decode(reply.data);
 }
 
 /**

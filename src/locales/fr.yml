@@ -326,3 +326,65 @@ save:
 toast:
   deleted: « {title} » supprimé
   undo: Annuler
+diagnostics:
+  heading: Diagnostic
+  settingsHint: Vérifie que Nitfree fonctionne toujours avec Discord tel qu'il est aujourd'hui, dans votre onglet Discord ouvert. Rien n'est envoyé nulle part.
+  open: Lancer le diagnostic
+  running: Vérification…
+  noTab: Ouvrez Discord dans un onglet, puis relancez les vérifications.
+  unreachable: Nitfree ne tourne pas dans votre onglet Discord. Rechargez l'onglet, puis relancez les vérifications.
+  allGood: Tout fonctionne.
+  changed:
+    1: Tout fonctionne, mais Discord a changé 1 élément dont Nitfree dépend.
+    n: Tout fonctionne, mais Discord a changé $1 éléments dont Nitfree dépend.
+  problems:
+    1: 1 élément ne fonctionne pas.
+    n: $1 éléments ne fonctionnent pas.
+  results: Résultats
+  recheck: Vérifier à nouveau
+  recheckHint: Vérifier à nouveau ouvre aussi le sélecteur d'emojis de Discord, puis le menu d'un emoji, d'un sticker ou d'une image des messages du salon, un instant chacun, pour les vérifier. Rien n'est envoyé.
+  reportTitle: Rapport
+  reportHint: La liste des résultats en texte brut, avec la version de Nitfree et votre navigateur, à coller dans un signalement de bug.
+  copy: Copier le rapport
+  copied: Copié. Collez-le dans un signalement de bug sur GitHub.
+  status:
+    ok: Fonctionne
+    fallback: Changé
+    missing: Introuvable
+    skipped: Non vérifié
+  groups:
+    extension: Nitfree
+    composer: Zone de message
+    theme: Thème
+    chat: Messages
+    picker: Sélecteur d'expressions
+    menu: Menu des messages
+  skippedHint:
+    composer: Ouvrez un salon où vous pouvez écrire pour la vérifier.
+    chat: Chacun est vérifié quand il y en a un en vue dans les messages du salon, envoyé par n'importe qui. Les emojis de Discord et votre bibliothèque Nitfree ne comptent pas.
+    picker: Vérifié quand vous vérifiez à nouveau.
+    menu: Vérifié quand vous vérifiez à nouveau, avec un emoji personnalisé, un sticker ou une image que Nitfree peut enregistrer en vue dans les messages du salon. Les stickers animés de Discord ne peuvent pas être enregistrés.
+  checks:
+    background: Service d'arrière-plan
+    library: Base de la bibliothèque
+    content: Nitfree dans l'onglet Discord
+    composer: Zone de message
+    composerBox: Cadre de la zone de message
+    messageBox: Champ de texte
+    uploadInput: Envoi de fichiers
+    chatButtonGroup: Boutons de la barre de discussion
+    chatButtonModel: Bouton de discussion de Discord
+    chatButtonLook: Style des boutons de discussion
+    pickerButton: Boutons du sélecteur
+    emojiButton: Bouton des emojis
+    toggler: Bouton Nitfree
+    theme: Thème de Discord
+    chatEmoji: Emojis personnalisés des messages
+    chatSticker: Stickers des messages
+    chatImage: Images des messages
+    pickerTabList: Onglets du sélecteur
+    pickerTabLook: Style des onglets du sélecteur
+    pickerTab: Onglet Nitfree
+    contextMenu: Menu
+    menuLook: Style du menu
+    saveMenuItem: Enregistrer dans Nitfree
