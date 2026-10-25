@@ -22,14 +22,15 @@
     <script src="main.js" defer></script>
   </head>
   <body>
-    <header class="hero">
-      <nav class="bar" aria-label="Nitfree">
+    <!-- Stays at the top while the page scrolls; main.js gives it a backdrop once it leaves the hero's top. -->
+    <header class="bar">
+      <nav class="bar-inner" aria-label="Nitfree">
         <a class="brand" href="./">
           <img src="images/logo.png" alt="" width="36" height="36">
           <span>Nitfree</span>
         </a>
         <div class="bar-links">
-          <a class="bar-link" href="{{repository}}/blob/main/PRIVACY.md">Privacy</a>
+          <a class="bar-link" href="https://raw.githubusercontent.com/eoussama/nitfree/main/PRIVACY.md">Privacy</a>
           <a class="bar-link icon" href="{{repository}}" aria-label="Nitfree on GitHub" title="Nitfree on GitHub">
             <!-- GitHub's mark. -->
             <svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true">
@@ -38,7 +39,9 @@
           </a>
         </div>
       </nav>
+    </header>
 
+    <div class="hero">
       <div class="hero-inner">
         <div class="hero-copy">
           <h1>Your own emojis, stickers and GIFs in Discord, without&nbsp;Nitro.</h1>
@@ -57,7 +60,7 @@
           <img src="images/panel.png" alt="The Nitfree panel open above Discord's chat bar, with favorites, recent picks and a pack of emojis" width="1280" height="800">
         </figure>
       </div>
-    </header>
+    </div>
 
     <main>
       <section class="features" aria-labelledby="features-title">
@@ -138,7 +141,7 @@
       <section class="privacy" aria-labelledby="privacy-title">
         <h2 id="privacy-title">Private by design</h2>
         <p>Nitfree has no servers, no account, no analytics and no tracking. Your library, your settings and your themes stay in your browser, on your device.</p>
-        <a class="text-link" href="{{repository}}/blob/main/PRIVACY.md">Read the privacy policy</a>
+        <a class="text-link" href="https://raw.githubusercontent.com/eoussama/nitfree/main/PRIVACY.md">Read the privacy policy</a>
       </section>
 
       <section class="cta" aria-labelledby="cta-title">
@@ -154,7 +157,7 @@
       <p>
         <a href="{{repository}}">Source code</a> ·
         <a href="{{repository}}/issues">Report a problem</a> ·
-        <a href="{{repository}}/blob/main/PRIVACY.md">Privacy</a> ·
+        <a href="https://raw.githubusercontent.com/eoussama/nitfree/main/PRIVACY.md">Privacy</a> ·
         <a href="{{repository}}/blob/main/LICENSE">MIT license</a>
       </p>
     </footer>

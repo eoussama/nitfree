@@ -1,5 +1,5 @@
 /*
- * Shows the page's parts as they scroll into view, and loads the trailer from YouTube only once it is
+ * Gives the top bar a backdrop once scrolled, shows the page's parts as they scroll into view, and loads the trailer from YouTube only once it is
  * played. Without this script, the page shows in full and the trailer opens on YouTube.
  */
 
@@ -12,6 +12,13 @@ const REVEALED = ".hero-copy, .hero-shot, .section-title, .feature-copy, .featur
  * How far apart the cards of one row show, in milliseconds.
  */
 const STAGGER = 80;
+
+// The top bar gets its backdrop once the page has scrolled.
+const bar = document.querySelector(".bar");
+const onScroll = () => bar?.classList.toggle("scrolled", window.scrollY > 8);
+
+window.addEventListener("scroll", onScroll, { passive: true });
+onScroll();
 
 const observer = new IntersectionObserver((entries) => {
   for (const entry of entries) {
