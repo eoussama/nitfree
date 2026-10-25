@@ -18,6 +18,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "zip:edge": "wxt zip -b edge",
+    "zip:all": "pnpm zip && pnpm zip:edge && pnpm zip:firefox",
     "site": "node scripts/build-site.mjs",
     "lint": "dx lint",
     "lint:fix": "dx fix",
