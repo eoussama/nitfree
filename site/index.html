@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nitfree: your emojis, stickers and GIFs in Discord, without Nitro</title>
+    <meta name="description" content="A free browser extension that keeps your own emojis, stickers, GIFs and images in a library and sends them in any Discord channel. For Chrome, Edge and Firefox.">
+    <meta name="theme-color" content="#5865f2">
+    <link rel="canonical" href="https://{{domain}}/">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-32.png">
+    <link rel="apple-touch-icon" href="images/icon-512.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://{{domain}}/">
+    <meta property="og:title" content="Nitfree">
+    <meta property="og:description" content="Your own emojis, stickers and GIFs in Discord, without Nitro.">
+    <meta property="og:image" content="https://{{domain}}/images/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preload" href="fonts/noto-sans-800.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="bar" aria-label="Nitfree">
+        <a class="brand" href="./">
+          <img src="images/logo.png" alt="" width="36" height="36">
+          <span>Nitfree</span>
+        </a>
+        <a class="bar-link" href="{{repository}}">GitHub</a>
+      </nav>
+
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <img class="hero-logo" src="images/logo.png" alt="Nitfree logo" width="96" height="96">
+          <h1>Your own emojis, stickers and GIFs in Discord, without&nbsp;Nitro.</h1>
+          <p class="lead">Nitfree keeps your library in your browser and adds it to Discord's chat bar and emoji picker, with favorites, recent picks and your packs one click away. Search it, type <code>:name</code>, or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>.</p>
+
+          <ul class="stores" aria-label="Get Nitfree">
+            <li><a class="store" href="{{chrome}}"><span class="store-label">{{chromeAction}}</span><span class="store-name">Chrome</span></a></li>
+            <li><a class="store" href="{{edge}}"><span class="store-label">{{edgeAction}}</span><span class="store-name">Edge</span></a></li>
+            <li><a class="store" href="{{firefox}}"><span class="store-label">{{firefoxAction}}</span><span class="store-name">Firefox</span></a></li>
+            <li><span class="store soon" aria-disabled="true"><span class="store-label">Coming soon</span><span class="store-name">Safari</span></span></li>
+          </ul>
+
+          <p class="meta">
+            Free and open source · Version <a href="{{repository}}/releases/tag/v{{version}}">{{version}}</a> · Nothing leaves your browser
+          </p>
+        </div>
+
+        <figure class="hero-shot">
+          <img src="images/panel.png" alt="The Nitfree panel open above Discord's chat bar, with favorites, recent picks and a pack of emojis" width="1280" height="800">
+        </figure>
+      </div>
+    </header>
+
+    <main>
+      <section class="features" aria-labelledby="features-title">
+        <h2 id="features-title" class="section-title">Everything Nitro's emoji perks give you, kept by you</h2>
+
+        <article class="feature">
+          <div class="feature-copy">
+            <p class="eyebrow">While you type</p>
+            <h3>Type <code>:name</code> and send it</h3>
+            <p>Your items show up in Discord's own suggestions as you type, emojis, stickers and GIFs alike. The arrow keys reach them, Enter sends, Tab adds one without sending.</p>
+          </div>
+          <img class="feature-shot" src="images/suggest.png" alt="Nitfree items listed in Discord's emoji suggestions for :pig" width="1280" height="800" loading="lazy">
+        </article>
+
+        <article class="feature">
+          <div class="feature-copy">
+            <p class="eyebrow">From chat</p>
+            <h3>Save any emoji or sticker you see</h3>
+            <p>Right-click a custom emoji, a sticker or an image in a message and pick <strong>Save to Nitfree</strong>. Name it, tag it, and it is yours to send anywhere.</p>
+          </div>
+          <img class="feature-shot" src="images/save.png" alt="Save to Nitfree at the top of a message's menu in Discord" width="1280" height="800" loading="lazy">
+        </article>
+
+        <article class="feature">
+          <div class="feature-copy">
+            <p class="eyebrow">Make your own</p>
+            <h3>Turn clips into GIFs and stickers</h3>
+            <p>Drop an MP4 or WebM, pick the part you want, the frame rate and the size. Crop images, trim an animation's frames, or clear a background, all without leaving Discord.</p>
+          </div>
+          <img class="feature-shot" src="images/video.png" alt="The Video to GIF editor, with a clip range, frame rate and size" width="1280" height="800" loading="lazy">
+        </article>
+
+        <article class="feature">
+          <div class="feature-copy">
+            <p class="eyebrow">Free themes</p>
+            <h3>Nitro-style themes, at no cost</h3>
+            <p>Put a gradient behind Discord, change its accent color, or add your own CSS snippets, from Nitfree's popup. Every open Discord tab follows at once.</p>
+          </div>
+          <img class="feature-shot" src="images/themes.png" alt="Discord with a purple gradient theme from Nitfree" width="1280" height="800" loading="lazy">
+        </article>
+      </section>
+
+      <section class="grid" aria-labelledby="more-title">
+        <h2 id="more-title" class="section-title">And the rest of your library, looked after</h2>
+        <ul class="cards">
+          <li class="card">
+            <h3>Packs</h3>
+            <p>Group items into packs, each a section of the panel, and share a pack as one <code>.nitfree</code> file.</p>
+          </li>
+          <li class="card">
+            <h3>Duplicates</h3>
+            <p>Find identical files and resized or converted copies, and keep one with the others' tags and favorites.</p>
+          </li>
+          <li class="card">
+            <h3>Backup</h3>
+            <p>Export everything to one file and import it anywhere, or bring in a zip or folder of images, with folders as tags.</p>
+          </li>
+          <li class="card">
+            <h3>Storage</h3>
+            <p>See what your library takes, clear cached copies, and ask the browser to keep it when the disk runs low.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="trailer" aria-labelledby="trailer-title">
+        <h2 id="trailer-title" class="section-title">See it in a minute</h2>
+        <video controls preload="none" poster="images/trailer.png" width="1280" height="720">
+          <source src="media/trailer.mp4" type="video/mp4">
+          <a href="media/trailer.mp4">Watch the trailer</a>
+        </video>
+      </section>
+
+      <section class="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">Private by design</h2>
+        <p>Nitfree has no servers, no account, no analytics and no tracking. Your library, your settings and your themes stay in your browser, on your device.</p>
+        <a class="text-link" href="{{repository}}/blob/main/PRIVACY.md">Read the privacy policy</a>
+      </section>
+
+      <section class="cta" aria-labelledby="cta-title">
+        <h2 id="cta-title">Get Nitfree</h2>
+        <ul class="stores" aria-label="Get Nitfree">
+          <li><a class="store" href="{{chrome}}"><span class="store-label">{{chromeAction}}</span><span class="store-name">Chrome</span></a></li>
+          <li><a class="store" href="{{edge}}"><span class="store-label">{{edgeAction}}</span><span class="store-name">Edge</span></a></li>
+          <li><a class="store" href="{{firefox}}"><span class="store-label">{{firefoxAction}}</span><span class="store-name">Firefox</span></a></li>
+          <li><span class="store soon" aria-disabled="true"><span class="store-label">Coming soon</span><span class="store-name">Safari</span></span></li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Nitfree is not affiliated with or endorsed by Discord.</p>
+      <p>
+        <a href="{{repository}}">Source code</a> ·
+        <a href="{{repository}}/issues">Report a problem</a> ·
+        <a href="{{repository}}/blob/main/PRIVACY.md">Privacy</a> ·
+        <a href="{{repository}}/blob/main/LICENSE">MIT license</a>
+      </p>
+    </footer>
+  </body>
+</html>

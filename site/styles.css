@@ -1,0 +1,413 @@
+/*
+  Nitfree's landing page, in the look of its store artwork: Discord's blurple fading to a lighter
+  blue under a fine dot grid, heavy white headlines, and Discord's dark surfaces for the rest.
+  The typeface is bundled, so the page asks nothing of other servers.
+*/
+
+@font-face {
+  font-family: "Noto Sans";
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/noto-sans-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Noto Sans";
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/noto-sans-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Noto Sans";
+  font-weight: 800;
+  font-display: swap;
+  src: url("fonts/noto-sans-800.woff2") format("woff2");
+}
+
+:root {
+  --blurple: #5865f2;
+  --sky: #86a8ff;
+  --bg: #1e1f22;
+  --surface: #2b2d31;
+  --surface-high: #313338;
+  --border: #3f4147;
+  --text: #f2f3f5;
+  --muted: #b5bac1;
+  --radius: 16px;
+  --gutter: clamp(16px, 5vw, 48px);
+  --width: 1160px;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Noto Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+}
+
+code,
+kbd {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 14%);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+}
+
+kbd {
+  border-bottom: 2px solid rgb(0 0 0 / 25%);
+}
+
+:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+/* The store artwork's backdrop: blurple to sky, with a dot grid over it. */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 0 var(--gutter) clamp(48px, 8vw, 96px);
+  background:
+    radial-gradient(rgb(255 255 255 / 14%) 1px, transparent 1.5px) 0 0 / 22px 22px,
+    linear-gradient(115deg, #4c64ea 0%, var(--blurple) 35%, var(--sky) 100%);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--width);
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.brand img {
+  border-radius: 10px;
+}
+
+.bar-link {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 16%);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.bar-link:hover {
+  background: rgb(255 255 255 / 26%);
+}
+
+.hero-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(32px, 5vw, 64px);
+  align-items: center;
+  max-width: var(--width);
+  margin: clamp(16px, 4vw, 48px) auto 0;
+}
+
+.hero-logo {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 24px;
+  border-radius: 22px;
+  box-shadow: 0 12px 32px rgb(20 30 120 / 35%);
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(36px, 5.2vw, 60px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  max-width: 34em;
+  margin: 20px 0 0;
+  color: rgb(255 255 255 / 88%);
+  font-size: clamp(17px, 1.6vw, 19px);
+}
+
+.meta {
+  margin: 20px 0 0;
+  color: rgb(255 255 255 / 80%);
+  font-size: 14px;
+}
+
+.hero-shot {
+  margin: 0;
+}
+
+.hero-shot img,
+.feature-shot {
+  border-radius: var(--radius);
+  box-shadow: 0 30px 80px rgb(10 15 60 / 45%), 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+/* The download buttons: white on the gradient, the browser's name in bold. */
+.stores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.store {
+  display: flex;
+  flex-direction: column;
+  min-width: 108px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #1e1f22;
+  line-height: 1.25;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgb(20 30 120 / 25%);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+a.store:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgb(20 30 120 / 35%);
+}
+
+.store-label {
+  color: #4e5058;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.store-name {
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.store.soon {
+  background: rgb(255 255 255 / 18%);
+  color: #fff;
+  box-shadow: none;
+  cursor: default;
+}
+
+.store.soon .store-label {
+  color: rgb(255 255 255 / 80%);
+}
+
+main > section {
+  max-width: var(--width);
+  margin: 0 auto;
+  padding: clamp(56px, 9vw, 112px) var(--gutter) 0;
+}
+
+.section-title {
+  max-width: 20em;
+  margin: 0 auto clamp(32px, 6vw, 64px);
+  font-size: clamp(28px, 3.6vw, 42px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  text-align: center;
+}
+
+/* Each feature: what it does beside a screenshot, sides swapping from one to the next. */
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: center;
+}
+
+.feature + .feature {
+  margin-top: clamp(56px, 9vw, 112px);
+}
+
+.feature:nth-of-type(even) {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+}
+
+.feature:nth-of-type(even) .feature-copy {
+  order: 2;
+}
+
+.feature h3 {
+  margin: 0 0 12px;
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.feature p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.feature .eyebrow {
+  margin-bottom: 8px;
+  color: var(--sky);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.trailer video {
+  width: 100%;
+  border-radius: var(--radius);
+  background: #000;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 40%);
+}
+
+.privacy {
+  text-align: center;
+}
+
+.privacy h2,
+.cta h2 {
+  margin: 0 0 12px;
+  font-size: clamp(28px, 3.6vw, 42px);
+  font-weight: 800;
+}
+
+.privacy p {
+  max-width: 36em;
+  margin: 0 auto 16px;
+  color: var(--muted);
+}
+
+.text-link {
+  color: var(--sky);
+  font-weight: 600;
+}
+
+/* The closing call, on the hero's gradient again. */
+main > .cta {
+  max-width: calc(var(--width) - 2 * var(--gutter));
+  margin-top: clamp(56px, 9vw, 112px);
+  padding: clamp(40px, 6vw, 64px) var(--gutter);
+  border-radius: 24px;
+  background:
+    radial-gradient(rgb(255 255 255 / 14%) 1px, transparent 1.5px) 0 0 / 22px 22px,
+    linear-gradient(115deg, #4c64ea 0%, var(--blurple) 35%, var(--sky) 100%);
+  text-align: center;
+}
+
+.cta .stores {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.footer {
+  max-width: var(--width);
+  margin: 0 auto;
+  padding: 48px var(--gutter);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.footer p {
+  margin: 4px 0;
+}
+
+.footer a {
+  color: var(--text);
+}
+
+@media (width <= 860px) {
+  .hero-inner,
+  .feature,
+  .feature:nth-of-type(even) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feature:nth-of-type(even) .feature-copy {
+    order: 0;
+  }
+
+  main > .cta {
+    margin-inline: var(--gutter);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .store,
+  .bar-link {
+    transition: none;
+  }
+
+  a.store:hover {
+    transform: none;
+  }
+}
