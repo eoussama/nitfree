@@ -95,7 +95,7 @@ The previous Vue implementation lives on the `legacy` branch.
 
 The landing page at [nitfree.ouss.es](https://nitfree.ouss.es) lives in [`site/`](site/), with its screenshots and trailer taken from [`branding/`](branding/). `pnpm site` builds it with the version from `package.json`. Each release deploys it to GitHub Pages, after the release itself (see [`site.yml`](.github/workflows/site.yml)), and it can also be deployed by hand from the Actions tab.
 
-Its download buttons point to each browser's store once its link is set in [`site/stores.json`](site/stores.json), and to that browser's zip in the latest release until then.
+Its buttons point to each browser's store once its link is set in [`site/stores.json`](site/stores.json) (`chrome`, `edge`, `firefox` and `safari`), and show "Coming soon" until then. The trailer plays from YouTube, loaded only once it is played.
 
 ## Contributing
 

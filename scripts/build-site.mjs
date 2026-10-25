@@ -1,10 +1,9 @@
 /**
- * Builds the landing page into .output/site: fills in the version and the download links, and copies
- * the screenshots, the trailer and the typeface beside it. Run on each release, so the page always
- * offers the version just released.
+ * Builds the landing page into .output/site: fills in the version and the store buttons, and copies
+ * the screenshots, the script and the typeface beside it. Run on each release, so the page always
+ * names the version just released.
  *
- * A browser with a store link in site/stores.json is sent to its store; one without is sent to its zip
- * in the release on GitHub.
+ * A browser with a link in site/stores.json gets a button to its store; one without shows as coming soon.
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -18,7 +17,12 @@ const OUT = path.join(ROOT, ".output", "site");
 
 const DOMAIN = "nitfree.ouss.es";
 const REPOSITORY = "https://github.com/eoussama/nitfree";
-const BROWSERS = ["chrome", "edge", "firefox"];
+const TRAILER = "MtKqolyi_-Q";
+
+/**
+ * The browsers with a store, in the order their buttons show, by their key in site/stores.json.
+ */
+const BROWSERS = { chrome: "Chrome", edge: "Edge", firefox: "Firefox", safari: "Safari" };
 
 /**
  * What goes beside the page, by where it ends up.
@@ -34,24 +38,48 @@ const ASSETS = {
   "images/save.png": "branding/screenshots/unframed/unframed-4-save.png",
   "images/video.png": "branding/screenshots/unframed/unframed-5-video.png",
   "images/trailer.png": "branding/trailer/thumbnail.png",
-  "media/trailer.mp4": "branding/trailer/trailer.mp4",
   "fonts/noto-sans-400.woff2": "node_modules/@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2",
   "fonts/noto-sans-600.woff2": "node_modules/@fontsource/noto-sans/files/noto-sans-latin-600-normal.woff2",
   "fonts/noto-sans-800.woff2": "node_modules/@fontsource/noto-sans/files/noto-sans-latin-800-normal.woff2",
   "styles.css": "site/styles.css",
+  "main.js": "site/main.js",
 };
 
 const { version } = JSON.parse(await fs.readFile(path.join(ROOT, "package.json"), "utf8"));
 const stores = JSON.parse(await fs.readFile(path.join(SITE, "stores.json"), "utf8"));
 
-const values = { domain: DOMAIN, repository: REPOSITORY, version };
-
-for (const browser of BROWSERS) {
-  const store = stores[browser];
-
-  values[browser] = store || `${REPOSITORY}/releases/download/v${version}/nitfree-${version}-${browser}.zip`;
-  values[`${browser}Action`] = store ? "Get it for" : "Download for";
+function escape(text) {
+  return text.replaceAll("&", "&amp;").replaceAll("\"", "&quot;").replaceAll("<", "&lt;");
 }
+
+/**
+ * One store button: a link to the store, or "coming soon" while the browser has none.
+ *
+ * @param {string} key - The browser's key in site/stores.json.
+ * @param {string} name - The browser's name.
+ * @returns {string} The button's list item.
+ */
+function storeButton(key, name) {
+  const url = stores[key]?.trim();
+
+  if (!url) {
+    return `<li><span class="store soon" aria-disabled="true"><span class="store-label">Coming soon</span><span class="store-name">${name}</span></span></li>`;
+  }
+
+  if (!url.startsWith("https://")) {
+    throw new Error(`The ${name} link in site/stores.json must start with https://.`);
+  }
+
+  return `<li><a class="store" href="${escape(url)}"><span class="store-label">Get it for</span><span class="store-name">${name}</span></a></li>`;
+}
+
+const values = {
+  domain: DOMAIN,
+  repository: REPOSITORY,
+  version,
+  trailer: TRAILER,
+  stores: Object.entries(BROWSERS).map(([key, name]) => storeButton(key, name)).join("\n"),
+};
 
 const template = await fs.readFile(path.join(SITE, "index.html"), "utf8");
 const page = template.replaceAll(/\{\{(\w+)\}\}/g, (_, key) => {
