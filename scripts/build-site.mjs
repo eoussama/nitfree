@@ -90,8 +90,12 @@ const page = template.replaceAll(/\{\{(\w+)\}\}/g, (_, key) => {
   return values[key];
 });
 
-await fs.rm(OUT, { recursive: true, force: true });
+// The folder is emptied rather than removed, as an editor or a local server may hold it open.
 await fs.mkdir(OUT, { recursive: true });
+
+for (const entry of await fs.readdir(OUT)) {
+  await fs.rm(path.join(OUT, entry), { recursive: true, force: true });
+}
 await fs.writeFile(path.join(OUT, "index.html"), page);
 // Keeps the custom domain when the site is published from a branch, and documents it otherwise.
 await fs.writeFile(path.join(OUT, "CNAME"), `${DOMAIN}\n`);

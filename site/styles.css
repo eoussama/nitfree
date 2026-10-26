@@ -488,6 +488,39 @@ main > .cta {
   }
 }
 
+/*
+  Phones: the store buttons in an even two by two grid, and each screenshot cropped to a taller frame
+  around what it shows (its --focus-x), so the interface in it is large enough to read.
+*/
+@media (width <= 600px) {
+  .stores {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cta .stores {
+    max-width: 400px;
+    margin-inline: auto;
+  }
+
+  .store {
+    min-width: 0;
+  }
+
+  .hero-shot img,
+  .feature-shot {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    object-position: var(--focus-x, 50%) 50%;
+  }
+
+  .play {
+    width: 64px;
+    height: 64px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
