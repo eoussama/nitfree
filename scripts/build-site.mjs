@@ -4,10 +4,13 @@
  * names the version just released.
  *
  * A browser with a link in site/stores.json gets a button to its store; one without shows as coming soon.
+ *
+ * Also builds the privacy page, at /privacy, from PRIVACY.md, so the policy is written once.
  */
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { Marked } from "marked";
 
 
 
@@ -70,7 +73,7 @@ function storeButton(key, name) {
     throw new Error(`The ${name} link in site/stores.json must start with https://.`);
   }
 
-  return `<li><a class="store" href="${escape(url)}"><span class="store-label">Get it for</span><span class="store-name">${name}</span></a></li>`;
+  return `<li><a class="store" href="${escape(url)}" target="_blank" rel="noopener"><span class="store-label">Get it for</span><span class="store-name">${name}</span></a></li>`;
 }
 
 const values = {
@@ -81,14 +84,60 @@ const values = {
   stores: Object.entries(BROWSERS).map(([key, name]) => storeButton(key, name)).join("\n"),
 };
 
-const template = await fs.readFile(path.join(SITE, "index.html"), "utf8");
-const page = template.replaceAll(/\{\{(\w+)\}\}/g, (_, key) => {
-  if (!(key in values)) {
-    throw new Error(`site/index.html asks for "${key}", which the build does not know.`);
-  }
+/**
+ * Fills in a template's `{{name}}` placeholders.
+ *
+ * @param {string} template - The template's text.
+ * @param {Record<string, string>} given - What each placeholder becomes.
+ * @param {string} name - The template's file, for the error.
+ * @returns {string} The filled-in text.
+ */
+function fill(template, given, name) {
+  return template.replaceAll(/\{\{(\w+)\}\}/g, (_, key) => {
+    if (!(key in given)) {
+      throw new Error(`site/${name} asks for "${key}", which the build does not know.`);
+    }
 
-  return values[key];
+    return given[key];
+  });
+}
+
+/**
+ * Builds one page: its template, with the top bar and the footer shared by all pages.
+ *
+ * @param {string} name - The template's file in site/.
+ * @param {string} root - The way from the page up to the site's root, "" or "../".
+ * @param {Record<string, string>} [extra] - What else the page asks for.
+ * @returns {Promise<string>} The page.
+ */
+async function buildPage(name, root, extra = {}) {
+  const given = { ...values, root, ...extra };
+  const [template, bar, footer] = await Promise.all(
+    [name, "partials/bar.html", "partials/footer.html"].map(file => fs.readFile(path.join(SITE, file), "utf8")),
+  );
+
+  given.bar = fill(bar, given, "partials/bar.html");
+  given.footer = fill(footer, given, "partials/footer.html");
+
+  return fill(template, given, name);
+}
+
+/**
+ * The policy as HTML: its links open in a new tab like the page's others, and a table scrolls on its own on a narrow screen.
+ */
+const markdown = new Marked({
+  renderer: {
+    link({ href, tokens }) {
+      return `<a href="${escape(href)}" target="_blank" rel="noopener">${this.parser.parseInline(tokens)}</a>`;
+    },
+  },
 });
+const policy = (await markdown.parse(await fs.readFile(path.join(ROOT, "PRIVACY.md"), "utf8")))
+  .replaceAll("<table>", "<div class=\"table\"><table>")
+  .replaceAll("</table>", "</table></div>");
+
+const page = await buildPage("index.html", "");
+const privacy = await buildPage("privacy.html", "../", { content: policy });
 
 // The folder is emptied rather than removed, as an editor or a local server may hold it open.
 await fs.mkdir(OUT, { recursive: true });
@@ -97,6 +146,9 @@ for (const entry of await fs.readdir(OUT)) {
   await fs.rm(path.join(OUT, entry), { recursive: true, force: true });
 }
 await fs.writeFile(path.join(OUT, "index.html"), page);
+// A folder with an index, so the address /privacy works on a static host.
+await fs.mkdir(path.join(OUT, "privacy"), { recursive: true });
+await fs.writeFile(path.join(OUT, "privacy", "index.html"), privacy);
 // Keeps the custom domain when the site is published from a branch, and documents it otherwise.
 await fs.writeFile(path.join(OUT, "CNAME"), `${DOMAIN}\n`);
 

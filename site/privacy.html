@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privacy policy · Nitfree</title>
+    <meta name="description" content="What Nitfree stores, where it stores it and what it sends: no servers, no tracking, and everything stays in your browser.">
+    <meta name="theme-color" content="#1e1f22">
+    <link rel="canonical" href="https://{{domain}}/privacy/">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{root}}images/icon-32.png">
+    <link rel="apple-touch-icon" href="{{root}}images/icon-512.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://{{domain}}/privacy/">
+    <meta property="og:title" content="Nitfree privacy policy">
+    <meta property="og:description" content="Nitfree has no servers and no tracking. Everything stays in your browser.">
+    <meta property="og:image" content="https://{{domain}}/images/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preload" href="{{root}}fonts/noto-sans-800.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{root}}styles.css">
+    <script src="{{root}}main.js" defer></script>
+  </head>
+  <body>
+    {{bar}}
+
+    <main>
+      <!-- Rendered from PRIVACY.md at build time, so the policy is written once. -->
+      <article class="doc">
+        {{content}}
+      </article>
+    </main>
+
+    {{footer}}
+  </body>
+</html>

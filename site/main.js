@@ -1,5 +1,5 @@
 /*
- * Gives the top bar a backdrop once scrolled, shows the page's parts as they scroll into view, and loads the trailer from YouTube only once it is
+ * Gives the top bar a backdrop once scrolled, drifts the hero's layers as the page scrolls, shows the page's parts as they scroll into view, and loads the trailer from YouTube only once it is
  * played. Without this script, the page shows in full and the trailer opens on YouTube.
  */
 
@@ -19,6 +19,24 @@ const onScroll = () => bar?.classList.toggle("scrolled", window.scrollY > 8);
 
 window.addEventListener("scroll", onScroll, { passive: true });
 onScroll();
+
+// The hero's parallax: its layers read how far the page has scrolled over it as --parallax and drift at their own rates (styles.css).
+const hero = document.querySelector(".hero");
+
+if (hero && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  let frame = 0;
+
+  const update = () => {
+    frame = 0;
+    // Stops at the hero's end, as nothing of it shows past that.
+    hero.style.setProperty("--parallax", Math.min(window.scrollY, hero.offsetHeight));
+  };
+
+  window.addEventListener("scroll", () => {
+    frame ||= requestAnimationFrame(update);
+  }, { passive: true });
+  update();
+}
 
 const observer = new IntersectionObserver((entries) => {
   for (const entry of entries) {

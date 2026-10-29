@@ -100,6 +100,17 @@ kbd {
   background:
     radial-gradient(rgb(255 255 255 / 14%) 1px, transparent 1.5px) 0 0 / 22px 22px,
     linear-gradient(115deg, #4c64ea 0%, var(--blurple) 35%, var(--sky) 100%);
+  /* Parallax: --parallax is how far the page has scrolled over the hero, in pixels (main.js). */
+  background-position-y: calc(var(--parallax, 0) * 0.35px), 0;
+}
+
+/* The layers drift down at different rates as the page scrolls up, so the dots sit farthest back and the text nearest. */
+.hero-copy {
+  translate: 0 calc(var(--parallax, 0) * 0.06px);
+}
+
+.hero-shot {
+  translate: 0 calc(var(--parallax, 0) * 0.14px);
 }
 
 /* The top bar: clear over the hero, then a dark blurred backdrop once the page has scrolled. */
@@ -438,6 +449,68 @@ main > section {
   font-weight: 600;
 }
 
+/* A document page, such as the privacy policy, rendered from markdown. */
+.doc {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 56px) var(--gutter) 0;
+}
+
+.doc h1 {
+  margin: 0 0 16px;
+  font-size: clamp(32px, 4.4vw, 48px);
+}
+
+.doc h2 {
+  margin: 2em 0 0.5em;
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.doc p,
+.doc li {
+  color: var(--muted);
+}
+
+.doc strong {
+  color: var(--text);
+}
+
+.doc ul {
+  padding-left: 1.25em;
+}
+
+.doc li {
+  margin: 0.5em 0;
+}
+
+.doc a {
+  color: var(--sky);
+  font-weight: 600;
+}
+
+.doc .table {
+  overflow-x: auto;
+}
+
+.doc table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.doc th,
+.doc td {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.doc th {
+  background: var(--surface);
+}
+
 /* The closing call, on the hero's gradient again. */
 main > .cta {
   max-width: calc(var(--width) - 2 * var(--gutter));
@@ -537,6 +610,15 @@ main > .cta {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .hero {
+    background-position-y: 0;
+  }
+
+  .hero-copy,
+  .hero-shot {
+    translate: none;
   }
 
   a.store:hover {
